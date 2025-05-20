@@ -1,9 +1,12 @@
-# zotero-memento
-## To Install
-Go to RELEASES and follow the instructions there. If that doesn't work then follow the instructions below.
+# zotero-moment-o7
+
+project_status: pre-commit 1
+
+Moment-o7
+This is a present-compatible plugin to be used instead of zotero-memento. With Moment-o7 you can bring all of you archived research articles to a modern eco-system of web-browsers and word-processors without performing rocket surgery. You will get all of the classic memeto plugin functionality you had in Zotero v6 in a plugin that works on Zotero v7.
 
 
-Download this repo as .ZIP and extract. Then, go INTO the folder zotero-memento-master and compress the files INSIDE that folder (not the folder itself) into a .ZIP file. Change the extension of this newly created .ZIP file to .XPI. In Zotero, click Tools > Addons. Then press the Gear in the top-right corner, select "Install Add-Ons", and select the .XPI file. Restart Zotero to let the extension take effect. 
+Classic features include:
 
 ## Archiving a Webpage AUTOMATICALLY
 
