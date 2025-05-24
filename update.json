@@ -8,8 +8,8 @@
           "update_info_url": "https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.1",
           "applications": {
             "zotero": {
-              "strict_min_version": "6.999",
-              "strict_max_version": "7.0.*"
+              "strict_min_version": "7.0",
+              "strict_max_version": "7.*"
             }
           }
         },
@@ -19,8 +19,8 @@
           "update_info_url": "https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.2",
           "applications": {
             "zotero": {
-              "strict_min_version": "6.999",
-              "strict_max_version": "7.0.*"
+              "strict_min_version": "7.0",
+              "strict_max_version": "7.*"
             }
           }
         }
