@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.3] - 2025-01-24
+
+### Changed
+- Cleaned up codebase for production release
+- Removed debug console.log statements
+- Removed unused test files (quick-test.js, test-plugin.js)
+
+### Fixed
+- Removed development artifacts from production build
+
+## [0.0.2] - 2024-05-24 - Documentation Update
+
+### Changed
+- Updated documentation and README
+
 ## [0.0.1] - 2024-05-24 - Initial Beta Release
 
 ### Breaking Changes

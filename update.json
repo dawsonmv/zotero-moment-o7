@@ -23,6 +23,17 @@
               "strict_max_version": "7.*"
             }
           }
+        },
+        {
+          "version": "0.0.3",
+          "update_link": "https://github.com/dawsonmv/zotero-moment-o7/releases/download/v0.0.3/zotero-moment-o7.xpi",
+          "update_info_url": "https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.3",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "7.0",
+              "strict_max_version": "7.*"
+            }
+          }
         }
       ]
     }

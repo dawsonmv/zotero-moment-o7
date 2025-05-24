@@ -92,10 +92,6 @@ Zotero.Signpost = {
 		this.setRequestProperties(req);
 		req.send();
 
-
-		console.log(req.responseText);
-
-
 		var authorNameStart = req.responseText.indexOf(">", 
 							  req.responseText.indexOf("<personal-details:credit-name>")) + 1;
 		var authorNameEnd = req.responseText.indexOf("</personal-details:", authorNameStart);
