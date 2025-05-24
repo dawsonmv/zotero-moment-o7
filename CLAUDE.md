@@ -8,30 +8,29 @@ Zotero Moment-o7 is a Zotero plugin that automatically archives web resources to
 
 ## Architecture
 
-This is a classic Firefox/Zotero XUL extension with the following key components:
+This is a Zotero 7 Bootstrap plugin with the following key components:
 
-- **ZoteroArchive.js**: Main entry point that registers a Zotero.Notifier observer to detect new items
+- **bootstrap.js**: Main entry point with lifecycle hooks for Zotero 7
+- **zotero-moment-o7.js**: Core plugin logic with window management and notifier registration
 - **IaPusher.js**: Handles archiving to Internet Archive via web.archive.org/save API
-- **ArchivePusher.js**: Alternative archiver for archive.is family (currently uses deprecated cors-anywhere proxy)
 - **Signpost.js**: Extracts ORCID profiles using the Signposting protocol
-- **overlay.xul**: UI integration that loads scripts and adds context menu items
+- **moment-o7.ftl**: Fluent localization file for UI strings
 
 ## Key Technical Details
 
-- The plugin targets Zotero 5.x (per install.rdf) but README claims Zotero 7 compatibility
-- Uses CORS requests to archive resources, with ArchivePusher relying on cors-anywhere proxy
+- The plugin now targets Zotero 7 with Bootstrap architecture
+- Uses Zotero.HTTP.request for archiving to Internet Archive
 - Stores archived URLs in the item's "Extra" field and creates notes with robust links
-- Includes custom export translators in chrome/content/scripts/translators/
+- Includes custom export translators in src/translators/
 
 ## Testing
 
-Tests use Jasmine framework located in chrome/content/Jasmine/:
-- Open chrome/content/Jasmine/jasmine-standalone-3.4.0/SpecRunner.html in a browser
-- Test suites: UtilSuite.js and ZMementoSuite.js
+- Plugin functionality can be tested through Zotero's developer tools
+- Use the Error Console (Tools → Developer → Error Console) to debug
 
 ## Development Notes
 
-- No build process - this is a simple XUL extension that loads directly
-- To modify the plugin, edit files in chrome/content/scripts/
-- The cors-anywhere proxy usage in ArchivePusher.js is problematic due to rate limits
-- Consider updating to Zotero 7 Bootstrap architecture and removing proxy dependencies
+- Uses Bootstrap architecture for Zotero 7
+- Main namespace is Zotero.MomentO7
+- To modify the plugin, edit files in src/
+- Archive.is support has been removed due to CORS limitations

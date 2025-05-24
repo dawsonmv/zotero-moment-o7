@@ -1,5 +1,5 @@
 // Main plugin object
-Zotero.Memento = {
+Zotero.MomentO7 = {
   id: null,
   version: null,
   rootURI: null,

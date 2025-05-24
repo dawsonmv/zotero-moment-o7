@@ -1,5 +1,5 @@
 var Zotero;
-var ZoteroMemento;
+var ZoteroMomentO7;
 
 function log(msg) {
   if (Zotero) {
@@ -32,31 +32,31 @@ async function startup({ id, version, rootURI }, reason) {
   Services.scriptloader.loadSubScript(rootURI + "src/zotero-moment-o7.js");
   
   // Initialize plugin
-  ZoteroMemento = Zotero.Memento;
-  ZoteroMemento.init({ id, version, rootURI });
+  ZoteroMomentO7 = Zotero.MomentO7;
+  ZoteroMomentO7.init({ id, version, rootURI });
   
   // Add to all existing windows
-  ZoteroMemento.addToAllWindows();
+  ZoteroMomentO7.addToAllWindows();
   
   // Initialize main functionality
-  await ZoteroMemento.main();
+  await ZoteroMomentO7.main();
 }
 
 function shutdown({ id, version, rootURI }, reason) {
   log("Shutting down Moment-o7");
   
-  if (ZoteroMemento) {
+  if (ZoteroMomentO7) {
     // Remove from all windows
-    ZoteroMemento.removeFromAllWindows();
+    ZoteroMomentO7.removeFromAllWindows();
     
     // Clean up
-    ZoteroMemento.shutdown();
-    ZoteroMemento = undefined;
+    ZoteroMomentO7.shutdown();
+    ZoteroMomentO7 = undefined;
   }
   
   // Clear any remaining references
   if (Zotero) {
-    if (Zotero.Memento) delete Zotero.Memento;
+    if (Zotero.MomentO7) delete Zotero.MomentO7;
     if (Zotero.IaPusher) delete Zotero.IaPusher;
     if (Zotero.Signpost) delete Zotero.Signpost;
   }
@@ -64,13 +64,13 @@ function shutdown({ id, version, rootURI }, reason) {
 
 // Window management hooks
 function onMainWindowLoad({ window }) {
-  if (ZoteroMemento) {
-    ZoteroMemento.addToWindow(window);
+  if (ZoteroMomentO7) {
+    ZoteroMomentO7.addToWindow(window);
   }
 }
 
 function onMainWindowUnload({ window }) {
-  if (ZoteroMemento) {
-    ZoteroMemento.removeFromWindow(window);
+  if (ZoteroMomentO7) {
+    ZoteroMomentO7.removeFromWindow(window);
   }
 }
