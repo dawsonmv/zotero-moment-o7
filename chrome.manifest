@@ -1,3 +1,0 @@
-content zotero_memento chrome/content/
-
-overlay chrome://zotero/content/zoteroPane.xul chrome://zotero_memento/content/overlay.xul

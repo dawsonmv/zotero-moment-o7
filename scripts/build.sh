@@ -28,10 +28,12 @@ zip -r zotero-moment-o7.xpi . \
     -x "*.DS_Store" \
     -x "scripts/*" \
     -x "*.md" \
-    -x "make-it-red/*" \
     -x "*.xpi" \
     -x "node_modules/*" \
-    -x ".vscode/*"
+    -x ".vscode/*" \
+    -x "logs/*" \
+    -x "tests/*" \
+    -x "docs/*"
 
 if [ -f "zotero-moment-o7.xpi" ]; then
     echo -e "${GREEN}✓ Successfully built zotero-moment-o7.xpi${NC}"

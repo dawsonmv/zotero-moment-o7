@@ -1,0 +1,19 @@
+{
+  "addons": {
+    "zotero-memento@tran.org": {
+      "updates": [
+        {
+          "version": "2.0.0",
+          "update_link": "https://github.com/dawsonmv/zotero-moment-o7/releases/download/v2.0.0/zotero-moment-o7.xpi",
+          "update_info_url": "https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v2.0.0",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "6.999",
+              "strict_max_version": "7.0.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

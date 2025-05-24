@@ -13,4 +13,4 @@ fi
 
 # Launch with development flags
 echo "Launching Zotero Beta with profile: $PROFILE_NAME"
-"$ZOTERO_PATH" -P "$PROFILE_NAME" -purgecaches -jsconsole
+"$ZOTERO_PATH" -P "$PROFILE_NAME" --purgecaches --jsconsole

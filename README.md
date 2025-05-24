@@ -1,39 +1,103 @@
-# zotero-moment-o7
+# Zotero Moment-o7
 
-project_status: pre-commit 1
+A modern rewrite of the classic zotero-memento plugin, now compatible with Zotero 7.
 
-Moment-o7
-This is a present-compatible plugin to be used instead of zotero-memento. With Moment-o7 you can bring all of you archived research articles to a modern eco-system of web-browsers and word-processors without performing rocket surgery. You will get all of the classic memeto plugin functionality you had in Zotero v6 in a plugin that works on Zotero v7.
+## Features
 
+Moment-o7 brings all the classic memento plugin functionality to Zotero 7, allowing you to archive your research articles and prevent link rot.
 
-Classic features include:
+### Core Features
 
-## Archiving a Webpage AUTOMATICALLY
+- **Automatic Archiving**: Automatically saves pages added through the Browser Connector to Internet Archive
+- **Manual Archiving**: Right-click any item to archive it manually
+- **Archival Metadata**: 
+  - Saves archived URLs in the "Extra" field
+  - Attaches notes with robust links to archived versions
+  - Tags items with "archived" when complete
+- **ORCID Support**: Automatically extracts and attaches author ORCID profiles (for sites supporting the Signposting standard)
 
-Zotero Archive automatically saves pages added to your library through the Browser Connector to multiple internet archives (Internet Archive, archive.is, archive.today, etc.) It conveys the archival information to the user in the following ways:
+## Installation
 
-   * Saves the URL of the archived version of the item in the Internet Archive to the "Extra" field.
-   * Attaches a note with an anchor tag to the archived resource to the item.
-   * Attaches the ORCID profiles of the authors to the item. These can be accessed by clicking the dropdown menu to view the      notes and attachments.
-   * This only works for resources saved from websites that support the Signposting standard. More info can be found at             http://signposting.org/
+### Requirements
+- Zotero 7.0 or later
+- Zotero Browser Connector
 
-## How to Archive Webpages MANUALLY
+### Install from Release
+1. Download the latest `.xpi` file from the [Releases](https://github.com/dawsonmv/zotero-moment-o7/releases) page
+2. In Zotero, go to Tools → Add-ons
+3. Click the gear icon and select "Install Add-on From File..."
+4. Select the downloaded `.xpi` file
 
-Once you save an item to the library via the Browser connector, a success popup indicates that all of the actions above were attempted. On an error, you could manually archive an item by right-clicking on a selected item, clicking on "Archive this Resource", and choosing an archive to push to.
+### Development Installation
+See [DEV_ENVIRONMENT_SETUP.md](DEV_ENVIRONMENT_SETUP.md) for development setup instructions.
 
-## Translators
+## Usage
 
-In chrome/content/scripts/, you will find a folder named translators, which contain a number of export translators. Each of these translators is based off of an existing translator in Zotero, with the addition of two more properties:
+### Automatic Archiving
+When you save items to Zotero using the Browser Connector, the plugin automatically:
+1. Archives the webpage to Internet Archive
+2. Saves the archived URL to the item's "Extra" field
+3. Creates a note with a robust link
+4. Adds an "archived" tag
 
-   * a URL to an archived version of the resource
-   * the datetime that the resource was archived
+### Manual Archiving
+1. Select one or more items in your library
+2. Right-click and choose "Archive this Resource"
+3. Select "Internet Archive" from the submenu
 
-To download each of these translators, search for the "Zotero" folder in your system (it should contain a "translators" subdirectory). Drag each of the translators from the extension into Zotero > translators. When prompted to replace the translators click "Replace", and you're done!
+### Export Translators
 
-Currently, there are 5 translators that export your library to
+The plugin includes enhanced export translators that include archival information:
+- **BibLaTeX** - Includes archived URLs and dates
+- **MLA** - Modified to include archival metadata
+- **HTML Snippet/Robust Links** - Creates robust links (see [robustlinks.mementoweb.org](http://robustlinks.mementoweb.org/))
+- **Bookmarks** - Exports with archival information
+- **Wikipedia Citation Template** - Includes archived versions
 
-   * BibLaTex
-   * MLA
-   * Robust Links (listed under HTML Snippet; more information can be found about Robust Links at                                 http://robustlinks.mementoweb.org/)
-   * Bookmarks
-   * Wikipedia Citation Template
+To install translators:
+1. Navigate to `src/translators/` in the plugin directory
+2. Copy the desired translator files to your Zotero translators directory
+3. Restart Zotero
+
+## Changes in Version 2.0
+
+- Complete rewrite for Zotero 7 compatibility
+- Replaced XMLHttpRequest with Zotero.HTTP.request API
+- Removed cors-anywhere dependency
+- Modern Bootstrap architecture
+- Improved error handling and notifications
+- Removed Archive.is support (technical limitations)
+
+## Technical Details
+
+- Built using Zotero 7's Bootstrap architecture
+- Uses Fluent for localization
+- Implements proper window management to prevent memory leaks
+- Modern async/await patterns throughout
+
+## Known Limitations
+
+- Archive.is and related sites are no longer supported due to CORS restrictions
+- Some websites may block automated archiving attempts
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Original zotero-memento plugin by Leon Tran
+- Harding Center for Risk Literacy for continued development
+- Internet Archive for providing archival services
+- Zotero development team for the plugin framework
+
+## Support
+
+For issues and feature requests, please use the [GitHub Issues](https://github.com/dawsonmv/zotero-moment-o7/issues) page.

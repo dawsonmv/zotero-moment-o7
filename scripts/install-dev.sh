@@ -8,21 +8,37 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-PLUGIN_ID="zotero_memento@zotero.org"
+PLUGIN_ID="zotero-memento@tran.org"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 echo -e "${YELLOW}Installing zotero-moment-o7 in development mode...${NC}"
 
-# Find Zotero profile directory
+# Find Zotero profile directory - try multiple locations
+PROFILE_FOUND=false
+
+# Check for custom dev profile first
 if [ -d "$HOME/ZoteroDevProfile" ]; then
     PROFILE_DIR="$HOME/ZoteroDevProfile"
-elif [ -d "$HOME/Library/Application Support/Zotero/Profiles/"*".default" ]; then
-    PROFILE_DIR=$(ls -d "$HOME/Library/Application Support/Zotero/Profiles/"*".default" | head -1)
-else
+    PROFILE_FOUND=true
+# Check standard Zotero profile location on macOS
+elif [ -d "$HOME/Library/Application Support/Zotero/Profiles" ]; then
+    # Look for any profile directory
+    for dir in "$HOME/Library/Application Support/Zotero/Profiles"/*; do
+        if [ -d "$dir" ] && [ -f "$dir/prefs.js" ]; then
+            PROFILE_DIR="$dir"
+            PROFILE_FOUND=true
+            break
+        fi
+    done
+fi
+
+if [ "$PROFILE_FOUND" = false ]; then
     echo -e "${RED}Error: Could not find Zotero profile directory${NC}"
     echo "Please create a development profile first using:"
-    echo "  /Applications/Zotero\ Beta.app/Contents/MacOS/zotero -P"
+    echo '  /Applications/"Zotero Beta.app"/Contents/MacOS/zotero -P'
+    echo ""
+    echo "Create a profile named 'ZoteroDev' in location: $HOME/ZoteroDevProfile"
     exit 1
 fi
 
