@@ -38,5 +38,6 @@
 - Reorganized file structure for clarity
 - Added VS Code integration for development
 
-## [1.1.1] - Previous version
+## [1.1.1] - Previous version (as Zotero Memento)
 - Last version supporting Zotero 5/6
+- Original plugin ID: zotero-memento@tran.org

@@ -89,7 +89,7 @@ Zotero.Memento = {
     
     // Add Fluent localization if we have locale files
     try {
-      window.MozXULElement.insertFTLIfNeeded("memento.ftl");
+      window.MozXULElement.insertFTLIfNeeded("moment-o7.ftl");
     } catch (e) {
       // Fluent files not yet created, will add later
       this.log("Fluent localization not yet available");
@@ -107,11 +107,11 @@ Zotero.Memento = {
     
     // Create separator
     const separator = doc.createXULElement('menuseparator');
-    separator.id = 'zotero-memento-separator';
+    separator.id = 'zotero-moment-o7-separator';
     
     // Create main menu
     const menu = doc.createXULElement('menu');
-    menu.id = 'zotero-memento-menu';
+    menu.id = 'zotero-moment-o7-menu';
     menu.setAttribute('label', 'Archive this Resource');
     
     // Create popup
@@ -119,7 +119,7 @@ Zotero.Memento = {
     
     // Create Internet Archive menu item
     const iaMenuItem = doc.createXULElement('menuitem');
-    iaMenuItem.id = 'zotero-memento-ia';
+    iaMenuItem.id = 'zotero-moment-o7-ia';
     iaMenuItem.setAttribute('label', 'Internet Archive');
     
     // Add click handler
@@ -169,7 +169,7 @@ Zotero.Memento = {
     }
     
     // Remove Fluent link if it exists
-    const fluentLink = doc.querySelector('[href="memento.ftl"]');
+    const fluentLink = doc.querySelector('[href="moment-o7.ftl"]');
     if (fluentLink) {
       fluentLink.remove();
     }

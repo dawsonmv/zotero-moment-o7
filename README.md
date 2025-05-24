@@ -1,6 +1,6 @@
 # Zotero Moment-o7
 
-A modern rewrite of the classic zotero-memento plugin, now compatible with Zotero 7.
+A modern rewrite of the classic Zotero Memento plugin, now compatible with Zotero 7.
 
 ## Features
 
@@ -93,7 +93,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Original zotero-memento plugin by Leon Tran
+- Original Zotero Memento plugin by Leon Tran
 - Harding Center for Risk Literacy for continued development
 - Internet Archive for providing archival services
 - Zotero development team for the plugin framework

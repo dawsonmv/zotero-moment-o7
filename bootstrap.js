@@ -29,7 +29,7 @@ async function startup({ id, version, rootURI }, reason) {
   }
   
   // Load plugin scripts
-  Services.scriptloader.loadSubScript(rootURI + "src/zotero-memento.js");
+  Services.scriptloader.loadSubScript(rootURI + "src/zotero-moment-o7.js");
   
   // Initialize plugin
   ZoteroMemento = Zotero.Memento;

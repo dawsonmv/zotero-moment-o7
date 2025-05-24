@@ -1,4 +1,4 @@
-# Menu items
+# Zotero Moment-o7 - Menu items
 archive-resource = Archive this Resource
 archive-internet-archive = Internet Archive
 archive-archive-is = Archive.is (Manual)
