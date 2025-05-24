@@ -1,0 +1,23 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.DS_Store": true,
+        "**/node_modules": true,
+        "*.xpi": true
+    },
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "javascript.validate.enable": false,
+    "eslint.enable": true,
+    "eslint.validate": [
+        "javascript"
+    ],
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "*.xpi": true,
+        "make-it-red/**": true
+    }
+}

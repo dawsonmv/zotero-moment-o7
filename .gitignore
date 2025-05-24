@@ -1,1 +1,4 @@
 .DS_Store
+make-it-red/
+*.xpi
+.vscode/extensions.json

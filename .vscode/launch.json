@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Zotero Plugin",
+            "type": "firefox",
+            "request": "launch",
+            "reAttach": true,
+            "file": "${workspaceFolder}/bootstrap.js",
+            "preferences": {
+                "extensions.zotero.debug.log": true,
+                "extensions.zotero.debug.level": 5,
+                "extensions.zotero.debug.time": true
+            },
+            "pathMappings": [
+                {
+                    "url": "chrome://zotero_memento",
+                    "path": "${workspaceFolder}/chrome"
+                }
+            ]
+        },
+        {
+            "name": "Run JavaScript in Zotero",
+            "type": "firefox",
+            "request": "attach",
+            "url": "chrome://zotero/content/scaffold.xul",
+            "webRoot": "${workspaceFolder}",
+            "pathMappings": [
+                {
+                    "url": "chrome://zotero_memento",
+                    "path": "${workspaceFolder}/chrome"
+                }
+            ]
+        }
+    ]
+}
