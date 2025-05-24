@@ -1,0 +1,35 @@
+{
+  "name": "zotero-moment-o7",
+  "version": "0.0.3",
+  "description": "Archive web resources to prevent link rot. Automatically saves pages to Internet Archive when adding items to Zotero.",
+  "main": "bootstrap.js",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "build": "./scripts/build.sh",
+    "release": "./scripts/release.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dawsonmv/zotero-moment-o7.git"
+  },
+  "keywords": [
+    "zotero",
+    "plugin",
+    "archive",
+    "internet-archive",
+    "link-rot"
+  ],
+  "author": "Harding Center for Risk Literacy",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/dawsonmv/zotero-moment-o7/issues"
+  },
+  "homepage": "https://github.com/dawsonmv/zotero-moment-o7#readme",
+  "devDependencies": {
+    "eslint": "^9.27.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
