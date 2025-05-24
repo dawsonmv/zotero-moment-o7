@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - 2024-05-24
+## [0.0.1] - 2024-05-24 - Initial Beta Release
 
 ### Breaking Changes
 - **Zotero 7 Compatibility**: Complete rewrite for Zotero 7
