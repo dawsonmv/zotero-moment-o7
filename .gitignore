@@ -5,3 +5,4 @@ make-it-red/
 logs/
 node_modules/
 *.log
+console_output.log/

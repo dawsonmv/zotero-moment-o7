@@ -33,7 +33,8 @@ zip -r zotero-moment-o7.xpi . \
     -x ".vscode/*" \
     -x "logs/*" \
     -x "tests/*" \
-    -x "docs/*"
+    -x "docs/*" \
+    -x "console_output.log/*"
 
 if [ -f "zotero-moment-o7.xpi" ]; then
     echo -e "${GREEN}✓ Successfully built zotero-moment-o7.xpi${NC}"

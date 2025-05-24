@@ -92,7 +92,7 @@ Zotero.IaPusher = {
   /**
    * Attach a note with the archived link
    */
-  async attachAnchorNote: function(item, archivedUrl) {
+  attachAnchorNote: async function(item, archivedUrl) {
     if (!archivedUrl) {
       this.showNotification("Archive URL not found.", "error");
       return;
@@ -124,7 +124,7 @@ Zotero.IaPusher = {
   /**
    * Handle response status
    */
-  async handleStatus: function(item, status, archivedUrl) {
+  handleStatus: async function(item, status, archivedUrl) {
     let message = "";
     
     switch (status) {
@@ -155,7 +155,7 @@ Zotero.IaPusher = {
   /**
    * Archive a single item
    */
-  async archiveItem: function(item) {
+  archiveItem: async function(item) {
     const url = item.getField('url');
     
     if (!this.checkValidUrl(url)) {
