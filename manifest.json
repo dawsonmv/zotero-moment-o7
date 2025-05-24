@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Zotero Moment-o7",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Archive web resources to prevent link rot. Automatically saves pages to Internet Archive when adding items to Zotero.",
   "author": "Harding Center for Risk Literacy",
   "homepage_url": "https://github.com/dawsonmv/zotero-moment-o7",

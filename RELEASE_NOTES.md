@@ -1,6 +1,8 @@
-# Zotero Moment-o7 v2.0.0
+# Zotero Moment-o7 v0.0.2
 
-## 🎉 First Release for Zotero 7!
+## 📝 Documentation Update
+
+Minor update to fix version numbering in release notes.
 
 This is a complete rewrite of the classic Zotero Memento plugin, now fully compatible with Zotero 7.
 
@@ -44,4 +46,4 @@ Please report issues at: https://github.com/dawsonmv/zotero-moment-o7/issues
 - Zotero 7 migration by contributors
 
 ---
-**Full Changelog**: https://github.com/dawsonmv/zotero-moment-o7/compare/v1.1.1...v2.0.0
+**Full Changelog**: https://github.com/dawsonmv/zotero-moment-o7/compare/v0.0.1...v0.0.2
