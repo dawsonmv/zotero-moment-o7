@@ -8,25 +8,40 @@ The Memento Protocol (RFC 7089) enables time-based access to web resources by in
 ### 1. Resource Types
 
 - **Original Resource (URI-R)**: The current version of a web resource
-- **TimeGate (URI-G)**: Service that performs datetime negotiation
-- **Memento (URI-M)**: An archived version at a specific time
-- **TimeMap (URI-T)**: List of all available Mementos
+- **TimeGate (URI-G)**: Service that performs datetime negotiation to support access to prior states
+- **Memento (URI-M)**: A resource that encapsulates a prior state of the Original Resource
+- **TimeMap (URI-T)**: A resource that lists URIs of Mementos of the Original Resource
 
 ### 2. HTTP Headers
 
 #### Request Headers
 ```http
-Accept-Datetime: Thu, 31 May 2007 20:35:00 GMT
+Accept-Datetime: Wed, 30 May 2007 18:47:52 GMT
 ```
+The Accept-Datetime header is transmitted by a user agent to indicate it wants to access a past state of an Original Resource.
 
 #### Response Headers
+
+**From TimeGate (302 redirect):**
 ```http
-Memento-Datetime: Thu, 31 May 2007 20:35:00 GMT
+HTTP/1.1 302 Found
+Location: http://archive.org/web/20070530184752/http://example.com
 Vary: accept-datetime
 Link: <http://example.com>; rel="original",
-      <http://archive.org/20070531203500/http://example.com>; rel="memento"; datetime="Thu, 31 May 2007 20:35:00 GMT",
+      <http://archive.org/web/20070530184752/http://example.com>; rel="memento"; datetime="Wed, 30 May 2007 18:47:52 GMT",
       <http://example.com/timemap>; rel="timemap"; type="application/link-format"
 ```
+
+**From Memento:**
+```http
+HTTP/1.1 200 OK
+Memento-Datetime: Wed, 30 May 2007 18:47:52 GMT
+Link: <http://example.com>; rel="original",
+      <http://example.com/timegate>; rel="timegate",
+      <http://example.com/timemap>; rel="timemap"
+```
+
+**Important**: The Memento-Datetime header constitutes a promise that the resource state will no longer change.
 
 ## Common Aggregators
 
@@ -91,7 +106,23 @@ Response:
 }
 ```
 
-## Implementation Patterns
+## RFC 7089 Implementation Patterns
+
+The RFC defines several patterns based on the relationship between Original Resource and TimeGate:
+
+### Pattern 1.1: Original Resource acts as its own TimeGate
+Common in wikis and version control systems where the current resource can negotiate for past versions.
+
+### Pattern 1.2: TimeGate is a separate resource
+Most web archives use this pattern where a dedicated TimeGate service handles datetime negotiation.
+
+### Pattern 2: Remote TimeGate
+A third-party service acts as TimeGate for resources it doesn't host.
+
+### Pattern 3: Original Resource is a Fixed Resource
+The resource represents a specific version and doesn't change.
+
+## Code Implementation Patterns
 
 ### Pattern 1: Check for Existing Archives
 ```javascript
@@ -149,15 +180,29 @@ function parseLinkHeader(linkHeader) {
     const parts = linkHeader.split(',');
     
     parts.forEach(part => {
-        const match = part.match(/<([^>]+)>;\s*rel="([^"]+)"(?:;\s*datetime="([^"]+)")?/);
+        const match = part.match(/<([^>]+)>;\s*rel="([^"]+)"(?:;\s*datetime="([^"]+)")?(?:;\s*type="([^"]+)")?/);
         if (match) {
-            const [, url, rel, datetime] = match;
-            links[rel] = { url, datetime };
+            const [, url, rel, datetime, type] = match;
+            links[rel] = { url, datetime, type };
         }
     });
     
     return links;
 }
+```
+
+### Important Link Relations
+
+According to RFC 7089, these relation types are defined:
+
+1. **"original"** - Points to the Original Resource
+2. **"timegate"** - Points to a TimeGate for the Original Resource
+3. **"timemap"** - Points to a TimeMap for the Original Resource
+4. **"memento"** - Points to a Memento (MUST include datetime attribute)
+
+**Critical**: When using rel="memento", the datetime attribute is REQUIRED:
+```http
+Link: <http://archive.org/web/20070530/http://example.com>; rel="memento"; datetime="Wed, 30 May 2007 18:47:52 GMT"
 ```
 
 ## Archive Sources
@@ -299,9 +344,42 @@ class MementoClient {
 }
 ```
 
+## TimeMap Format
+
+The default serialization of a TimeMap follows RFC 6690 (application/link-format):
+
+```
+<http://example.com>; rel="original",
+<http://example.com/timegate>; rel="timegate",
+<http://archive.org/web/20010512040039/http://example.com>; rel="first memento"; datetime="Sat, 12 May 2001 04:00:39 GMT",
+<http://archive.org/web/20070530184752/http://example.com>; rel="memento"; datetime="Wed, 30 May 2007 18:47:52 GMT",
+<http://archive.org/web/20240115103000/http://example.com>; rel="last memento"; datetime="Mon, 15 Jan 2024 10:30:00 GMT"
+```
+
+## Version Navigation
+
+Enable navigation between versions using these link relations:
+- `prev` / `next` - Previous/next in sequence
+- `predecessor-version` / `successor-version` - Previous/next version
+- `first` / `last` - First/last in collection
+
+Example:
+```http
+Link: <http://archive.org/web/20070529/http://example.com>; rel="prev memento"; datetime="Tue, 29 May 2007 12:00:00 GMT",
+      <http://archive.org/web/20070531/http://example.com>; rel="next memento"; datetime="Thu, 31 May 2007 12:00:00 GMT"
+```
+
+## Compliance and Validation
+
+Tools for checking RFC 7089 compliance:
+- **Memento Validator**: Checks compliance of HTTP responses
+- **Open Wayback**: Fully compliant implementation
+- **pywb**: Python Web Archive toolkit with Memento support
+
 ## References
 
 - RFC 7089: https://datatracker.ietf.org/doc/html/rfc7089
+- RFC 6690 (Link Format): https://datatracker.ietf.org/doc/html/rfc6690
 - Memento Guide: http://mementoweb.org/guide/
 - TimeTravel Service: https://timetravel.mementoweb.org/
 - Memento Protocol Info: http://mementoweb.org/
