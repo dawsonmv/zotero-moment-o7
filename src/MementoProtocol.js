@@ -42,7 +42,7 @@ Zotero.MomentO7.MementoProtocol = class {
 		}
 
 		const links = [];
-		const parts = linkHeader.split(',');
+		const parts = linkHeader.split(",");
 
 		for (const part of parts) {
 			const match = part.match(/<([^>]+)>(.*)$/);
@@ -55,7 +55,7 @@ Zotero.MomentO7.MementoProtocol = class {
 				// Extract rel parameter
 				const relMatch = params.match(/rel="([^"]+)"/);
 				if (relMatch) {
-					link.rel = relMatch[1].split(' ');
+					link.rel = relMatch[1].split(" ");
 				}
 
 				// Extract datetime parameter (for mementos)
@@ -93,7 +93,7 @@ Zotero.MomentO7.MementoProtocol = class {
 	 * @returns {Array}
 	 */
 	getMementos(links) {
-		return links.filter(link => link.rel && link.rel.includes('memento'));
+		return links.filter(link => link.rel && link.rel.includes("memento"));
 	}
 
 	/**
@@ -106,9 +106,9 @@ Zotero.MomentO7.MementoProtocol = class {
 		const acceptDatetime = this.formatHttpDate(datetime);
 
 		try {
-			const response = await Zotero.HTTP.request('HEAD', this.timeGateUrl + url, {
+			const response = await Zotero.HTTP.request("HEAD", this.timeGateUrl + url, {
 				headers: {
-					'Accept-Datetime': acceptDatetime
+					"Accept-Datetime": acceptDatetime
 				},
 				timeout: 10000
 			});
@@ -123,17 +123,17 @@ Zotero.MomentO7.MementoProtocol = class {
 
 			// Get Location header for redirect
 			if (response.status === 302 || response.status === 200) {
-				result.location = response.getResponseHeader('Location') || response.responseURL;
+				result.location = response.getResponseHeader("Location") || response.responseURL;
 			}
 
 			// Get Memento-Datetime header
-			const mementoDatetime = response.getResponseHeader('Memento-Datetime');
+			const mementoDatetime = response.getResponseHeader("Memento-Datetime");
 			if (mementoDatetime) {
 				result.mementoDatetime = this.parseHttpDate(mementoDatetime);
 			}
 
 			// Parse Link header
-			const linkHeader = response.getResponseHeader('Link');
+			const linkHeader = response.getResponseHeader("Link");
 			if (linkHeader) {
 				result.links = this.parseLinkHeader(linkHeader);
 			}
@@ -143,11 +143,11 @@ Zotero.MomentO7.MementoProtocol = class {
 		} catch (error) {
 			// Handle specific error codes as per RFC 7089
 			if (error.status === 400) {
-				throw new Error('Bad Request: Invalid Accept-Datetime header');
+				throw new Error("Bad Request: Invalid Accept-Datetime header");
 			} else if (error.status === 404) {
-				throw new Error('Not Found: No mementos exist for this resource');
+				throw new Error("Not Found: No mementos exist for this resource");
 			} else if (error.status === 406) {
-				throw new Error('Not Acceptable: No memento at the requested datetime');
+				throw new Error("Not Acceptable: No memento at the requested datetime");
 			}
 			throw error;
 		}
@@ -159,18 +159,18 @@ Zotero.MomentO7.MementoProtocol = class {
 	 * @param {string} format - Format: 'json' or 'link'
 	 * @returns {Object} TimeMap data
 	 */
-	async getTimeMap(url, format = 'json') {
-		const timeMapUrl = format === 'json' 
+	async getTimeMap(url, format = "json") {
+		const timeMapUrl = format === "json"
 			? `${this.timeMapUrl}json/${url}`
 			: `${this.timeMapUrl}link/${url}`;
 
 		try {
-			const response = await Zotero.HTTP.request('GET', timeMapUrl, {
+			const response = await Zotero.HTTP.request("GET", timeMapUrl, {
 				timeout: 15000,
-				responseType: format === 'json' ? 'json' : 'text'
+				responseType: format === "json" ? "json" : "text"
 			});
 
-			if (format === 'json') {
+			if (format === "json") {
 				return this.parseJsonTimeMap(response.response);
 			} else {
 				return this.parseLinkTimeMap(response.responseText);
@@ -202,12 +202,12 @@ Zotero.MomentO7.MementoProtocol = class {
 
 		// Extract mementos
 		const mementoList = data.mementos?.list || data.mementos || [];
-		
+
 		for (const memento of mementoList) {
 			timeMap.mementos.push({
 				datetime: new Date(memento.datetime),
 				uri: memento.uri,
-				rel: memento.rel || ['memento']
+				rel: memento.rel || ["memento"]
 			});
 		}
 
@@ -216,8 +216,8 @@ Zotero.MomentO7.MementoProtocol = class {
 
 		// Mark first and last
 		if (timeMap.mementos.length > 0) {
-			timeMap.mementos[0].rel.push('first');
-			timeMap.mementos[timeMap.mementos.length - 1].rel.push('last');
+			timeMap.mementos[0].rel.push("first");
+			timeMap.mementos[timeMap.mementos.length - 1].rel.push("last");
 		}
 
 		return timeMap;
@@ -229,7 +229,7 @@ Zotero.MomentO7.MementoProtocol = class {
 	 * @returns {Object} Normalized TimeMap
 	 */
 	parseLinkTimeMap(linkData) {
-		const lines = linkData.split('\n');
+		const lines = linkData.split("\n");
 		const timeMap = {
 			original: null,
 			timeGate: null,
@@ -238,17 +238,19 @@ Zotero.MomentO7.MementoProtocol = class {
 		};
 
 		for (const line of lines) {
-			if (!line.trim()) continue;
+			if (!line.trim()) {
+				continue;
+			}
 
 			const links = this.parseLinkHeader(line);
 			for (const link of links) {
-				if (link.rel.includes('original')) {
+				if (link.rel.includes("original")) {
 					timeMap.original = link.url;
-				} else if (link.rel.includes('timegate')) {
+				} else if (link.rel.includes("timegate")) {
 					timeMap.timeGate = link.url;
-				} else if (link.rel.includes('self') && link.type === 'application/link-format') {
+				} else if (link.rel.includes("self") && link.type === "application/link-format") {
 					timeMap.timeMapUrl = link.url;
-				} else if (link.rel.includes('memento')) {
+				} else if (link.rel.includes("memento")) {
 					timeMap.mementos.push({
 						datetime: new Date(link.datetime),
 						uri: link.url,
@@ -268,7 +270,7 @@ Zotero.MomentO7.MementoProtocol = class {
 	 */
 	async checkArchives(url) {
 		const timeMap = await this.getTimeMap(url);
-		
+
 		const archives = {
 			count: timeMap.mementos.length,
 			hasArchives: timeMap.mementos.length > 0,
@@ -300,15 +302,15 @@ Zotero.MomentO7.MementoProtocol = class {
 	 */
 	identifyArchiveSource(uri) {
 		const patterns = [
-			{ pattern: /web\.archive\.org/, name: 'Internet Archive' },
-			{ pattern: /archive\.(today|is|ph|li|vn|fo|md)/, name: 'Archive.today' },
-			{ pattern: /perma\.cc/, name: 'Perma.cc' },
-			{ pattern: /webarchive\.org\.uk/, name: 'UK Web Archive' },
-			{ pattern: /arquivo\.pt/, name: 'Portuguese Web Archive' },
-			{ pattern: /webarchive\.loc\.gov/, name: 'Library of Congress' },
-			{ pattern: /wayback\.archive-it\.org/, name: 'Archive-It' },
-			{ pattern: /web\.archive\.org\.au/, name: 'Australian Web Archive' },
-			{ pattern: /webarchiv\.bundestag\.de/, name: 'German Parliament Archive' }
+			{ pattern: /web\.archive\.org/, name: "Internet Archive" },
+			{ pattern: /archive\.(today|is|ph|li|vn|fo|md)/, name: "Archive.today" },
+			{ pattern: /perma\.cc/, name: "Perma.cc" },
+			{ pattern: /webarchive\.org\.uk/, name: "UK Web Archive" },
+			{ pattern: /arquivo\.pt/, name: "Portuguese Web Archive" },
+			{ pattern: /webarchive\.loc\.gov/, name: "Library of Congress" },
+			{ pattern: /wayback\.archive-it\.org/, name: "Archive-It" },
+			{ pattern: /web\.archive\.org\.au/, name: "Australian Web Archive" },
+			{ pattern: /webarchiv\.bundestag\.de/, name: "German Parliament Archive" }
 		];
 
 		for (const { pattern, name } of patterns) {
@@ -319,10 +321,13 @@ Zotero.MomentO7.MementoProtocol = class {
 
 		// Extract domain as fallback
 		try {
-			const url = new URL(uri);
-			return url.hostname;
+			const match = uri.match(/^https?:\/\/([^/]+)/);
+			if (match) {
+				return match[1];
+			}
 		} catch {
-			return 'Unknown Archive';
+			// Ignore error
 		}
+		return "Unknown Archive";
 	}
 };
