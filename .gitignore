@@ -6,4 +6,10 @@ logs/
 node_modules/
 *.log
 console_output.log/
+console_errors/
 cloudflare-worker/node_modules/
+# Test scripts
+diagnose-plugin.js
+test-*.js
+manual-*.js
+quick-*.js

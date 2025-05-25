@@ -222,7 +222,21 @@ Zotero.ArchiveTodayPusher = {
 				}
 			} catch (error) {
 				errorCount++;
-				progressWin.addLines([`✗ ${item.getField("title")}: ${error.message}`]);
+
+				// Handle specific error types with user-friendly messages
+				let errorMessage = error.message;
+
+				if (error.message.includes("blocked") || error.message.includes("403")) {
+					errorMessage = "Site blocks archiving";
+				} else if (error.message.includes("rate") || error.message.includes("429")) {
+					errorMessage = "Rate limited - try again later";
+				} else if (error.message.includes("timeout")) {
+					errorMessage = "Request timed out";
+				} else if (error.message.includes("already archived")) {
+					errorMessage = "Already archived";
+				}
+
+				progressWin.addLines([`✗ ${item.getField("title")}: ${errorMessage}`]);
 				Zotero.logError(`Archive.today error for ${url}: ${error}`);
 			}
 		}

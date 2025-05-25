@@ -148,12 +148,29 @@ export default {
     } catch (error) {
       console.error('Archive proxy error:', error);
       
+      let errorMessage = 'Failed to archive URL';
+      let statusCode = 500;
+      
+      // Check for specific error types
+      if (error.message.includes('fetch failed')) {
+        errorMessage = 'Cannot connect to Archive.today service';
+      } else if (submitResponse && submitResponse.status === 429) {
+        errorMessage = 'Archive.today is rate limiting requests. Please try again later';
+        statusCode = 429;
+      } else if (submitResponse && submitResponse.status === 403) {
+        errorMessage = 'This site is blocked from archiving';
+        statusCode = 403;
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Archive request timed out';
+        statusCode = 408;
+      }
+      
       return new Response(JSON.stringify({
         success: false,
-        error: error.message || 'Failed to archive URL',
+        error: errorMessage,
         details: error.toString()
       }), {
-        status: 500,
+        status: statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

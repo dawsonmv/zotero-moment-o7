@@ -32,9 +32,11 @@ zip -r zotero-moment-o7.xpi . \
     -x "node_modules/*" \
     -x ".vscode/*" \
     -x "logs/*" \
+    -x "test/*" \
     -x "tests/*" \
     -x "docs/*" \
-    -x "console_output.log/*"
+    -x "console_output.log/*" \
+    -x "console_errors/*"
 
 if [ -f "zotero-moment-o7.xpi" ]; then
     echo -e "${GREEN}✓ Successfully built zotero-moment-o7.xpi${NC}"

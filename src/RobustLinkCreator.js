@@ -52,8 +52,14 @@ Zotero.RobustLinkCreator = {
 					iaUrl = await this.archiveToIA(item);
 					progressWin.addLines(["  ✓ Internet Archive complete"]);
 				} catch (e) {
-					errors.push(`Internet Archive: ${e.message}`);
-					progressWin.addLines([`  ✗ Internet Archive failed: ${e.message}`]);
+					let errorMsg = e.message;
+					if (e.status === 523) {
+						errorMsg = "Site blocks archiving";
+					} else if (e.status === 429) {
+						errorMsg = "Rate limited";
+					}
+					errors.push(`Internet Archive: ${errorMsg}`);
+					progressWin.addLines([`  ✗ Internet Archive failed: ${errorMsg}`]);
 				}
 
 				// Try Archive.today
@@ -65,8 +71,14 @@ Zotero.RobustLinkCreator = {
 						progressWin.addLines(["  ✓ Archive.today complete"]);
 					}
 				} catch (e) {
-					errors.push(`Archive.today: ${e.message}`);
-					progressWin.addLines([`  ✗ Archive.today failed: ${e.message}`]);
+					let errorMsg = e.message;
+					if (errorMsg.includes("blocked") || errorMsg.includes("403")) {
+						errorMsg = "Site blocks archiving";
+					} else if (errorMsg.includes("rate") || errorMsg.includes("429")) {
+						errorMsg = "Rate limited";
+					}
+					errors.push(`Archive.today: ${errorMsg}`);
+					progressWin.addLines([`  ✗ Archive.today failed: ${errorMsg}`]);
 				}
 
 				// Create Robust Link attachment if we have at least one archive

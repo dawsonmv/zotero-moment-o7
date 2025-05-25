@@ -262,7 +262,34 @@ Zotero.IaPusher = {
 
 		} catch (error) {
 			Zotero.logError(`Archive request failed: ${error}`);
-			this.showNotification(`Archive failed: ${error.message}`, "error");
+
+			// Handle specific error types with user-friendly messages
+			let errorMessage = "Archive failed";
+
+			if (error.status === 523) {
+				// Cloudflare error - origin unreachable
+				errorMessage = "This site cannot be archived (blocked by publisher)";
+			} else if (error.status === 429) {
+				// Rate limited
+				errorMessage = "Archive service is rate limiting. Please wait a few minutes and try again";
+			} else if (error.status === 403) {
+				// Forbidden
+				errorMessage = "Access denied - this site blocks archiving services";
+			} else if (error.status === 404) {
+				// Not found
+				errorMessage = "The URL could not be found";
+			} else if (error.status >= 500) {
+				// Server error
+				errorMessage = "Archive service is temporarily unavailable";
+			} else if (error.message.includes("timeout")) {
+				// Timeout
+				errorMessage = "Archive request timed out - the site may be slow or blocking archiving";
+			} else {
+				// Generic error
+				errorMessage = `Archive failed: ${error.message}`;
+			}
+
+			this.showNotification(errorMessage, "error");
 		}
 	},
 
