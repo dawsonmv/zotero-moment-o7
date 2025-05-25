@@ -159,14 +159,21 @@ Zotero.PermaCCPusher = {
 	archiveSelected: async function () {
 		if (!this.hasApiKey()) {
 			// Show dialog to configure API key
-			const input = prompt(
+			const ps = Services.prompt;
+			const input = { value: "" };
+			const result = ps.prompt(
+				null,
+				"Perma.cc API Key Required",
 				"Please enter your Perma.cc API key.\n\n" +
 				"Get your free API key at: https://perma.cc/settings/tools\n" +
-				"(10 free archives per month)"
+				"(10 free archives per month)",
+				input,
+				null,
+				{ value: false }
 			);
 
-			if (input && input.trim()) {
-				this.setApiKey(input.trim());
+			if (result && input.value.trim()) {
+				this.setApiKey(input.value.trim());
 			} else {
 				return;
 			}
@@ -184,11 +191,19 @@ Zotero.PermaCCPusher = {
 		try {
 			quota = await this.checkQuota();
 			if (quota.remaining <= 0) {
-				alert(`Perma.cc quota exceeded. You've used ${quota.used}/${quota.limit} archives this month.`);
+				Services.prompt.alert(
+					null,
+					"Perma.cc Quota Exceeded",
+					`You've used ${quota.used}/${quota.limit} archives this month.\n\nPlease wait until next month or use another archive service.`
+				);
 				return;
 			}
 		} catch (error) {
-			alert(`Perma.cc error: ${error.message}`);
+			Services.prompt.alert(
+				null,
+				"Perma.cc Error",
+				`Unable to connect to Perma.cc:\n${error.message}`
+			);
 			return;
 		}
 

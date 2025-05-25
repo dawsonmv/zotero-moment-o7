@@ -25,7 +25,7 @@ Zotero.MomentO7 = {
 		Services.scriptloader.loadSubScript(rootURI + "src/IaPusher.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayPusher.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/RobustLinkCreator.js");
-		
+
 		// Future services (uncomment to enable)
 		// Services.scriptloader.loadSubScript(rootURI + "src/PermaCCPusher.js");
 		// Services.scriptloader.loadSubScript(rootURI + "src/MementoChecker.js");
@@ -134,9 +134,15 @@ Zotero.MomentO7 = {
 		// Add click handler
 		iaMenuItem.addEventListener("command", async (_event) => {
 			try {
+				this.log("Internet Archive menu clicked");
 				await Zotero.IaPusher.sendReq();
 			} catch (error) {
 				this.log("Error archiving to Internet Archive: " + error);
+				// Also show error to user
+				const progressWin = new Zotero.ProgressWindow({ closeOnClick: true });
+				progressWin.changeHeadline("Archive Error: " + error.message);
+				progressWin.show();
+				progressWin.startCloseTimer(8000);
 			}
 		});
 

@@ -221,9 +221,6 @@ Zotero.IaPusher = {
 		const archiveUrl = this.constructUri(url);
 
 		try {
-			// Show progress notification
-			this.showNotification("Archiving... This may take a while...");
-
 			// Make request to Internet Archive
 			const response = await Zotero.HTTP.request("GET", archiveUrl, {
 				headers: {
@@ -289,7 +286,10 @@ Zotero.IaPusher = {
 				errorMessage = `Archive failed: ${error.message}`;
 			}
 
-			this.showNotification(errorMessage, "error");
+			// Throw error to be caught by sendReq
+			const err = new Error(errorMessage);
+			err.originalError = error;
+			throw err;
 		}
 	},
 
@@ -305,11 +305,64 @@ Zotero.IaPusher = {
 			return;
 		}
 
+		let processedCount = 0;
+		let skippedCount = 0;
+		let errorCount = 0;
+
+		const progressWin = new Zotero.ProgressWindow({
+			closeOnClick: true
+		});
+		progressWin.changeHeadline("Archiving to Internet Archive...");
+		progressWin.show();
+
 		for (const item of selectedItems) {
-			if (item.getField("url")) {
+			// Skip notes and attachments
+			if (item.isNote() || item.isAttachment()) {
+				continue;
+			}
+
+			const url = item.getField("url");
+			if (!url) {
+				progressWin.addLines([`⚠️ ${item.getField("title")}: No URL`]);
+				skippedCount++;
+				continue;
+			}
+
+			if (this.isArchived(item)) {
+				progressWin.addLines([`✓ ${item.getField("title")}: Already archived`]);
+				skippedCount++;
+				continue;
+			}
+
+			try {
+				const title = item.getField("title");
 				await this.archiveItem(item);
+				processedCount++;
+				// archiveItem adds the archived URL to Extra field
+				const extra = item.getField("extra");
+				const archiveMatch = extra.match(/Archived: (https:\/\/[^\s]+)/);
+				if (archiveMatch) {
+					progressWin.addLines([`✅ ${title}: Archived successfully`]);
+				} else {
+					progressWin.addLines([`✅ ${title}: Processed`]);
+				}
+			} catch (error) {
+				errorCount++;
+				progressWin.addLines([`❌ ${item.getField("title")}: ${error.message}`]);
 			}
 		}
+
+		// Show summary
+		const summary = [];
+		if (processedCount > 0) summary.push(`${processedCount} archived`);
+		if (skippedCount > 0) summary.push(`${skippedCount} skipped`);
+		if (errorCount > 0) summary.push(`${errorCount} failed`);
+		
+		if (summary.length > 0) {
+			progressWin.addDescription(`Complete: ${summary.join(", ")}`);
+		}
+		
+		progressWin.startCloseTimer(8000);
 	},
 
 	/**

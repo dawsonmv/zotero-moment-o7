@@ -121,11 +121,15 @@ Zotero.MementoChecker = {
 		} else {
 			// Extract domain as source
 			try {
-				const url = new URL(uri);
-				return url.hostname;
+				// Parse URL to get hostname
+				const match = uri.match(/^https?:\/\/([^/]+)/);
+				if (match) {
+					return match[1];
+				}
 			} catch {
-				return "Unknown Archive";
+				// Ignore error
 			}
+			return "Unknown Archive";
 		}
 	},
 
@@ -181,7 +185,7 @@ Zotero.MementoChecker = {
 					item.addTag("has-memento");
 					await item.saveTx();
 				} else {
-					progressWin.addLines([`✗ No archives found`]);
+					progressWin.addLines(["✗ No archives found"]);
 				}
 			} catch (error) {
 				progressWin.addLines([`✗ Error: ${error.message}`]);
@@ -205,7 +209,7 @@ Zotero.MementoChecker = {
 		note.parentKey = item.key;
 		note.libraryID = item.libraryID;
 
-		let noteContent = `<h3>Existing Archives Report</h3>`;
+		let noteContent = "<h3>Existing Archives Report</h3>";
 		noteContent += `<p>Original URL: <a href="${originalUrl}">${originalUrl}</a></p>`;
 		noteContent += `<p>Total archives found: ${archives.count}</p>`;
 
