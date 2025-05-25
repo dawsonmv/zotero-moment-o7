@@ -95,7 +95,7 @@ Zotero.MomentO7 = {
 		// Add Fluent localization if we have locale files
 		try {
 			window.MozXULElement.insertFTLIfNeeded("moment-o7.ftl");
-		} catch (_e) {
+		} catch {
 			// Fluent files not yet created, will add later
 			this.log("Fluent localization not yet available");
 		}

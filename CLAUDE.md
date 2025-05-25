@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zotero Moment-o7 is a Zotero plugin that automatically archives web resources to Internet Archive to prevent link rot. When items are saved via the Browser Connector, it archives them and stores archival URLs in the item's metadata.
+Zotero Moment-o7 is a Zotero plugin that automatically archives web resources to Internet Archive and Archive.today to prevent link rot. When items are saved via the Browser Connector, it archives them and stores archival URLs in the item's metadata. The plugin also supports creating "Robust Links" with multiple archive sources.
 
 ## Architecture
 
@@ -13,15 +13,20 @@ This is a Zotero 7 Bootstrap plugin with the following key components:
 - **bootstrap.js**: Main entry point with lifecycle hooks for Zotero 7
 - **zotero-moment-o7.js**: Core plugin logic with window management and notifier registration
 - **IaPusher.js**: Handles archiving to Internet Archive via web.archive.org/save API
+- **ArchiveTodayPusher.js**: Handles archiving to Archive.today via Cloudflare Worker proxy
+- **RobustLinkCreator.js**: Creates robust links with multiple archive sources
 - **Signpost.js**: Extracts ORCID profiles using the Signposting protocol
 - **moment-o7.ftl**: Fluent localization file for UI strings
+- **cloudflare-worker/**: Contains the Cloudflare Worker proxy for Archive.today
 
 ## Key Technical Details
 
-- The plugin now targets Zotero 7 with Bootstrap architecture
-- Uses Zotero.HTTP.request for archiving to Internet Archive
+- The plugin targets Zotero 7 with Bootstrap architecture
+- Uses Zotero.HTTP.request for HTTP requests
+- Archive.today support implemented via Cloudflare Worker proxy to bypass CORS
 - Stores archived URLs in the item's "Extra" field and creates notes with robust links
 - Includes custom export translators in src/translators/
+- Generates Robust Link HTML with data-originalurl, data-versionurl, and data-versiondate attributes
 
 ## Testing
 
@@ -33,4 +38,5 @@ This is a Zotero 7 Bootstrap plugin with the following key components:
 - Uses Bootstrap architecture for Zotero 7
 - Main namespace is Zotero.MomentO7
 - To modify the plugin, edit files in src/
-- Archive.is support has been removed due to CORS limitations
+- Archive.today proxy URL is hardcoded in ArchiveTodayPusher.js
+- Cloudflare Worker deployment details in cloudflare-worker/README.md

@@ -6,3 +6,4 @@ logs/
 node_modules/
 *.log
 console_output.log/
+cloudflare-worker/node_modules/

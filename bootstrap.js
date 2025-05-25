@@ -1,14 +1,17 @@
+/* global Zotero, Components, Services */
+/* eslint-disable no-unused-vars */
+
 let ZoteroMomentO7;
 
 function log(msg) {
 	if (Zotero) {
 		Zotero.debug("Zotero Moment-o7: " + msg);
 	} else {
-		console.log("Zotero Moment-o7: " + msg);
+		console.log("Zotero Moment-o7: " + msg); // eslint-disable-line no-console
 	}
 }
 
-// Plugin lifecycle functions
+// Plugin lifecycle functions - these are called by Zotero
 function install(data, _reason) {
 	log("Installing Moment-o7 version " + data.version);
 }
