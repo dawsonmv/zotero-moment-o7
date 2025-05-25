@@ -25,6 +25,10 @@ Zotero.MomentO7 = {
 		Services.scriptloader.loadSubScript(rootURI + "src/IaPusher.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayPusher.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/RobustLinkCreator.js");
+		
+		// Future services (uncomment to enable)
+		// Services.scriptloader.loadSubScript(rootURI + "src/PermaCCPusher.js");
+		// Services.scriptloader.loadSubScript(rootURI + "src/MementoChecker.js");
 
 		// Register notifier to watch for new items
 		this.registerNotifier();
