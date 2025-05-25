@@ -7,6 +7,7 @@ module.exports = [
 			"*.xpi",
 			"build/**",
 			"dist/**",
+			"cloudflare-worker/**",
 			".DS_Store",
 			"Thumbs.db",
 			".vscode/**",

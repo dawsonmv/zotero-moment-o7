@@ -23,6 +23,8 @@ Zotero.MomentO7 = {
 		// Load other modules
 		Services.scriptloader.loadSubScript(rootURI + "src/Signpost.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/IaPusher.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayPusher.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/RobustLinkCreator.js");
 
 		// Register notifier to watch for new items
 		this.registerNotifier();
@@ -134,8 +136,43 @@ Zotero.MomentO7 = {
 			}
 		});
 
+		// Create Archive.today menu item
+		const atMenuItem = doc.createXULElement("menuitem");
+		atMenuItem.id = "zotero-moment-o7-archive-today";
+		atMenuItem.setAttribute("label", "Archive.today");
+
+		// Add click handler
+		atMenuItem.addEventListener("command", async (_event) => {
+			try {
+				await Zotero.ArchiveTodayPusher.archiveSelected();
+			} catch (error) {
+				this.log("Error archiving to Archive.today: " + error);
+			}
+		});
+
+		// Create separator
+		const menuSeparator = doc.createXULElement("menuseparator");
+		menuSeparator.id = "zotero-moment-o7-menu-separator";
+
+		// Create Robust Link menu item
+		const robustMenuItem = doc.createXULElement("menuitem");
+		robustMenuItem.id = "zotero-moment-o7-robust-link";
+		robustMenuItem.setAttribute("label", "Create Robust Link (All Archives)");
+
+		// Add click handler
+		robustMenuItem.addEventListener("command", async (_event) => {
+			try {
+				await Zotero.RobustLinkCreator.archiveToAll();
+			} catch (error) {
+				this.log("Error creating robust link: " + error);
+			}
+		});
+
 		// Assemble menu
 		menupopup.appendChild(iaMenuItem);
+		menupopup.appendChild(atMenuItem);
+		menupopup.appendChild(menuSeparator);
+		menupopup.appendChild(robustMenuItem);
 		menu.appendChild(menupopup);
 
 		// Add to item menu

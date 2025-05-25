@@ -85,12 +85,20 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Create a RobustLink anchor tag
+   * Create a Robust Link HTML snippet
    */
-	makeAnchorTag: function (item, url, archivedUrl) {
-		const date = this.getDate(archivedUrl);
-		return `Version URL: <a href="${archivedUrl}" data-originalurl="${url}" ` +
-           `data-versiondate="${date}">Robust Link for: ${url}</a>`;
+	createRobustLinkHTML: function (originalUrl, archivedUrl, linkText, useArchivedHref = false) {
+		const versionDate = this.getDate(archivedUrl);
+		const href = useArchivedHref ? archivedUrl : originalUrl;
+
+		return `<a href="${href}" data-originalurl="${originalUrl}" data-versionurl="${archivedUrl}" data-versiondate="${versionDate}">${linkText}</a>`;
+	},
+
+	/**
+   * Escape HTML for display
+   */
+	escapeHtml: function (html) {
+		return html.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 	},
 
 	/**
@@ -103,15 +111,38 @@ Zotero.IaPusher = {
 		}
 
 		const url = item.getField("url");
-		const noteText = this.makeAnchorTag(item, url, archivedUrl);
 
 		if (this.isArchived(item)) {
 			return;
 		}
 
 		const note = new Zotero.Item("note");
-		note.setNote(noteText);
 		note.parentID = item.id;
+
+		const linkText = item.getField("title") || url;
+		const robustLinkOriginal = this.createRobustLinkHTML(url, archivedUrl, linkText, false);
+		const robustLinkArchived = this.createRobustLinkHTML(url, archivedUrl, linkText, true);
+
+		const noteContent = `<p>Original URL: ${this.createRobustLinkHTML(url, archivedUrl, url, false)}</p>
+<p>Memento URL: ${this.createRobustLinkHTML(url, archivedUrl, archivedUrl, true)}</p>
+<hr>
+<p><strong>Step 1: Copy the appropriate HTML snippet below to include this Robust Link in your web page.</strong></p>
+<hr>
+<p>Copy this snippet if you want the link text to lead to the <strong>live web resource</strong> &lt;${url}&gt;:</p>
+<p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; font-size: 11px;">${this.escapeHtml(robustLinkOriginal)}</p>
+<hr>
+<p>Copy this snippet if you want the link text to lead to the <strong>memento</strong> &lt;${archivedUrl}&gt;:</p>
+<p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; font-size: 11px;">${this.escapeHtml(robustLinkArchived)}</p>
+<hr>
+<p><strong>Step 2: To make your Robust Links actionable, include this HTML in your web page, preferably inside the HEAD tag.</strong></p>
+<p style="background-color: #f5f5f5; padding: 10px; font-family: monospace; font-size: 11px;">
+&lt;!-- Robust Links CSS --&gt;<br>
+&lt;link rel="stylesheet" type="text/css" href="https://doi.org/10.25776/z58z-r575" /&gt;<br>
+&lt;!-- Robust Links Javascript --&gt;<br>
+&lt;script type="text/javascript" src="https://doi.org/10.25776/h1fa-7a28"&gt;&lt;/script&gt;
+</p>`;
+
+		note.setNote(noteContent);
 		await note.saveTx();
 	},
 
@@ -157,10 +188,25 @@ Zotero.IaPusher = {
 	},
 
 	/**
+   * Get the best URL for archiving (prefer DOI if available)
+   */
+	getBestUrl: function (item) {
+		let url = item.getField("url");
+		const doi = item.getField("DOI");
+
+		// Prefer DOI URL if available
+		if (doi && doi !== "") {
+			url = "https://doi.org/" + doi;
+		}
+
+		return url;
+	},
+
+	/**
    * Archive a single item
    */
 	archiveItem: async function (item) {
-		const url = item.getField("url");
+		const url = this.getBestUrl(item);
 
 		if (!this.checkValidUrl(url)) {
 			Zotero.debug("Invalid URL for archiving: " + url);
