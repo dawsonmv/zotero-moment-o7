@@ -354,14 +354,20 @@ Zotero.IaPusher = {
 
 		// Show summary
 		const summary = [];
-		if (processedCount > 0) summary.push(`${processedCount} archived`);
-		if (skippedCount > 0) summary.push(`${skippedCount} skipped`);
-		if (errorCount > 0) summary.push(`${errorCount} failed`);
-		
+		if (processedCount > 0) {
+			summary.push(`${processedCount} archived`);
+		}
+		if (skippedCount > 0) {
+			summary.push(`${skippedCount} skipped`);
+		}
+		if (errorCount > 0) {
+			summary.push(`${errorCount} failed`);
+		}
+
 		if (summary.length > 0) {
 			progressWin.addDescription(`Complete: ${summary.join(", ")}`);
 		}
-		
+
 		progressWin.startCloseTimer(8000);
 	},
 

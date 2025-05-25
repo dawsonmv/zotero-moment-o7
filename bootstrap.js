@@ -68,6 +68,12 @@ function shutdown({ _id, _version, _rootURI }, _reason) {
 		if (Zotero.Signpost) {
 			delete Zotero.Signpost;
 		}
+		if (Zotero.ArchiveTodayPusher) {
+			delete Zotero.ArchiveTodayPusher;
+		}
+		if (Zotero.RobustLinkCreator) {
+			delete Zotero.RobustLinkCreator;
+		}
 	}
 }
 

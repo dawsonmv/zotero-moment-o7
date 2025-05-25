@@ -20,15 +20,29 @@ Zotero.MomentO7 = {
 
 		this.log("Initializing Zotero Moment-o7 v" + version);
 
-		// Load other modules
+		// Initialize namespace for new architecture
+		if (!Zotero.MomentO7) {
+			Zotero.MomentO7 = this;
+		}
+
+		// Load new architecture modules
+		Services.scriptloader.loadSubScript(rootURI + "src/BaseArchiveService.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/ServiceRegistry.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveCoordinator.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/MementoChecker.js");
+
+		// Load services
+		Services.scriptloader.loadSubScript(rootURI + "src/InternetArchiveService.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayService.js");
+
+		// Load legacy modules (to be refactored)
 		Services.scriptloader.loadSubScript(rootURI + "src/Signpost.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/IaPusher.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayPusher.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/RobustLinkCreator.js");
 
-		// Future services (uncomment to enable)
-		// Services.scriptloader.loadSubScript(rootURI + "src/PermaCCPusher.js");
-		// Services.scriptloader.loadSubScript(rootURI + "src/MementoChecker.js");
+		// Initialize new architecture
+		this.initializeServices();
 
 		// Register notifier to watch for new items
 		this.registerNotifier();
@@ -40,6 +54,21 @@ Zotero.MomentO7 = {
 
 	async main() {
 		this.log("Main initialization complete");
+	},
+
+	initializeServices() {
+		// Initialize core components
+		Zotero.MomentO7.ServiceRegistry.init();
+		Zotero.MomentO7.ArchiveCoordinator.init();
+
+		// Register services
+		const iaService = new Zotero.MomentO7.InternetArchiveService();
+		Zotero.MomentO7.ServiceRegistry.register("internetarchive", iaService);
+
+		const atService = new Zotero.MomentO7.ArchiveTodayService();
+		Zotero.MomentO7.ServiceRegistry.register("archivetoday", atService);
+
+		this.log("Services initialized and registered");
 	},
 
 	registerNotifier() {
@@ -54,11 +83,11 @@ Zotero.MomentO7 = {
 							const item = await Zotero.Items.getAsync(id);
 
 							// Only process web pages and other items with URLs
-							if (item && item.getField("url") && !Zotero.IaPusher.isArchived(item)) {
-								this.log("Archiving item: " + item.getField("title"));
+							if (item && item.getField("url")) {
+								this.log("Auto-archiving item: " + item.getField("title"));
 
-								// Archive the item
-								await Zotero.IaPusher.archiveItem(item);
+								// Use new architecture for auto-archiving
+								await Zotero.MomentO7.ArchiveCoordinator.autoArchive(item);
 							}
 						} catch (error) {
 							this.log("Error processing item " + id + ": " + error);
