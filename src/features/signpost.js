@@ -22,9 +22,9 @@ Zotero.Signpost = {
 	 */
 
 	isSignposted: function (item) {
-		for (let i = 0; i < item.getAttachments().length; i++) {
-			const currAttach = Zotero.Items.get(item.getAttachments()[i.toString()]);
-			if (currAttach.getField("title").indexOf("ORCID") !== -1) {
+		const attachments = item.getAttachments(true);
+		for (const attachment of attachments) {
+			if (attachment.getField("title").indexOf("ORCID") !== -1) {
 				return true;
 			}
 		}
@@ -60,20 +60,6 @@ Zotero.Signpost = {
 	},
 
 	/*
-	 * Sets request headers to allow communication with the ORCID API.
-	 *
-	 * @param {XMLHttpRequest} req: the request to be modified.
-	 *
-	 * @return: nothing.
-	 */
-
-	setRequestProperties: function (req) {
-		req.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-		req.setRequestHeader("Accept", "application/vnd.orcid+xml");
-		req.setRequestHeader("Authorization", "Bearer f5af9f51-07e6-4332-8f1a-c0c11c1e3728");
-	},
-
-	/*
 	 * Uses ORCID API to get the name associated with each ORCID profile.
 	 *
 	 * @param {string} fullOrcidUrl: the URL to an author's ORCID profile.
@@ -82,23 +68,29 @@ Zotero.Signpost = {
 	 *                    author's name cannot be found.
 	 */
 
-	getAuthorName: function (fullOrcidUrl) {
+	getAuthorName: async function (fullOrcidUrl) {
 		const orcidPattern = /[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}/;
 		const orcidIdStart = fullOrcidUrl.search(orcidPattern);
 		const orcidId = fullOrcidUrl.slice(orcidIdStart, orcidIdStart + 19);
-		const orcidReqUrl = "https://cors-anywhere.herokuapp.com/https://sandbox.orcid.org/v2.0/" +
-			orcidId + "/record";
-		const req = Zotero.IaPusher.createCORSRequest("GET", orcidReqUrl, false);
-		this.setRequestProperties(req);
-		req.send();
+		const orcidReqUrl = `https://api.orcid.org/v3.0/${orcidId}/record`;
 
-		const authorNameStart = req.responseText.indexOf(">",
-			req.responseText.indexOf("<personal-details:credit-name>")) + 1;
-		const authorNameEnd = req.responseText.indexOf("</personal-details:", authorNameStart);
+		try {
+			const response = await Zotero.HTTP.request("GET", orcidReqUrl, {
+				headers: {
+					"Accept": "application/xml"
+				}
+			});
 
+			const authorNameStart = response.responseText.indexOf(">",
+				response.responseText.indexOf("<personal-details:credit-name>")) + 1;
+			const authorNameEnd = response.responseText.indexOf("</personal-details:", authorNameStart);
 
-		return (authorNameStart < 1 || authorNameEnd < 1) ? null :
-			req.responseText.slice(authorNameStart, authorNameEnd);
+			return (authorNameStart < 1 || authorNameEnd < 1) ? null :
+				response.responseText.slice(authorNameStart, authorNameEnd);
+		} catch (e) {
+			Zotero.debug(`Error fetching ORCID: ${e.message}`);
+			return null;
+		}
 	},
 
 	/*
@@ -109,7 +101,7 @@ Zotero.Signpost = {
 	 * @return: nothing.
 	 */
 
-	attachAuthorOrcids: function (linkHdrText) {
+	attachAuthorOrcids: async function (linkHdrText) {
 		const pane = Zotero.getActiveZoteroPane();
 		const item = pane.getSelectedItems()[0];
 		if (!linkHdrText || this.isSignposted(item)) {
@@ -117,10 +109,10 @@ Zotero.Signpost = {
 		}
 		const orcids = this.getAuthorOrcids(linkHdrText);
 		for (const orcidUrl in orcids) {
-			const authorName = this.getAuthorName(orcids[orcidUrl.toString()]);
-			Zotero.Attachments.linkFromURL({
+			const authorName = await this.getAuthorName(orcids[orcidUrl.toString()]);
+			await Zotero.Attachments.linkFromURL({
 				url: orcids[orcidUrl.toString()],
-				parentItemID: item.getField("id"),
+				parentItemID: item.id,
 				title: (authorName) ? authorName + "'s ORCID Profile" : "Author's ORCID Profile"
 			});
 		}

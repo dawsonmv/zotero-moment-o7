@@ -205,9 +205,6 @@ Zotero.MementoChecker = {
 	 * Create a note with archive report
 	 */
 	createArchiveReport: async function (item, originalUrl, archives) {
-		const note = new Zotero.Item("note");
-		note.parentKey = item.key;
-		note.libraryID = item.libraryID;
 
 		let noteContent = "<h3>Existing Archives Report</h3>";
 		noteContent += `<p>Original URL: <a href="${originalUrl}">${originalUrl}</a></p>`;
@@ -267,7 +264,6 @@ Zotero.MementoChecker = {
 
 		noteContent += `<p><small>Report generated: ${new Date().toLocaleString()}</small></p>`;
 
-		note.setNote(noteContent);
-		await note.saveTx();
+		await item.addNote(noteContent);
 	}
 };

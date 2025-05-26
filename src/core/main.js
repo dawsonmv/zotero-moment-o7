@@ -42,10 +42,10 @@ Zotero.MomentO7 = {
 		Services.scriptloader.loadSubScript(rootURI + "src/services/base.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/services/registry.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/core/coordinator.js");
-		
+
 		// Load features
 		Services.scriptloader.loadSubScript(rootURI + "src/features/memento-checker.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/features/robust-links.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/features/moments.js");
 		Services.scriptloader.loadSubScript(rootURI + "src/features/signpost.js");
 
 		// Load services
@@ -180,22 +180,84 @@ Zotero.MomentO7 = {
 			return;
 		}
 
-		// Create a simple separator
-		const separator = doc.createXULElement("menuseparator");
-		separator.id = "zotero-momento7-separator";
-
 		// Get enabled services from preferences
 		const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",").filter(s => s);
 
-		// Create menu items for enabled services
-		const menuItems = [];
+		// Only add menu if there are enabled services
+		if (enabledServices.length === 0) {
+			return;
+		}
 
+		// Create a simple separator
+		const separator = doc.createXULElement("menuseparator");
+		separator.id = "zotero-momento7-separator";
+		itemMenu.appendChild(separator);
+		this._addedElementIDs.push(separator.id);
+
+		// If only one service is enabled, create a simple menu item
+		if (enabledServices.length === 1) {
+			const service = enabledServices[0];
+			const serviceInfo = {
+				internetarchive: "Internet Archive",
+				archivetoday: "Archive.today",
+				permacc: "Perma.cc",
+				ukwebarchive: "UK Web Archive",
+				arquivopt: "Arquivo.pt"
+			};
+			
+			const menuItem = doc.createXULElement("menuitem");
+			menuItem.id = "zotero-momento7-archive-single";
+			menuItem.setAttribute("label", `Archive to ${serviceInfo[service] || service}`);
+			menuItem.addEventListener("command", async (event) => {
+				event.stopPropagation();
+				await this.handleMenuCommand(window, service);
+			});
+			
+			itemMenu.appendChild(menuItem);
+			this._addedElementIDs.push(menuItem.id);
+			return;
+		}
+
+		// Multiple services: create submenu
+		const menu = doc.createXULElement("menu");
+		menu.id = "zotero-momento7-menu";
+		menu.setAttribute("label", "Archive to...");
+		
+		const menupopup = doc.createXULElement("menupopup");
+		menu.appendChild(menupopup);
+
+		// Add "Create Moment (All Services)" as the first option if 2+ services
+		if (enabledServices.length >= 2) {
+			const momentItem = doc.createXULElement("menuitem");
+			momentItem.id = "zotero-momento7-create-moment";
+			momentItem.setAttribute("label", `Create Moment (${enabledServices.length} services)`);
+			momentItem.style.fontWeight = "bold";
+			momentItem.addEventListener("command", async (event) => {
+				event.stopPropagation();
+				await this.handleMenuCommand(window, "moment");
+			});
+			menupopup.appendChild(momentItem);
+
+			// Add separator after moment option
+			const momentSeparator = doc.createXULElement("menuseparator");
+			menupopup.appendChild(momentSeparator);
+
+			// Add label for individual services
+			const labelItem = doc.createXULElement("menuitem");
+			labelItem.setAttribute("label", "Archive to single service:");
+			labelItem.setAttribute("disabled", "true");
+			labelItem.style.fontStyle = "italic";
+			labelItem.style.fontSize = "0.9em";
+			menupopup.appendChild(labelItem);
+		}
+
+		// Service info
 		const serviceInfo = {
-			internetarchive: { label: "Archive to Internet Archive", icon: "IA" },
-			archivetoday: { label: "Archive to Archive.today", icon: "AT" },
-			permacc: { label: "Archive to Perma.cc", icon: "PC" },
-			ukwebarchive: { label: "Archive to UK Web Archive", icon: "UK" },
-			arquivopt: { label: "Archive to Arquivo.pt", icon: "PT" }
+			internetarchive: { label: "Internet Archive", desc: "Free, open web archive" },
+			archivetoday: { label: "Archive.today", desc: "High-quality captures" },
+			permacc: { label: "Perma.cc", desc: "Academic archive" },
+			ukwebarchive: { label: "UK Web Archive", desc: "British Library" },
+			arquivopt: { label: "Arquivo.pt", desc: "Portuguese archive" }
 		};
 
 		// Add menu items for each enabled service
@@ -204,44 +266,24 @@ Zotero.MomentO7 = {
 				// Check if service is registered
 				const serviceInstance = Zotero.MomentO7.ServiceRegistry.get(service);
 				if (serviceInstance) {
-					menuItems.push({
-						id: `zotero-momento7-archive-${service}`,
-						label: serviceInfo[service].label,
-						service: service
+					const menuItem = doc.createXULElement("menuitem");
+					menuItem.id = `zotero-momento7-archive-${service}`;
+					menuItem.setAttribute("label", `    ${serviceInfo[service].label}`);
+					menuItem.setAttribute("tooltiptext", serviceInfo[service].desc);
+					
+					// Add command handler
+					menuItem.addEventListener("command", async (event) => {
+						event.stopPropagation();
+						await this.handleMenuCommand(window, service);
 					});
+					
+					menupopup.appendChild(menuItem);
 				}
 			}
 		});
 
-		// Add robust link option if any services are enabled for robust links
-		const robustLinkServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",").filter(s => s);
-		if (robustLinkServices.length > 0) {
-			menuItems.push({
-				id: "zotero-momento7-archive-robust",
-				label: "Create Robust Link",
-				service: "robust"
-			});
-		}
-
-		// Add separator first
-		itemMenu.appendChild(separator);
-		this._addedElementIDs.push(separator.id);
-
-		// Create menu items
-		menuItems.forEach(itemConfig => {
-			const menuItem = doc.createXULElement("menuitem");
-			menuItem.id = itemConfig.id;
-			menuItem.setAttribute("label", itemConfig.label);
-
-			// Add command handler
-			menuItem.addEventListener("command", async (event) => {
-				event.stopPropagation();
-				await this.handleMenuCommand(window, itemConfig.service);
-			});
-
-			itemMenu.appendChild(menuItem);
-			this._addedElementIDs.push(menuItem.id);
-		});
+		itemMenu.appendChild(menu);
+		this._addedElementIDs.push(menu.id);
 
 	},
 
@@ -260,12 +302,20 @@ Zotero.MomentO7 = {
 				return;
 			}
 
-			if (service === "robust") {
-				// Handle robust link creation
-				await this.createRobustLinks(itemsWithUrls);
+			if (service === "moment") {
+				// Handle moment creation
+				await this.createMoments(itemsWithUrls);
 			} else {
 				// Handle single service archiving
+				const progressWin = new Zotero.ProgressWindow({ closeOnClick: false });
+				const serviceName = this.getServiceName(service);
+				progressWin.changeHeadline(`Archiving to ${serviceName}`);
+				progressWin.addDescription(`Processing ${itemsWithUrls.length} item(s)...`);
+				progressWin.show();
+				
 				const results = await Zotero.MomentO7.ArchiveCoordinator.archiveItems(itemsWithUrls, service);
+				progressWin.close();
+				
 				this.showArchiveResults(results, service);
 			}
 		} catch (error) {
@@ -274,15 +324,19 @@ Zotero.MomentO7 = {
 		}
 	},
 
-	async createRobustLinks(items) {
+	async createMoments(items) {
 		try {
+			// Get enabled services for display
+			const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",").filter(s => s);
+			const serviceNames = enabledServices.map(s => this.getServiceName(s)).join(", ");
+			
 			const progressWin = new Zotero.ProgressWindow({ closeOnClick: false });
-			progressWin.changeHeadline("Creating Robust Links");
-			progressWin.addDescription("Archiving to multiple services...");
+			progressWin.changeHeadline("Creating Moments");
+			progressWin.addDescription(`Archiving ${items.length} item(s) to: ${serviceNames}`);
 			progressWin.show();
 
-			// Use the RobustLinkCreator
-			const results = await Zotero.MomentO7.RobustLinkCreator.createRobustLinks(items);
+			// Use the MomentCreator
+			const results = await Zotero.MomentO7.MomentCreator.createMoments(items);
 
 			progressWin.close();
 
@@ -291,15 +345,15 @@ Zotero.MomentO7 = {
 			const failed = results.length - successful;
 
 			if (failed === 0) {
-				this.showSuccess(`Created robust links for ${successful} item(s)`);
+				this.showSuccess(`Created moments for ${successful} item(s)`);
 			} else if (successful === 0) {
-				this.showError("Failed to create any robust links");
+				this.showError("Failed to create any moments");
 			} else {
-				this.showWarning(`Robust links: ${successful} succeeded, ${failed} failed`);
+				this.showWarning(`Moments: ${successful} succeeded, ${failed} failed`);
 			}
 		} catch (error) {
-			this.log("Error creating robust links: " + error);
-			this.showError(error.message || "Failed to create robust links");
+			this.log("Error creating moments: " + error);
+			this.showError(error.message || "Failed to create moments");
 		}
 	},
 
@@ -349,6 +403,17 @@ Zotero.MomentO7 = {
 		progressWin.addDescription(message);
 		progressWin.show();
 		progressWin.startCloseTimer(4000);
+	},
+
+	getServiceName(serviceId) {
+		const names = {
+			internetarchive: "Internet Archive",
+			archivetoday: "Archive.today",
+			permacc: "Perma.cc",
+			ukwebarchive: "UK Web Archive",
+			arquivopt: "Arquivo.pt"
+		};
+		return names[serviceId] || serviceId;
 	},
 
 	/**

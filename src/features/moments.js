@@ -1,27 +1,28 @@
-// Robust Link Creator for Zotero 7
-// Creates combined robust links from multiple archive services
+// Moment Creator for Zotero 7
+// Creates moments (multi-archive snapshots) from multiple archive services
 
 if (typeof Zotero === "undefined") {
 	// var Zotero;
 }
 
-Zotero.MomentO7.RobustLinkCreator = {
+Zotero.MomentO7.MomentCreator = {
 	/**
-	 * Create robust links for selected items using configured services
+	 * Create moments for selected items using configured services
 	 * @param {Array} items - Array of Zotero items
 	 * @returns {Promise} Results of the archiving operations
 	 */
-	async createRobustLinks(items) {
+	async createMoments(items) {
 		if (!items || items.length === 0) {
 			throw new Error("No items provided");
 		}
 
 		// Get enabled services from preferences
-		const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices",
+		// Use enabled services for robust links
+		const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices",
 			"internetarchive,archivetoday").split(",").filter(s => s);
 
 		if (robustServices.length === 0) {
-			throw new Error("No services enabled for robust links");
+			throw new Error("No services enabled for moments");
 		}
 
 		const results = [];
@@ -68,9 +69,9 @@ Zotero.MomentO7.RobustLinkCreator = {
 				}
 			}
 
-			// Create robust link attachment if we have at least one successful archive
+			// Create moment note if we have at least one successful archive
 			if (itemResult.success) {
-				await this.createRobustLinkAttachment(item, itemResult.services);
+				await this.createMomentNote(item, itemResult.services);
 			}
 
 			results.push(itemResult);
@@ -80,9 +81,9 @@ Zotero.MomentO7.RobustLinkCreator = {
 	},
 
 	/**
-	 * Create Robust Link attachment with note
+	 * Create Moment note with all archive links
 	 */
-	async createRobustLinkAttachment(item, serviceResults) {
+	async createMomentNote(item, serviceResults) {
 		const originalUrl = item.getField("url");
 		const title = item.getField("title") || originalUrl;
 
@@ -108,16 +109,16 @@ Zotero.MomentO7.RobustLinkCreator = {
 		}
 
 		if (!primaryMemento) {
-			throw new Error("No successful archives to create robust link");
+			throw new Error("No successful archives to create moment");
 		}
 
 		const mementoDate = new Date().toISOString();
 
-		// Create the robust link HTML
+		// Create the moment HTML
 		let noteContent = "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;\">";
 
 		// Header
-		noteContent += `<h2 style="color: #2e4057; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">Robust Link for "${title}"</h2>`;
+		noteContent += `<h2 style="color: #2e4057; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">Moment for "${title}"</h2>`;
 
 		// Archive Status
 		noteContent += "<div style=\"background-color: #f5f5f5; border-radius: 8px; padding: 15px; margin: 20px 0;\">";
@@ -139,10 +140,10 @@ Zotero.MomentO7.RobustLinkCreator = {
 		noteContent += "</ul>";
 		noteContent += "</div>";
 
-		// Robust Link Implementation
+		// Moment Implementation
 		noteContent += "<div style=\"margin: 20px 0;\">";
-		noteContent += "<h3 style=\"color: #333;\">How to Use This Robust Link</h3>";
-		noteContent += "<p style=\"line-height: 1.6;\">A Robust Link includes both the original URL and archived versions to prevent link rot.</p>";
+		noteContent += "<h3 style=\"color: #333;\">How to Use This Moment</h3>";
+		noteContent += "<p style=\"line-height: 1.6;\">A Moment includes both the original URL and archived versions to preserve this citation forever.</p>";
 		noteContent += "</div>";
 
 		// HTML Snippets
@@ -150,24 +151,24 @@ Zotero.MomentO7.RobustLinkCreator = {
 		noteContent += "<h4 style=\"margin-top: 0; color: #1976D2;\">Step 1: Choose Your HTML Snippet</h4>";
 
 		// Link to original
-		const robustLinkOriginal = `<a href="${originalUrl}" data-originalurl="${originalUrl}" data-versionurl="${primaryMemento}" data-versiondate="${mementoDate}">${title}</a>`;
+		const momentLinkOriginal = `<a href="${originalUrl}" data-originalurl="${originalUrl}" data-versionurl="${primaryMemento}" data-versiondate="${mementoDate}">${title}</a>`;
 		noteContent += "<p><strong>Option A:</strong> Link to the live web page (with archived fallback):</p>";
-		noteContent += `<pre style="background-color: #fff; border: 1px solid #ddd; padding: 10px; overflow-x: auto; font-size: 13px;"><code>${this.escapeHtml(robustLinkOriginal)}</code></pre>`;
+		noteContent += `<pre style="background-color: #fff; border: 1px solid #ddd; padding: 10px; overflow-x: auto; font-size: 13px;"><code>${this.escapeHtml(momentLinkOriginal)}</code></pre>`;
 
 		// Link to archive
-		const robustLinkArchived = `<a href="${primaryMemento}" data-originalurl="${originalUrl}" data-versionurl="${primaryMemento}" data-versiondate="${mementoDate}">${title}</a>`;
+		const momentLinkArchived = `<a href="${primaryMemento}" data-originalurl="${originalUrl}" data-versionurl="${primaryMemento}" data-versiondate="${mementoDate}">${title}</a>`;
 		noteContent += "<p><strong>Option B:</strong> Link directly to the archived version:</p>";
-		noteContent += `<pre style="background-color: #fff; border: 1px solid #ddd; padding: 10px; overflow-x: auto; font-size: 13px;"><code>${this.escapeHtml(robustLinkArchived)}</code></pre>`;
+		noteContent += `<pre style="background-color: #fff; border: 1px solid #ddd; padding: 10px; overflow-x: auto; font-size: 13px;"><code>${this.escapeHtml(momentLinkArchived)}</code></pre>`;
 		noteContent += "</div>";
 
 		// JavaScript/CSS includes
 		noteContent += "<div style=\"background-color: #f9f9f9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0;\">";
-		noteContent += "<h4 style=\"margin-top: 0; color: #388E3C;\">Step 2: Include Robust Links JavaScript & CSS</h4>";
+		noteContent += "<h4 style=\"margin-top: 0; color: #388E3C;\">Step 2: Include Moment Links JavaScript & CSS</h4>";
 		noteContent += "<p>Add these lines to your webpage's <code>&lt;head&gt;</code> section:</p>";
 		noteContent += "<pre style=\"background-color: #fff; border: 1px solid #ddd; padding: 10px; overflow-x: auto; font-size: 13px;\"><code>";
-		noteContent += "&lt;!-- Robust Links CSS --&gt;\n";
+		noteContent += "&lt;!-- Moment Links CSS --&gt;\n";
 		noteContent += "&lt;link rel=\"stylesheet\" type=\"text/css\" href=\"https://doi.org/10.25776/z58z-r575\" /&gt;\n";
-		noteContent += "&lt;!-- Robust Links JavaScript --&gt;\n";
+		noteContent += "&lt;!-- Moment Links JavaScript --&gt;\n";
 		noteContent += "&lt;script type=\"text/javascript\" src=\"https://doi.org/10.25776/h1fa-7a28\"&gt;&lt;/script&gt;";
 		noteContent += "</code></pre>";
 		noteContent += "</div>";
@@ -182,20 +183,14 @@ Zotero.MomentO7.RobustLinkCreator = {
 		noteContent += "</div>";
 
 		// Create note
-		const note = new Zotero.Item("note");
-		note.libraryID = item.libraryID;
-		note.setNote(noteContent);
-		note.parentID = item.id;
-		await note.saveTx();
+		await item.addNote(noteContent);
 
 		// Add tags
-		item.addTag("robust-link");
+		item.addTag("moment");
 		if (!item.hasTag("archived")) {
 			item.addTag("archived");
 		}
 		await item.saveTx();
-
-		return note;
 	},
 
 	/**
@@ -225,14 +220,13 @@ Zotero.MomentO7.RobustLinkCreator = {
 	},
 
 	/**
-	 * Check if item has Robust Link note
+	 * Check if item has Moment note
 	 */
-	hasRobustLink(item) {
-		const notes = item.getNotes();
-		for (const noteId of notes) {
-			const note = Zotero.Items.get(noteId);
+	hasMoment(item) {
+		const notes = item.getNotes(true);
+		for (const note of notes) {
 			const content = note.getNote();
-			if (content.includes("Robust Link for") || content.includes("data-versionurl")) {
+			if (content.includes("Moment for") || content.includes("data-versionurl")) {
 				return true;
 			}
 		}

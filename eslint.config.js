@@ -8,6 +8,7 @@ module.exports = [
 			"build/**",
 			"dist/**",
 			"cloudflare-worker/**",
+			"worker/**",
 			".DS_Store",
 			"Thumbs.db",
 			".vscode/**",

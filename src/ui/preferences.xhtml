@@ -1,4 +1,6 @@
-<script xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:html="http://www.w3.org/1999/xhtml">
+<script>
     <![CDATA[
     // Initialize preferences when pane loads
     if (!Zotero.MomentO7) {
@@ -11,23 +13,13 @@
             const services = ['internetarchive', 'archivetoday', 'permacc', 'ukwebarchive', 'arquivopt'];
             
             // Initialize enabled services
-            const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",");
-            
-            // Initialize robust link services
-            const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",");
+            const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",").filter(s => s);
             
             services.forEach(service => {
                 // Set enabled checkbox
                 const enabledCheckbox = document.getElementById(`service-${service}-enabled`);
                 if (enabledCheckbox) {
                     enabledCheckbox.checked = enabledServices.includes(service);
-                }
-                
-                // Set robust checkbox
-                const robustCheckbox = document.getElementById(`service-${service}-robust`);
-                if (robustCheckbox) {
-                    robustCheckbox.checked = robustServices.includes(service);
-                    robustCheckbox.disabled = !enabledServices.includes(service);
                 }
             });
             
@@ -60,19 +52,26 @@
                 const delay = Zotero.Prefs.get("extensions.zotero.momento7.autoArchiveDelay", 3000);
                 delayInput.value = delay / 1000;
             }
+            
+            // Initialize API settings
+            const useAPICheckbox = document.getElementById("use-api");
+            if (useAPICheckbox) {
+                useAPICheckbox.checked = Zotero.Prefs.get("extensions.zotero.momento7.useAPI", false);
+            }
+            
+            const apiEndpointInput = document.getElementById("api-endpoint");
+            if (apiEndpointInput) {
+                apiEndpointInput.value = Zotero.Prefs.get("extensions.zotero.momento7.apiEndpoint", "http://localhost:23119/api");
+            }
+            
+            // Initialize Perma.cc API key
+            const permaccApiKeyInput = document.getElementById("permacc-apikey");
+            if (permaccApiKeyInput) {
+                permaccApiKeyInput.value = Zotero.Prefs.get("extensions.zotero.momento7.permacc.apiKey", "");
+            }
         },
         
         updateServiceEnabled(service) {
-            const enabledCheckbox = document.getElementById(`service-${service}-enabled`);
-            const robustCheckbox = document.getElementById(`service-${service}-robust`);
-            
-            if (robustCheckbox) {
-                robustCheckbox.disabled = !enabledCheckbox.checked;
-                if (!enabledCheckbox.checked) {
-                    robustCheckbox.checked = false;
-                }
-            }
-            
             // Update enabled services preference
             const services = [];
             ['internetarchive', 'archivetoday', 'permacc', 'ukwebarchive', 'arquivopt'].forEach(s => {
@@ -82,19 +81,87 @@
                 }
             });
             
-            Zotero.Prefs.set("extensions.zotero.momento7.enabledServices", services.join(","));
-        },
-        
-        updateRobustServices() {
-            const services = [];
-            ['internetarchive', 'archivetoday', 'permacc', 'ukwebarchive', 'arquivopt'].forEach(service => {
-                const checkbox = document.getElementById(`service-${service}-robust`);
-                if (checkbox && checkbox.checked && !checkbox.disabled) {
+            const servicesString = services.join(",");
+            // Ensure at least one service is enabled
+            if (services.length === 0) {
+                // Re-check the current service to prevent having no services
+                const checkbox = document.getElementById(`service-${service}-enabled`);
+                if (checkbox) {
+                    checkbox.checked = true;
                     services.push(service);
                 }
-            });
+                alert("At least one archive service must be enabled.");
+                return;
+            }
             
-            Zotero.Prefs.set("extensions.zotero.momento7.robustLinkServices", services.join(","));
+            Zotero.Prefs.set("extensions.zotero.momento7.enabledServices", servicesString);
+            // Enabled services are automatically used for robust links
+            Zotero.Prefs.set("extensions.zotero.momento7.robustLinkServices", servicesString);
+        },
+        
+        async migrateRobustLinks() {
+            const statusLabel = document.getElementById("migration-status");
+            const button = document.getElementById("migrate-robust-links");
+            
+            if (!statusLabel || !button) {
+                return;
+            }
+            
+            try {
+                button.disabled = true;
+                statusLabel.value = "Migrating...";
+                statusLabel.style.color = "#1976D2";
+                
+                // Get all items with robust-link tag
+                const search = new Zotero.Search();
+                search.libraryID = Zotero.Libraries.userLibraryID;
+                search.addCondition("tag", "is", "robust-link");
+                const itemIDs = await search.search();
+                
+                let migratedCount = 0;
+                
+                for (const itemID of itemIDs) {
+                    const item = Zotero.Items.get(itemID);
+                    if (item) {
+                        // Remove robust-link tag and add moment tag
+                        item.removeTag("robust-link");
+                        item.addTag("moment");
+                        
+                        // Update notes
+                        const notes = item.getNotes(true);
+                        for (const note of notes) {
+                            let content = note.getNote();
+                            if (content.includes("Robust Link")) {
+                                // Replace "Robust Link" with "Moment" in note content
+                                content = content.replace(/Robust Link/g, "Moment");
+                                content = content.replace(/robust link/g, "moment");
+                                content = content.replace(/Robust Links/g, "Moments");
+                                content = content.replace(/robust links/g, "moments");
+                                note.setNote(content);
+                                await note.saveTx();
+                            }
+                        }
+                        
+                        await item.saveTx();
+                        migratedCount++;
+                    }
+                }
+                
+                statusLabel.value = `Successfully migrated ${migratedCount} items!`;
+                statusLabel.style.color = "#4CAF50";
+                
+                // Clear message after 5 seconds
+                setTimeout(() => {
+                    statusLabel.value = "";
+                    button.disabled = false;
+                }, 5000);
+                
+            } catch (error) {
+                statusLabel.value = "Migration failed: " + error.message;
+                statusLabel.style.color = "#f44336";
+                button.disabled = false;
+                Zotero.debug("Migration error: " + error);
+            }
         },
         
         saveTimeout() {
@@ -139,77 +206,64 @@
 <groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
     xmlns:html="http://www.w3.org/1999/xhtml">
     <label><html:strong>Archive Services</html:strong></label>
-    <description>Enable services and select which ones to include in Robust Links:</description>
+    <description>Select which services to enable for archiving (enabled services will be included in Moments):</description>
     
-    <grid style="margin-top: 10px;">
-        <columns>
-            <column style="width: 50px;"/>
-            <column style="width: 50px;"/>
-            <column flex="1"/>
-        </columns>
-        <rows>
-            <row align="center" style="margin-bottom: 5px;">
-                <label value="Enabled" style="font-weight: bold; font-size: small;"/>
-                <label value="Robust Link" style="font-weight: bold; font-size: small;"/>
-                <label value="Service" style="font-weight: bold; font-size: small;"/>
-            </row>
-            
-            <row align="center" style="padding-top: 8px;">
-                <checkbox id="service-internetarchive-enabled" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('internetarchive')"/>
-                <checkbox id="service-internetarchive-robust" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
-                <vbox align="start">
-                    <label value="Internet Archive" style="font-weight: bold;"/>
-                    <description style="font-size: small; margin: 0;">Free, open archive service</description>
-                </vbox>
-            </row>
-            
-            <row align="center" style="padding-top: 8px;">
-                <checkbox id="service-archivetoday-enabled" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('archivetoday')"/>
-                <checkbox id="service-archivetoday-robust" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
-                <vbox align="start">
-                    <label value="Archive.today" style="font-weight: bold;"/>
-                    <description style="font-size: small; margin: 0;">Private archive service</description>
-                </vbox>
-            </row>
-            
-            <row align="center" style="padding-top: 8px;">
-                <checkbox id="service-permacc-enabled" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('permacc')"/>
-                <checkbox id="service-permacc-robust" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
-                <vbox align="start">
-                    <label value="Perma.cc" style="font-weight: bold;"/>
-                    <description style="font-size: small; margin: 0;">Academic archive (requires API key)</description>
-                </vbox>
-            </row>
-            
-            <row align="center" style="padding-top: 8px;">
-                <checkbox id="service-ukwebarchive-enabled" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('ukwebarchive')"/>
-                <checkbox id="service-ukwebarchive-robust" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
-                <vbox align="start">
-                    <label value="UK Web Archive" style="font-weight: bold;"/>
-                    <description style="font-size: small; margin: 0;">British Library archive</description>
-                </vbox>
-            </row>
-            
-            <row align="center" style="padding-top: 8px;">
-                <checkbox id="service-arquivopt-enabled" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('arquivopt')"/>
-                <checkbox id="service-arquivopt-robust" 
-                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
-                <vbox align="start">
-                    <label value="Arquivo.pt" style="font-weight: bold;"/>
-                    <description style="font-size: small; margin: 0;">Portuguese web archive</description>
-                </vbox>
-            </row>
-        </rows>
-    </grid>
+    <vbox style="margin-top: 10px;">
+        <!-- Internet Archive -->
+        <vbox style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <checkbox id="service-internetarchive-enabled" 
+                label="Internet Archive"
+                style="font-weight: bold; font-size: 14px;"
+                oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('internetarchive')"/>
+            <description style="margin-left: 22px; margin-top: 5px; font-size: small; color: #666;">
+                Free, open archive service with worldwide coverage. The most comprehensive web archive available.
+            </description>
+        </vbox>
+        
+        <!-- Archive.today -->
+        <vbox style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <checkbox id="service-archivetoday-enabled" 
+                label="Archive.today"
+                style="font-weight: bold; font-size: 14px;"
+                oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('archivetoday')"/>
+            <description style="margin-left: 22px; margin-top: 5px; font-size: small; color: #666;">
+                Private archive service with high-quality captures. Excellent at preserving JavaScript-heavy sites.
+            </description>
+        </vbox>
+        
+        <!-- Perma.cc -->
+        <vbox style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <checkbox id="service-permacc-enabled" 
+                label="Perma.cc"
+                style="font-weight: bold; font-size: 14px;"
+                oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('permacc')"/>
+            <description style="margin-left: 22px; margin-top: 5px; font-size: small; color: #666;">
+                Academic archive service designed for scholarly citations. Requires API key (configure below).
+            </description>
+        </vbox>
+        
+        <!-- UK Web Archive -->
+        <vbox style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <checkbox id="service-ukwebarchive-enabled" 
+                label="UK Web Archive"
+                style="font-weight: bold; font-size: 14px;"
+                oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('ukwebarchive')"/>
+            <description style="margin-left: 22px; margin-top: 5px; font-size: small; color: #666;">
+                British Library's web archive. Best for UK and European content.
+            </description>
+        </vbox>
+        
+        <!-- Arquivo.pt -->
+        <vbox style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+            <checkbox id="service-arquivopt-enabled" 
+                label="Arquivo.pt"
+                style="font-weight: bold; font-size: 14px;"
+                oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('arquivopt')"/>
+            <description style="margin-left: 22px; margin-top: 5px; font-size: small; color: #666;">
+                Portuguese web archive. Best for Portuguese and Brazilian content.
+            </description>
+        </vbox>
+    </vbox>
 </groupbox>
 
 <groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -261,3 +315,54 @@
             onclick="Zotero.launchURL('https://perma.cc/settings/tools')"/>
     </description>
 </groupbox>
+
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>Migration Tools</html:strong></label>
+    
+    <vbox style="margin-top: 10px;">
+        <description style="margin-bottom: 10px;">
+            Convert your existing Robust Links to the new Moments format.
+        </description>
+        
+        <hbox align="center">
+            <button id="migrate-robust-links" 
+                label="Convert Robust Links to Moments" 
+                oncommand="Zotero.MomentO7.PreferencesPane.migrateRobustLinks()"/>
+            <label id="migration-status" value="" style="margin-left: 10px; font-style: italic;"/>
+        </hbox>
+        
+        <description style="font-size: small; margin-top: 10px; color: #666;">
+            This will update all existing "robust-link" tags to "moment" tags and update note content.
+        </description>
+    </vbox>
+</groupbox>
+
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>API Settings (Developer Options)</html:strong></label>
+    
+    <checkbox id="use-api" label="Use Zotero API for operations (experimental)"
+        oncommand="Zotero.Prefs.set('extensions.zotero.momento7.useAPI', this.checked)"/>
+    
+    <grid style="margin-top: 10px;">
+        <columns>
+            <column/>
+            <column flex="1"/>
+        </columns>
+        <rows>
+            <row align="center">
+                <label value="API Endpoint:" control="api-endpoint"/>
+                <html:input id="api-endpoint" type="text" 
+                    style="width: 300px;" placeholder="http://localhost:23119/api"
+                    onchange="Zotero.Prefs.set('extensions.zotero.momento7.apiEndpoint', this.value)"/>
+            </row>
+        </rows>
+    </grid>
+    
+    <description style="font-size: small; margin-top: 5px;">
+        Enable this to use Zotero's HTTP API instead of direct JavaScript calls.
+        This is useful for debugging and testing with Zotero Beta.
+    </description>
+</groupbox>
+</vbox>

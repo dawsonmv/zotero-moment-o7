@@ -31,16 +31,8 @@ async function startup({ id, version, rootURI }, _reason) {
 			.wrappedJSObject;
 	}
 
-	// Check if we're in development mode (TypeScript sources)
-	const isDev = rootURI.includes("zotero-moment-o7/src/");
-
-	if (isDev) {
-		// Development mode - load original JavaScript files
-		Services.scriptloader.loadSubScript(rootURI + "src/zotero-moment-o7.js");
-	} else {
-		// Production mode - load compiled bundle
-		Services.scriptloader.loadSubScript(rootURI + "zotero-moment-o7.js");
-	}
+	// Load the main module
+	Services.scriptloader.loadSubScript(rootURI + "main.js");
 
 	// Initialize plugin
 	ZoteroMomentO7 = Zotero.MomentO7;
@@ -50,7 +42,7 @@ async function startup({ id, version, rootURI }, _reason) {
 	if (Zotero.PreferencePanes && Zotero.PreferencePanes.register) {
 		Zotero.PreferencePanes.register({
 			pluginID: "zotero-moment-o7@github.com",
-			src: rootURI + "addon/content/preferences.xhtml",
+			src: rootURI + "src/ui/preferences.xhtml",
 			label: "Moment-o7",
 			image: rootURI + "icon48.png"
 		});
@@ -89,8 +81,8 @@ function shutdown({ _id, _version, _rootURI }, _reason) {
 		if (Zotero.ArchiveTodayPusher) {
 			delete Zotero.ArchiveTodayPusher;
 		}
-		if (Zotero.RobustLinkCreator) {
-			delete Zotero.RobustLinkCreator;
+		if (Zotero.MomentCreator) {
+			delete Zotero.MomentCreator;
 		}
 	}
 }

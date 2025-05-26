@@ -27,6 +27,9 @@ cp update.json build/
 cp icon*.png build/
 cp chrome.manifest build/
 
+# Copy bootstrap.js to root (required by Zotero)
+cp src/core/bootstrap.js build/
+
 # Copy source structure
 echo "Copying source files..."
 mkdir -p build/src

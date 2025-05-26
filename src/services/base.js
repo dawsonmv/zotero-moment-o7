@@ -46,7 +46,7 @@ Zotero.MomentO7.BaseArchiveService = class {
 		this.lastRequest = Date.now();
 	}
 
-	createRobustLinkHTML(originalUrl, archivedUrl, linkText, useArchivedHref = false) {
+	createMomentLinkHTML(originalUrl, archivedUrl, linkText, useArchivedHref = false) {
 		const versionDate = new Date().toISOString();
 		const href = useArchivedHref ? archivedUrl : originalUrl;
 		return `<a href="${href}" data-originalurl="${this.escapeHtml(originalUrl)}" data-versionurl="${this.escapeHtml(archivedUrl)}" data-versiondate="${versionDate}">${this.escapeHtml(linkText)}</a>`;
@@ -77,21 +77,17 @@ Zotero.MomentO7.BaseArchiveService = class {
 			item.setField("extra", extra);
 		}
 
-		const robustLinkHTML = this.createRobustLinkHTML(originalUrl, archivedUrl, linkText);
-		const noteContent = `<p>Archived version: ${robustLinkHTML}</p>
+		const momentLinkHTML = this.createMomentLinkHTML(originalUrl, archivedUrl, linkText);
+		const noteContent = `<p>Archived version: ${momentLinkHTML}</p>
 <p>Archive date: ${new Date().toLocaleDateString()}</p>
 <p>Archive service: ${this.name}</p>
 ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
 
-<p><strong>Robust Link HTML (copy and paste):</strong></p>
-<pre>${this.escapeHtml(robustLinkHTML)}</pre>`;
+<p><strong>Moment Link HTML (copy and paste):</strong></p>
+<pre>${this.escapeHtml(momentLinkHTML)}</pre>`;
 
-		const note = new Zotero.Item("note");
-		note.setNote(noteContent);
-		note.parentID = item.id;
-		await note.saveTx();
-
-		return note;
+		const noteID = await item.addNote(noteContent);
+		return Zotero.Items.get(noteID);
 	}
 
 	showProgressWindow(title, message) {

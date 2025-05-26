@@ -170,14 +170,14 @@ Zotero.MomentO7.ArchiveTodayService = class extends Zotero.MomentO7.BaseArchiveS
 			item.setField("extra", extra);
 		}
 
-		const robustLinkHTML = this.createRobustLinkHTML(originalUrl, archivedUrl, linkText);
-		const noteContent = `<p>Archived version: ${robustLinkHTML}</p>
+		const momentLinkHTML = this.createMomentLinkHTML(originalUrl, archivedUrl, linkText);
+		const noteContent = `<p>Archived version: ${momentLinkHTML}</p>
 <p>Archive date: ${new Date().toLocaleDateString()}</p>
 <p>Archive service: ${this.name}</p>
 ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
 
-<p><strong>Robust Link HTML (copy and paste):</strong></p>
-<pre>${this.escapeHtml(robustLinkHTML)}</pre>`;
+<p><strong>Moment Link HTML (copy and paste):</strong></p>
+<pre>${this.escapeHtml(momentLinkHTML)}</pre>`;
 
 		const note = new Zotero.Item("note");
 		note.setNote(noteContent);
