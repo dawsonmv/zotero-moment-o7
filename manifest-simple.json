@@ -23,5 +23,5 @@
     "url": "chrome://zotero-moment-o7/content/preferences-simple.xhtml"
   },
   
-  "bootstrap": "bootstrap-simple.js"
+  "bootstrap": "kiss/bootstrap.js"
 }

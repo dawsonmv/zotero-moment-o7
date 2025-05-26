@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports = {
 	mode: "development",
-	entry: "./src/zotero-moment-o7.js",
+	entry: "./src/core/main.js",
 	module: {
 		rules: [
 			{
@@ -24,7 +24,7 @@ module.exports = {
 		}
 	},
 	output: {
-		filename: "zotero-moment-o7.js",
+		filename: "main.js",
 		path: path.resolve(__dirname, "build"),
 		iife: true
 	},

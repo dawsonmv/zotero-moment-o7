@@ -22,29 +22,26 @@ mkdir -p build
 
 # Copy non-TypeScript files to build directory
 echo "Copying static files to build directory..."
-cp -r locale build/
-cp -r cloudflare-worker build/
 cp manifest.json build/
-cp bootstrap.js build/
 cp update.json build/
 cp icon*.png build/
+cp chrome.manifest build/
 
-# Copy chrome.manifest if it exists
-if [ -f "chrome.manifest" ]; then
-    cp chrome.manifest build/
-fi
-
-# Copy addon directory for preference pane and prefs
-if [ -d "addon" ]; then
-    echo "Copying addon directory..."
-    cp -r addon build/
-fi
-
-# Copy the main JavaScript file and its dependencies
-echo "Copying JavaScript source files..."
-cp src/zotero-moment-o7.js build/
+# Copy source structure
+echo "Copying source files..."
 mkdir -p build/src
-cp -r src/*.js build/src/
+cp -r src/core build/src/
+cp -r src/services build/src/
+cp -r src/features build/src/
+cp -r src/ui build/src/
+cp -r src/translators build/src/
+
+# Copy addon files
+cp -r addon build/
+
+# Copy worker files (if needed for distribution)
+mkdir -p build/worker
+cp -r worker/* build/worker/
 
 # Remove old build
 if [ -f "zotero-moment-o7.xpi" ]; then

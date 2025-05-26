@@ -38,28 +38,24 @@ Zotero.MomentO7 = {
 			Zotero.MomentO7 = this;
 		}
 
-		// Load new architecture modules
-		Services.scriptloader.loadSubScript(rootURI + "src/BaseArchiveService.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/ServiceRegistry.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveCoordinator.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/MementoChecker.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/Preferences.js");
+		// Load core modules
+		Services.scriptloader.loadSubScript(rootURI + "src/services/base.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/services/registry.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/core/coordinator.js");
+		
+		// Load features
+		Services.scriptloader.loadSubScript(rootURI + "src/features/memento-checker.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/features/robust-links.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/features/signpost.js");
 
 		// Load services
-		Services.scriptloader.loadSubScript(rootURI + "src/InternetArchiveService.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayService.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/PermaCCService.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/UKWebArchiveService.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/ArquivoPtService.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/services/internet-archive.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/services/archive-today.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/services/perma-cc.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/services/uk-web-archive.js");
+		Services.scriptloader.loadSubScript(rootURI + "src/services/arquivo-pt.js");
 
-		// Load legacy modules (to be refactored)
-		Services.scriptloader.loadSubScript(rootURI + "src/Signpost.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/IaPusher.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/ArchiveTodayPusher.js");
-		Services.scriptloader.loadSubScript(rootURI + "src/RobustLinkCreator.js");
-
-		// Initialize preferences
-		Zotero.MomentO7.Preferences.init();
+		// Services will self-register during load
 
 		// Initialize new architecture
 		this.initializeServices();
