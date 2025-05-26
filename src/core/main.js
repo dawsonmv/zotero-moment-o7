@@ -204,7 +204,7 @@ Zotero.MomentO7 = {
 				ukwebarchive: "UK Web Archive",
 				arquivopt: "Arquivo.pt"
 			};
-			
+
 			const menuItem = doc.createXULElement("menuitem");
 			menuItem.id = "zotero-momento7-archive-single";
 			menuItem.setAttribute("label", `Archive to ${serviceInfo[service] || service}`);
@@ -212,7 +212,7 @@ Zotero.MomentO7 = {
 				event.stopPropagation();
 				await this.handleMenuCommand(window, service);
 			});
-			
+
 			itemMenu.appendChild(menuItem);
 			this._addedElementIDs.push(menuItem.id);
 			return;
@@ -222,7 +222,7 @@ Zotero.MomentO7 = {
 		const menu = doc.createXULElement("menu");
 		menu.id = "zotero-momento7-menu";
 		menu.setAttribute("label", "Archive to...");
-		
+
 		const menupopup = doc.createXULElement("menupopup");
 		menu.appendChild(menupopup);
 
@@ -270,13 +270,13 @@ Zotero.MomentO7 = {
 					menuItem.id = `zotero-momento7-archive-${service}`;
 					menuItem.setAttribute("label", `    ${serviceInfo[service].label}`);
 					menuItem.setAttribute("tooltiptext", serviceInfo[service].desc);
-					
+
 					// Add command handler
 					menuItem.addEventListener("command", async (event) => {
 						event.stopPropagation();
 						await this.handleMenuCommand(window, service);
 					});
-					
+
 					menupopup.appendChild(menuItem);
 				}
 			}
@@ -312,10 +312,10 @@ Zotero.MomentO7 = {
 				progressWin.changeHeadline(`Archiving to ${serviceName}`);
 				progressWin.addDescription(`Processing ${itemsWithUrls.length} item(s)...`);
 				progressWin.show();
-				
+
 				const results = await Zotero.MomentO7.ArchiveCoordinator.archiveItems(itemsWithUrls, service);
 				progressWin.close();
-				
+
 				this.showArchiveResults(results, service);
 			}
 		} catch (error) {
@@ -329,7 +329,7 @@ Zotero.MomentO7 = {
 			// Get enabled services for display
 			const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",").filter(s => s);
 			const serviceNames = enabledServices.map(s => this.getServiceName(s)).join(", ");
-			
+
 			const progressWin = new Zotero.ProgressWindow({ closeOnClick: false });
 			progressWin.changeHeadline("Creating Moments");
 			progressWin.addDescription(`Archiving ${items.length} item(s) to: ${serviceNames}`);
@@ -403,17 +403,6 @@ Zotero.MomentO7 = {
 		progressWin.addDescription(message);
 		progressWin.show();
 		progressWin.startCloseTimer(4000);
-	},
-
-	getServiceName(serviceId) {
-		const names = {
-			internetarchive: "Internet Archive",
-			archivetoday: "Archive.today",
-			permacc: "Perma.cc",
-			ukwebarchive: "UK Web Archive",
-			arquivopt: "Arquivo.pt"
-		};
-		return names[serviceId] || serviceId;
 	},
 
 	/**

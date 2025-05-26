@@ -13,7 +13,7 @@ async function getArchivedItems() {
 				"Zotero-API-Version": "3"
 			}
 		});
-		
+
 		const items = JSON.parse(response.responseText);
 		Zotero.debug(`Found ${items.length} archived items`);
 		return items;
@@ -32,14 +32,14 @@ async function updateItemViaAPI(itemKey, archiveUrl) {
 				"Zotero-API-Version": "3"
 			}
 		});
-		
+
 		const item = JSON.parse(getResponse.responseText);
 		const version = getResponse.getResponseHeader("Last-Modified-Version");
-		
+
 		// Update the item's extra field with archive URL
 		const currentExtra = item.data.extra || "";
 		const newExtra = currentExtra + `\nArchived at: ${archiveUrl}`;
-		
+
 		const updateData = {
 			key: itemKey,
 			version: parseInt(version),
@@ -48,7 +48,7 @@ async function updateItemViaAPI(itemKey, archiveUrl) {
 				extra: newExtra
 			}
 		};
-		
+
 		const updateResponse = await Zotero.HTTP.request("PATCH", `http://localhost:23119/api/users/0/items/${itemKey}`, {
 			headers: {
 				"Content-Type": "application/json",
@@ -57,7 +57,7 @@ async function updateItemViaAPI(itemKey, archiveUrl) {
 			},
 			body: JSON.stringify(updateData)
 		});
-		
+
 		Zotero.debug(`Updated item ${itemKey} with archive URL`);
 		return JSON.parse(updateResponse.responseText);
 	} catch (error) {
@@ -77,7 +77,7 @@ async function createNoteViaAPI(parentItemKey, noteContent) {
 				{ tag: "archived", type: 0 }
 			]
 		};
-		
+
 		const response = await Zotero.HTTP.request("POST", "http://localhost:23119/api/users/0/items", {
 			headers: {
 				"Content-Type": "application/json",
@@ -85,7 +85,7 @@ async function createNoteViaAPI(parentItemKey, noteContent) {
 			},
 			body: JSON.stringify([noteData])
 		});
-		
+
 		const createdItems = JSON.parse(response.responseText);
 		Zotero.debug(`Created note for item ${parentItemKey}`);
 		return createdItems.successful[0];
@@ -105,7 +105,7 @@ async function searchItemsByURL(url) {
 				"Zotero-API-Version": "3"
 			}
 		});
-		
+
 		const items = JSON.parse(response.responseText);
 		return items.filter(item => item.data.url === url);
 	} catch (error) {
@@ -122,7 +122,7 @@ async function getItemAttachments(itemKey) {
 				"Zotero-API-Version": "3"
 			}
 		});
-		
+
 		const attachments = JSON.parse(response.responseText);
 		return attachments;
 	} catch (error) {
@@ -136,14 +136,14 @@ async function archiveItemUsingAPI(itemKey, archiveUrl) {
 	try {
 		// Update item with archive info
 		await updateItemViaAPI(itemKey, archiveUrl);
-		
+
 		// Create a note with robust link
 		const noteContent = `<h3>Archived Version</h3>
 <p><a href="${archiveUrl}">${archiveUrl}</a></p>
 <p>Archived on: ${new Date().toISOString()}</p>`;
-		
+
 		await createNoteViaAPI(itemKey, noteContent);
-		
+
 		Zotero.debug(`Successfully archived item ${itemKey} via API`);
 		return true;
 	} catch (error) {
@@ -161,7 +161,7 @@ async function checkAPIConnection() {
 			},
 			timeout: 5000
 		});
-		
+
 		return response.status === 200;
 	} catch (error) {
 		Zotero.debug(`API connection check failed: ${error.message}`, 2);

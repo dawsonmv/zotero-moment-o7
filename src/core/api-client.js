@@ -7,7 +7,7 @@
 
 Zotero.MomentO7.APIClient = {
 	baseURL: "http://localhost:23119/api",
-	
+
 	/**
 	 * Make a request to the Zotero API
 	 * @param {string} method - HTTP method
@@ -17,7 +17,7 @@ Zotero.MomentO7.APIClient = {
 	 */
 	async request(method, endpoint, options = {}) {
 		const url = `${this.baseURL}${endpoint}`;
-		
+
 		const requestOptions = {
 			method: method,
 			headers: {
@@ -27,40 +27,43 @@ Zotero.MomentO7.APIClient = {
 			},
 			timeout: options.timeout || 30000
 		};
-		
+
 		if (options.body) {
 			requestOptions.body = JSON.stringify(options.body);
 		}
-		
+
 		try {
 			const response = await Zotero.HTTP.request(method, url, requestOptions);
-			
+
 			if (response.status !== 200 && response.status !== 201 && response.status !== 204) {
 				throw new Error(`API request failed with status ${response.status}: ${response.responseText}`);
 			}
-			
+
 			if (response.responseText) {
 				return JSON.parse(response.responseText);
 			}
-			
+
 			return null;
 		} catch (error) {
 			Zotero.debug(`API request failed: ${error.message}`, 1);
 			throw error;
 		}
 	},
-	
+
 	/**
 	 * Get items from the library
 	 * @param {Object} params - Query parameters
 	 * @returns {Promise<Array>} Array of items
 	 */
 	async getItems(params = {}) {
-		const queryString = new URLSearchParams(params).toString();
+		// Build query string manually for compatibility
+		const queryString = Object.keys(params)
+			.map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+			.join("&");
 		const endpoint = `/users/0/items${queryString ? `?${queryString}` : ""}`;
 		return await this.request("GET", endpoint);
 	},
-	
+
 	/**
 	 * Get a specific item
 	 * @param {string} itemKey - Item key
@@ -69,7 +72,7 @@ Zotero.MomentO7.APIClient = {
 	async getItem(itemKey) {
 		return await this.request("GET", `/users/0/items/${itemKey}`);
 	},
-	
+
 	/**
 	 * Update an item
 	 * @param {string} itemKey - Item key
@@ -85,7 +88,7 @@ Zotero.MomentO7.APIClient = {
 			}
 		});
 	},
-	
+
 	/**
 	 * Create a note
 	 * @param {string} parentKey - Parent item key
@@ -100,12 +103,12 @@ Zotero.MomentO7.APIClient = {
 			tags: [],
 			relations: {}
 		};
-		
+
 		return await this.request("POST", "/users/0/items", {
 			body: [noteData]
 		});
 	},
-	
+
 	/**
 	 * Search items
 	 * @param {Object} conditions - Search conditions
@@ -118,10 +121,10 @@ Zotero.MomentO7.APIClient = {
 			qmode: conditions.qmode || "everything",
 			limit: conditions.limit || 25
 		};
-		
+
 		return await this.getItems(searchParams);
 	},
-	
+
 	/**
 	 * Get collections
 	 * @returns {Promise<Array>} Array of collections
@@ -129,7 +132,7 @@ Zotero.MomentO7.APIClient = {
 	async getCollections() {
 		return await this.request("GET", "/users/0/collections");
 	},
-	
+
 	/**
 	 * Check if API is available
 	 * @returns {Promise<boolean>} True if API is available

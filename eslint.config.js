@@ -20,7 +20,10 @@ module.exports = [
 			"spec/**",
 			"scripts/**",
 			"src/translators/**",
-			"eslint.config.js"
+			"eslint.config.js",
+			"test-zotero-api.js",
+			"zotero-api-examples.js",
+			"*.py"
 		]
 	},
 	js.configs.recommended,
