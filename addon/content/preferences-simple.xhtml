@@ -1,0 +1,50 @@
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>Moment-o7 Settings</html:strong></label>
+    
+    <checkbox id="momento7-autoarchive" 
+        label="Automatically archive new items" 
+        preference="extensions.zotero.momento7.autoArchive"/>
+    
+    <hbox align="center">
+        <label value="Auto-archive delay (seconds):" control="momento7-delay"/>
+        <html:input id="momento7-delay" type="number" min="1" max="60" style="width: 60px;"
+            onchange="Zotero.Prefs.set('extensions.zotero.momento7.autoArchiveDelay', parseInt(this.value) * 1000)"/>
+    </hbox>
+    
+    <checkbox id="momento7-createnote" 
+        label="Create archive note when archiving" 
+        preference="extensions.zotero.momento7.createNote"/>
+    
+    <separator/>
+    
+    <label value="Enabled Services:"/>
+    <checkbox id="momento7-ia" label="Internet Archive" 
+        oncommand="Zotero.MomentO7.updateEnabledServices()"/>
+    <checkbox id="momento7-at" label="Archive.today" 
+        oncommand="Zotero.MomentO7.updateEnabledServices()"/>
+</groupbox>
+
+<script xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+    <![CDATA[
+    // Initialize preferences
+    window.addEventListener("DOMContentLoaded", () => {
+        // Set delay value
+        const delay = Zotero.Prefs.get("extensions.zotero.momento7.autoArchiveDelay", 3000);
+        document.getElementById("momento7-delay").value = delay / 1000;
+        
+        // Set service checkboxes
+        const services = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", ["internetarchive", "archivetoday"]);
+        document.getElementById("momento7-ia").checked = services.includes("internetarchive");
+        document.getElementById("momento7-at").checked = services.includes("archivetoday");
+    });
+    
+    // Update enabled services
+    Zotero.MomentO7.updateEnabledServices = function() {
+        const services = [];
+        if (document.getElementById("momento7-ia").checked) services.push("internetarchive");
+        if (document.getElementById("momento7-at").checked) services.push("archivetoday");
+        Zotero.Prefs.set("extensions.zotero.momento7.enabledServices", services);
+    };
+    ]]>
+</script>
