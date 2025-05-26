@@ -8,6 +8,15 @@ node_modules/
 console_output.log/
 console_errors/
 cloudflare-worker/node_modules/
+
+# Build directories
+build/
+build-simple/
+dist/
+
+# Coverage reports
+coverage/
+
 # Test scripts
 diagnose-plugin.js
 test-*.js
