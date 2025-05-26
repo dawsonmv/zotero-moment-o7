@@ -191,7 +191,7 @@ export class ZoteroProgressWindowAdapter implements ProgressListener {
     this.progressWindow!.show();
   }
 
-  private updateWindow(message: string, progress?: number): void {
+  private updateWindow(message: string, _progress?: number): void {
     if (!this.progressWindow) return;
     
     this.progressWindow.addDescription(message);

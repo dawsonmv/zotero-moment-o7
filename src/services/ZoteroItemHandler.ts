@@ -19,7 +19,6 @@ export interface ItemMetadata {
  */
 export class ZoteroItemHandler {
   private static readonly ARCHIVE_TAG = 'archived';
-  private static readonly ARCHIVE_NOTE_TYPE = 'robust-link';
 
   /**
    * Extract metadata from Zotero item
