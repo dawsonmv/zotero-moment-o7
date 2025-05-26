@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports = {
 	mode: "development",
-	entry: "./bootstrap.ts",
+	entry: "./src/zotero-moment-o7.js",
 	module: {
 		rules: [
 			{
@@ -26,9 +26,7 @@ module.exports = {
 	output: {
 		filename: "zotero-moment-o7.js",
 		path: path.resolve(__dirname, "build"),
-		library: {
-			type: "commonjs2"
-		}
+		iife: true
 	},
 	externals: {
 		// Zotero is provided by the environment

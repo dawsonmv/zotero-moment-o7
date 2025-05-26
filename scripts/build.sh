@@ -29,6 +29,12 @@ cp bootstrap.js build/
 cp update.json build/
 cp icon*.png build/
 
+# Copy the main JavaScript file and its dependencies
+echo "Copying JavaScript source files..."
+cp src/zotero-moment-o7.js build/
+mkdir -p build/src
+cp -r src/*.js build/src/
+
 # Remove old build
 if [ -f "zotero-moment-o7.xpi" ]; then
     rm -f zotero-moment-o7.xpi
