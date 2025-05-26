@@ -17,7 +17,7 @@ export interface AuthorInfo {
 }
 
 export class Signpost {
-  private static readonly LINK_HEADER = 'Link';
+  // private static readonly LINK_HEADER = 'Link';
   private static readonly ORCID_PATTERN = /(?:https?:\/\/)?orcid\.org\/(\d{4}-\d{4}-\d{4}-\d{3}[0-9X])/i;
   
   /**
@@ -151,7 +151,7 @@ export class Signpost {
     // Check meta tags
     const metaTags = doc.querySelectorAll('meta[name="author"], meta[property="author"], meta[name="DC.creator"], meta[name="citation_author"]');
     
-    for (const meta of metaTags) {
+    Array.from(metaTags).forEach(meta => {
       const content = meta.getAttribute('content');
       if (content) {
         const author: AuthorInfo = {
@@ -166,12 +166,12 @@ export class Signpost {
         
         authors.push(author);
       }
-    }
+    });
     
     // Check for ORCID-specific meta tags
     const orcidMetas = doc.querySelectorAll('meta[name="citation_author_orcid"], meta[property="citation_author_orcid"]');
     
-    for (const meta of orcidMetas) {
+    Array.from(orcidMetas).forEach(meta => {
       const content = meta.getAttribute('content');
       if (content) {
         const orcidMatch = content.match(this.ORCID_PATTERN);
@@ -181,19 +181,19 @@ export class Signpost {
           });
         }
       }
-    }
+    });
     
     // Check JSON-LD structured data
     const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
     
-    for (const script of scripts) {
+    Array.from(scripts).forEach(script => {
       try {
         const data = JSON.parse(script.textContent || '');
         this.extractFromJSONLD(data, authors);
       } catch (error) {
         console.warn('Failed to parse JSON-LD:', error);
       }
-    }
+    });
     
     // Remove duplicates
     const uniqueAuthors = new Map<string, AuthorInfo>();
@@ -280,7 +280,7 @@ export class Signpost {
       }
       
       // Get item creators
-      const creators = item.getCreators();
+      const creators = item.getCreators ? item.getCreators() : [];
       let updated = false;
       
       for (const creator of creators) {

@@ -20,6 +20,15 @@ declare namespace Zotero {
     saveTx(): Promise<void>;
     save(): Promise<void>;
     
+    // Notes methods (optional as not all items support notes)
+    getNotes?(): number[];
+    getNote?(): string;
+    setNote?(content: string): void;
+    
+    // Creators (optional as not all items have creators)
+    getCreators?(): Creator[];
+    setCreators?(creators: Creator[]): void;
+    
     // Relations
     addRelatedItem(item: Item): void;
     removeRelatedItem(item: Item): void;
@@ -28,6 +37,13 @@ declare namespace Zotero {
   interface Tag {
     tag: string;
     type: number;
+  }
+
+  interface Creator {
+    firstName?: string;
+    lastName: string;
+    creatorType: string;
+    fieldMode?: number;
   }
 
   interface Collection {
@@ -67,17 +83,20 @@ declare namespace Zotero {
     clear(pref: string): void;
   };
 
+  interface HTTPRequestOptions {
+    headers?: Record<string, string>;
+    body?: string;
+    timeout?: number;
+    responseType?: 'text' | 'json';
+    responseCharset?: string;
+    method?: string;
+  }
+
   const HTTP: {
     request(
       method: string,
       url: string,
-      options?: {
-        headers?: Record<string, string>;
-        body?: string;
-        timeout?: number;
-        responseType?: 'text' | 'json';
-        responseCharset?: string;
-      }
+      options?: HTTPRequestOptions
     ): Promise<{
       status: number;
       statusText: string;
@@ -88,15 +107,14 @@ declare namespace Zotero {
     }>;
   };
 
-  interface ProgressWindow {
+  class ProgressWindow {
+    constructor(options?: { closeOnClick?: boolean });
     changeHeadline(text: string): void;
     addDescription(text: string): void;
     show(): void;
     close(): void;
     startCloseTimer(ms: number): void;
   }
-
-  function ProgressWindow(options?: { closeOnClick?: boolean }): ProgressWindow;
 
   const Notifier: {
     registerObserver(
@@ -139,6 +157,12 @@ declare namespace Zotero {
   function clearTimeout(id: number): void;
   
   function launchURL(url: string): void;
+  
+  // Initialization promise
+  const initializationPromise: Promise<void>;
+  
+  // Constructor for new items
+  function Item(itemType: string): Item;
 }
 
 // Window extensions

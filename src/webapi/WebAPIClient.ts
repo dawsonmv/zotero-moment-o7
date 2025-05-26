@@ -150,9 +150,9 @@ export class WebAPIClient implements ZoteroWebAPI.APIClient {
    * This would store archive metadata in item relations or notes
    */
   async syncArchiveData(
-    libraryType: string,
-    libraryId: number,
-    archives: ZoteroWebAPI.ArchiveData[]
+    _libraryType: string,
+    _libraryId: number,
+    _archives: ZoteroWebAPI.ArchiveData[]
   ): Promise<ZoteroWebAPI.WriteResponse> {
     // Implementation would create/update items with archive data
     // For now, this is a placeholder for future implementation
@@ -163,9 +163,9 @@ export class WebAPIClient implements ZoteroWebAPI.APIClient {
    * Get archive data from the cloud
    */
   async getArchiveData(
-    libraryType: string,
-    libraryId: number,
-    itemKey: string
+    _libraryType: string,
+    _libraryId: number,
+    _itemKey: string
   ): Promise<ZoteroWebAPI.ArchiveData[]> {
     // Implementation would extract archive data from item relations or notes
     // For now, this is a placeholder for future implementation

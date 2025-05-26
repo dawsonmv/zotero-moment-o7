@@ -68,7 +68,16 @@ export class PreferencesManager {
       return value.split(',').filter((s: string) => s.trim()) as Preferences[K];
     }
 
-    return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+    if (defaultValue !== undefined) {
+      if (typeof defaultValue === 'string') {
+        return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+      } else if (typeof defaultValue === 'number') {
+        return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+      } else if (typeof defaultValue === 'boolean') {
+        return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+      }
+    }
+    return Zotero.Prefs.get(prefKey) as Preferences[K];
   }
 
   /**
@@ -145,6 +154,26 @@ export class PreferencesManager {
     if (params.permaccApiKey) {
       this.setPref('permaccApiKey' as any, params.permaccApiKey);
     }
+  }
+
+  /**
+   * Static convenience methods
+   */
+  static getTimeout(service: string): number {
+    const instance = PreferencesManager.getInstance();
+    if (service === 'internetarchive') {
+      return instance.getPref('iaTimeout');
+    }
+    // Default timeout for other services
+    return 60000;
+  }
+
+  static getEnabledServices(): string[] {
+    return PreferencesManager.getInstance().getPref('robustLinkServices');
+  }
+
+  static getFallbackOrder(): string[] {
+    return PreferencesManager.getInstance().getPref('fallbackOrder');
   }
 
   /**

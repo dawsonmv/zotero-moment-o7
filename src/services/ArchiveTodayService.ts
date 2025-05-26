@@ -1,5 +1,5 @@
 import { BaseArchiveService } from './BaseArchiveService';
-import { ArchiveResult, ArchiveProgress } from './types';
+import { SingleArchiveResult, ArchiveProgress } from './types';
 import { PreferencesManager } from '../preferences/PreferencesManager';
 
 export class ArchiveTodayService extends BaseArchiveService {
@@ -20,8 +20,12 @@ export class ArchiveTodayService extends BaseArchiveService {
     });
   }
 
-  async archive(url: string, progress?: ArchiveProgress): Promise<ArchiveResult> {
-    const startTime = Date.now();
+  async isAvailable(): Promise<boolean> {
+    return true; // Archive.today is generally available
+  }
+
+  protected async archiveUrl(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult> {
+    // const startTime = Date.now();
     
     try {
       // Try Worker first
@@ -44,11 +48,11 @@ export class ArchiveTodayService extends BaseArchiveService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
+      } as SingleArchiveResult;
     }
   }
 
-  private async archiveViaWorker(url: string, progress?: ArchiveProgress): Promise<ArchiveResult> {
+  private async archiveViaWorker(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult> {
     progress?.onStatusUpdate(`Submitting ${url} to Archive.today via proxy...`);
     
     const timeout = PreferencesManager.getTimeout('archivetoday');
@@ -89,7 +93,7 @@ export class ArchiveTodayService extends BaseArchiveService {
     };
   }
 
-  private async archiveDirectly(url: string, progress?: ArchiveProgress): Promise<ArchiveResult> {
+  private async archiveDirectly(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult> {
     progress?.onStatusUpdate(`Submitting ${url} directly to Archive.today...`);
     
     const timeout = PreferencesManager.getTimeout('archivetoday');

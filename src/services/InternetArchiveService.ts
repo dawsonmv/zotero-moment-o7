@@ -3,20 +3,25 @@
  */
 
 import { BaseArchiveService } from './BaseArchiveService';
-import { ArchiveResult, ArchiveError, ArchiveErrorType } from './types';
+import { SingleArchiveResult, ArchiveError, ArchiveErrorType, ArchiveProgress } from './types';
+import { PreferencesManager } from '../preferences/PreferencesManager';
 
 export class InternetArchiveService extends BaseArchiveService {
-  private timeout: number;
-  private maxRetries: number;
-  private retryDelay: number;
+  private timeout!: number;
+  private maxRetries!: number;
+  private retryDelay!: number;
 
   constructor() {
     super({
       name: 'Internet Archive',
       id: 'internetarchive',
-      requiresAuth: false,
-      supportsMemento: true,
-      rateLimit: 2000 // 2 seconds between requests
+      homepage: 'https://archive.org',
+      capabilities: {
+        acceptsUrl: true,
+        returnsUrl: true,
+        preservesJavaScript: true,
+        preservesInteractiveElements: true
+      }
     });
     
     this.reloadSettings();
@@ -26,87 +31,41 @@ export class InternetArchiveService extends BaseArchiveService {
     return true; // Internet Archive is always available
   }
 
-  async archive(items: Zotero.Item[]): Promise<ArchiveResult[]> {
-    const results: ArchiveResult[] = [];
-
-    for (const item of items) {
-      try {
-        const result = await this.archiveItem(item);
-        results.push(result);
-      } catch (error) {
-        results.push({
-          item,
-          success: false,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    }
-
-    return results;
-  }
-
-  private async archiveItem(item: Zotero.Item): Promise<ArchiveResult> {
+  protected async archiveUrl(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult> {
     // Reload settings in case they changed
     this.reloadSettings();
     
-    const url = this.getBestUrl(item);
-
-    if (!this.checkValidUrl(url)) {
-      throw new ArchiveError(ArchiveErrorType.InvalidUrl, 'Invalid URL for archiving');
-    }
-
-    if (this.isArchived(item)) {
-      return {
-        item,
-        success: true,
-        message: 'Already archived'
-      };
-    }
-
-    await this.checkRateLimit();
-
-    const progressWindow = this.createProgressWindow();
-    progressWindow.show(
-      'Archiving to Internet Archive',
-      `Archiving: ${item.getField('title') || url}`
-    );
-
-    let lastError: Error | null = null;
+    let lastError: Error = new Error('Unknown error');
     let attempt = 0;
     let currentTimeout = this.timeout;
 
+    // Retry logic
     while (attempt < this.maxRetries) {
-      try {
-        if (attempt > 0) {
-          progressWindow.update(`Retry attempt ${attempt} of ${this.maxRetries - 1}...`);
-          await this.delay(this.retryDelay);
-        }
+      if (attempt > 0) {
+        progress?.onStatusUpdate(`Retrying (attempt ${attempt + 1}/${this.maxRetries})...`);
+        await this.delay(this.retryDelay);
+      }
 
-        const archiveUrl = `https://web.archive.org/save/${url}`;
-        const response = await Zotero.HTTP.request('GET', archiveUrl, {
-          headers: {
-            'User-Agent': 'Zotero Moment-o7',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-          },
+      try {
+        progress?.onStatusUpdate(`Submitting ${url} to Internet Archive...`);
+        
+        const response = await Zotero.HTTP.request('GET', `https://web.archive.org/save/${url}`, {
           timeout: currentTimeout,
-          responseType: 'text'
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; Zotero)'
+          }
         });
 
-        this.updateLastRequest();
-
         const archivedUrl = this.extractArchivedUrl(response);
-
         if (archivedUrl) {
-          await this.saveToItem(item, archivedUrl);
-          item.addTag('archived');
-          await item.saveTx();
-
-          progressWindow.success(`Archived successfully: ${archivedUrl}`);
-
           return {
-            item,
             success: true,
-            archivedUrl
+            url: archivedUrl,
+            metadata: {
+              originalUrl: url,
+              archiveDate: new Date().toISOString(),
+              service: this.name
+            }
           };
         } else {
           throw new Error('Could not extract archived URL from response');
@@ -134,20 +93,21 @@ export class InternetArchiveService extends BaseArchiveService {
     }
 
     // All retries failed
-    progressWindow.close();
-    
     const finalError = lastError instanceof ArchiveError 
       ? lastError 
       : this.mapHttpError(lastError);
     
     if (finalError.type === ArchiveErrorType.Timeout) {
-      throw new ArchiveError(
-        ArchiveErrorType.Timeout,
-        `Archive request timed out after ${attempt} attempts - the site may be slow or blocking archiving`
-      );
+      return {
+        success: false,
+        error: `Archive request timed out after ${attempt} attempts - the site may be slow or blocking archiving`
+      };
     }
     
-    throw finalError;
+    return {
+      success: false,
+      error: finalError.message
+    };
   }
 
   private extractArchivedUrl(response: any): string | null {
@@ -175,18 +135,13 @@ export class InternetArchiveService extends BaseArchiveService {
     return null;
   }
 
-  private isArchived(item: Zotero.Item): boolean {
-    const tags = item.getTags();
-    return tags.some(tag => tag.tag === 'archived');
-  }
-
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => Zotero.setTimeout(resolve, ms));
   }
 
   private reloadSettings(): void {
-    this.timeout = Zotero.Prefs.get('extensions.momento7.iaTimeout', 120000);
-    this.maxRetries = Zotero.Prefs.get('extensions.momento7.iaMaxRetries', 3);
-    this.retryDelay = Zotero.Prefs.get('extensions.momento7.iaRetryDelay', 5000);
+    this.timeout = PreferencesManager.getTimeout('internetarchive');
+    this.maxRetries = Zotero.Prefs.get('extensions.momento7.iaMaxRetries', 3) as number;
+    this.retryDelay = Zotero.Prefs.get('extensions.momento7.iaRetryDelay', 5000) as number;
   }
 }

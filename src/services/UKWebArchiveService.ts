@@ -1,5 +1,5 @@
 import { BaseArchiveService } from './BaseArchiveService';
-import { ArchiveResult, ArchiveProgress } from './types';
+import { SingleArchiveResult, ArchiveProgress } from './types';
 import { PreferencesManager } from '../preferences/PreferencesManager';
 
 export class UKWebArchiveService extends BaseArchiveService {
@@ -21,7 +21,11 @@ export class UKWebArchiveService extends BaseArchiveService {
     });
   }
 
-  async archive(url: string, progress?: ArchiveProgress): Promise<ArchiveResult> {
+  async isAvailable(): Promise<boolean> {
+    return true;
+  }
+
+  protected async archiveUrl(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult> {
     try {
       // Check if URL is a UK domain
       if (!this.isUKDomain(url)) {
@@ -86,7 +90,7 @@ export class UKWebArchiveService extends BaseArchiveService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
+      } as SingleArchiveResult;
     }
   }
 

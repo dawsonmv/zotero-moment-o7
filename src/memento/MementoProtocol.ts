@@ -35,7 +35,7 @@ export interface TimeGateResponse {
 export class MementoProtocol {
   private static readonly LINK_HEADER = 'Link';
   private static readonly MEMENTO_DATETIME_HEADER = 'Memento-Datetime';
-  private static readonly ACCEPT_DATETIME_HEADER = 'Accept-Datetime';
+  // private static readonly ACCEPT_DATETIME_HEADER = 'Accept-Datetime';
   
   /**
    * Parse Link header according to RFC 5988

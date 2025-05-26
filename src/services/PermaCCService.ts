@@ -1,5 +1,5 @@
 import { BaseArchiveService } from './BaseArchiveService';
-import { ArchiveResult, ArchiveProgress } from './types';
+import { SingleArchiveResult, ArchiveProgress } from './types';
 import { PreferencesManager } from '../preferences/PreferencesManager';
 
 interface PermaCCResponse {
@@ -39,12 +39,16 @@ export class PermaCCService extends BaseArchiveService {
     this.loadCredentials();
   }
 
+  async isAvailable(): Promise<boolean> {
+    return this.apiKey !== null;
+  }
+
   private loadCredentials(): void {
     this.apiKey = Zotero.Prefs.get('extensions.momento7.permaccApiKey') as string || null;
     this.defaultFolder = Zotero.Prefs.get('extensions.momento7.permaccFolder') as string || null;
   }
 
-  async archive(url: string, progress?: ArchiveProgress): Promise<ArchiveResult> {
+  protected async archiveUrl(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult> {
     if (!this.apiKey) {
       return {
         success: false,
@@ -111,7 +115,7 @@ export class PermaCCService extends BaseArchiveService {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
+      } as SingleArchiveResult;
     }
   }
 
@@ -134,7 +138,7 @@ export class PermaCCService extends BaseArchiveService {
     }
   }
 
-  async checkAvailability(url: string): Promise<{ available: boolean; existingUrl?: string }> {
+  async checkAvailability(_url: string): Promise<{ available: boolean; existingUrl?: string }> {
     if (!this.apiKey) {
       return { available: false };
     }

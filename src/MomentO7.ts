@@ -308,7 +308,7 @@ export class MomentO7 {
    * Show success message
    */
   private showSuccess(headline: string, description?: string): void {
-    const progressWin = new Zotero.ProgressWindow({ closeOnClick: true });
+    const progressWin = new (Zotero.ProgressWindow as any)({ closeOnClick: true });
     progressWin.changeHeadline(headline);
     if (description) {
       progressWin.addDescription(description);
@@ -321,7 +321,7 @@ export class MomentO7 {
    * Show error message
    */
   private showError(message: string): void {
-    const progressWin = new Zotero.ProgressWindow({ closeOnClick: true });
+    const progressWin = new (Zotero.ProgressWindow as any)({ closeOnClick: true });
     progressWin.changeHeadline('Archive Error');
     progressWin.addDescription(message);
     progressWin.show();
@@ -332,7 +332,7 @@ export class MomentO7 {
    * Show general message
    */
   private showMessage(headline: string, description?: string): void {
-    const progressWin = new Zotero.ProgressWindow({ closeOnClick: true });
+    const progressWin = new (Zotero.ProgressWindow as any)({ closeOnClick: true });
     progressWin.changeHeadline(headline);
     if (description) {
       progressWin.addDescription(description);
@@ -349,7 +349,7 @@ export class MomentO7 {
       return;
     }
 
-    const doc = window.document;
+    // const doc = window.document;
     const windowData = this.windows.get(window);
 
     if (windowData) {

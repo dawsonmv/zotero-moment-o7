@@ -3,7 +3,7 @@
  */
 
 import { ServiceRegistry } from './ServiceRegistry';
-import { ArchiveResult, ArchiveService, Preferences } from './types';
+import { ArchiveResult, ArchiveService } from './types';
 
 export class ArchiveCoordinator {
   private static instance: ArchiveCoordinator;

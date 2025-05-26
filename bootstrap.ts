@@ -5,8 +5,8 @@
 
 /// <reference path="./src/types/zotero.d.ts" />
 
+// Declare globals that TypeScript doesn't know about
 declare const ChromeUtils: any;
-declare const Services: any;
 
 // Import the main plugin
 let MomentO7: any;
@@ -59,7 +59,7 @@ function shutdown(): void {
       Zotero.MomentO7.shutdown();
       
       // Clear the global reference
-      delete Zotero.MomentO7;
+      delete (Zotero as any).MomentO7;
     }
   } catch (error) {
     log(`Shutdown error: ${error}`);

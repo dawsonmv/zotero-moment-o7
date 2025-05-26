@@ -5,9 +5,16 @@
 export interface ServiceConfig {
   name: string;
   id: string;
-  requiresAuth: boolean;
-  supportsMemento: boolean;
-  rateLimit: number | null;
+  homepage?: string;
+  capabilities?: {
+    acceptsUrl: boolean;
+    returnsUrl: boolean;
+    preservesJavaScript: boolean;
+    preservesInteractiveElements: boolean;
+    requiresAuthentication?: boolean;
+    hasQuota?: boolean;
+    regionRestricted?: boolean;
+  };
 }
 
 export interface ArchiveResult {
@@ -18,6 +25,23 @@ export interface ArchiveResult {
   error?: string;
   service?: string;
   existingArchive?: any;
+}
+
+export interface ArchiveProgress {
+  onStatusUpdate: (status: string) => void;
+  onError?: (error: string) => void;
+}
+
+export interface SingleArchiveResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+  metadata?: {
+    originalUrl: string;
+    archiveDate: string;
+    service: string;
+    [key: string]: any;
+  };
 }
 
 export interface ArchiveService {

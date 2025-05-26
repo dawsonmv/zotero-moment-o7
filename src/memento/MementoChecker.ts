@@ -1,4 +1,4 @@
-import { MementoProtocol, TimeMap, Memento } from './MementoProtocol';
+import { MementoProtocol, TimeMap } from './MementoProtocol';
 
 export interface MementoCheckResult {
   hasMemento: boolean;
@@ -225,10 +225,10 @@ export class MementoChecker {
     }
     
     // Check notes
-    const notes = item.getNotes();
+    const notes = item.getNotes ? item.getNotes() : [];
     for (const noteId of notes) {
       const note = Zotero.Items.get(noteId);
-      if (note) {
+      if (note && note.getNote) {
         const noteContent = note.getNote();
         // Look for robust links
         const robustLinkPattern = /data-versionurl="([^"]+)"/g;

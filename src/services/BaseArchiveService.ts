@@ -8,7 +8,9 @@ import {
   ArchiveResult, 
   ArchiveError, 
   ArchiveErrorType,
-  ProgressWindow 
+  ProgressWindow,
+  SingleArchiveResult,
+  ArchiveProgress
 } from './types';
 
 export abstract class BaseArchiveService implements ArchiveService {
@@ -25,7 +27,65 @@ export abstract class BaseArchiveService implements ArchiveService {
   }
 
   abstract isAvailable(): Promise<boolean>;
-  abstract archive(items: Zotero.Item[]): Promise<ArchiveResult[]>;
+  
+  /**
+   * Archive a single URL - to be implemented by subclasses
+   */
+  protected abstract archiveUrl(url: string, progress?: ArchiveProgress): Promise<SingleArchiveResult>;
+  
+  /**
+   * Archive multiple items
+   */
+  async archive(items: Zotero.Item[]): Promise<ArchiveResult[]> {
+    const results: ArchiveResult[] = [];
+    const progress = this.createProgressWindow();
+    
+    progress.show(`Archiving with ${this.name}`, `Processing ${items.length} items...`);
+    
+    for (const item of items) {
+      try {
+        const url = this.getBestUrl(item);
+        if (!url || !this.checkValidUrl(url)) {
+          results.push({
+            item,
+            success: false,
+            error: 'No valid URL found'
+          });
+          continue;
+        }
+        
+        progress.update(`Archiving: ${url}`);
+        const result = await this.archiveUrl(url, {
+          onStatusUpdate: (status) => progress.update(status)
+        });
+        
+        if (result.success && result.url) {
+          await this.saveToItem(item, result.url);
+          results.push({
+            item,
+            success: true,
+            archivedUrl: result.url,
+            service: this.name
+          });
+        } else {
+          results.push({
+            item,
+            success: false,
+            error: result.error || 'Archive failed'
+          });
+        }
+      } catch (error) {
+        results.push({
+          item,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+    
+    progress.close();
+    return results;
+  }
 
   /**
    * Check if URL is valid for archiving
@@ -46,16 +106,42 @@ export abstract class BaseArchiveService implements ArchiveService {
   }
 
   /**
+   * Make HTTP request with error handling
+   */
+  protected async makeHttpRequest(
+    url: string, 
+    options: Zotero.HTTPRequestOptions
+  ): Promise<{ success: boolean; data: any; error?: string; status?: number }> {
+    try {
+      const response = await Zotero.HTTP.request(options.method || 'GET', url, options);
+      return {
+        success: true,
+        data: response.responseText,
+        status: response.status
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        data: error.responseText || '',
+        error: error.message || 'Request failed',
+        status: error.status
+      };
+    }
+  }
+
+  /**
    * Check rate limiting
    */
   protected async checkRateLimit(): Promise<void> {
-    if (!this.config.rateLimit || !this.lastRequest) {
+    // Rate limiting removed from config, but keeping method for compatibility
+    if (!this.lastRequest) {
       return;
     }
 
     const timeSinceLastRequest = Date.now() - this.lastRequest;
-    if (timeSinceLastRequest < this.config.rateLimit) {
-      const waitTime = Math.ceil((this.config.rateLimit - timeSinceLastRequest) / 1000);
+    const minDelay = 1000; // 1 second minimum between requests
+    if (timeSinceLastRequest < minDelay) {
+      const waitTime = Math.ceil((minDelay - timeSinceLastRequest) / 1000);
       throw new ArchiveError(
         ArchiveErrorType.RateLimit,
         `Rate limit: Please wait ${waitTime} seconds before trying again`,
@@ -130,7 +216,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ''}
 <p><strong>Robust Link HTML (copy and paste):</strong></p>
 <pre>${this.escapeHtml(robustLinkHTML)}</pre>`;
 
-    const note = new Zotero.Item('note');
+    const note = new (Zotero.Item as any)('note');
     note.setNote(noteContent);
     note.parentID = item.id;
     await note.saveTx();
@@ -144,12 +230,12 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ''}
 
     return {
       show(title: string, message?: string) {
-        progressWindow = new Zotero.ProgressWindow({ closeOnClick: false });
-        progressWindow.changeHeadline(title);
+        progressWindow = new (Zotero.ProgressWindow as any)({ closeOnClick: false });
+        progressWindow!.changeHeadline(title);
         if (message) {
-          progressWindow.addDescription(message);
+          progressWindow!.addDescription(message);
         }
-        progressWindow.show();
+        progressWindow!.show();
       },
       
       update(message: string) {
@@ -168,8 +254,8 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ''}
         if (progressWindow) {
           progressWindow.close();
         }
-        const errorWindow = new Zotero.ProgressWindow({ closeOnClick: true });
-        errorWindow.changeHeadline(`${this.name} Error`);
+        const errorWindow = new (Zotero.ProgressWindow as any)({ closeOnClick: true });
+        errorWindow.changeHeadline(`${(this as any).name} Error`);
         errorWindow.addDescription(message);
         errorWindow.show();
         errorWindow.startCloseTimer(5000);
@@ -179,8 +265,8 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ''}
         if (progressWindow) {
           progressWindow.close();
         }
-        const successWindow = new Zotero.ProgressWindow({ closeOnClick: true });
-        successWindow.changeHeadline(`${this.name} Success`);
+        const successWindow = new (Zotero.ProgressWindow as any)({ closeOnClick: true });
+        successWindow.changeHeadline(`${(this as any).name} Success`);
         successWindow.addDescription(message);
         successWindow.show();
         successWindow.startCloseTimer(3000);
@@ -203,7 +289,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ''}
         );
       case 401:
       case 403:
-        if (this.config.requiresAuth) {
+        if (this.config.capabilities?.requiresAuthentication) {
           return new ArchiveError(
             ArchiveErrorType.AuthRequired,
             'Authentication required or invalid.',
