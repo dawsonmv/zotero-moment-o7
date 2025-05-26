@@ -1,22 +1,35 @@
-// Main plugin object
+"use strict";
+
+/**
+ * Zotero Moment-o7 Plugin
+ * Archives web resources to prevent link rot
+ * @namespace
+ */
 Zotero.MomentO7 = {
 	id: null,
 	version: null,
 	rootURI: null,
-	initialized: false,
-	addedElementIDs: [],
-	windows: new WeakMap(),
-	notifierID: null,
+	_initialized: false,
+	_addedElementIDs: [],
+	_windows: new WeakMap(),
+	_notifierID: null,
 
+	/**
+	 * Initialize the plugin
+	 * @param {Object} params - Initialization parameters
+	 * @param {string} params.id - Plugin ID
+	 * @param {string} params.version - Plugin version
+	 * @param {string} params.rootURI - Plugin root URI
+	 */
 	init({ id, version, rootURI }) {
-		if (this.initialized) {
+		if (this._initialized) {
 			return;
 		}
 
 		this.id = id;
 		this.version = version;
 		this.rootURI = rootURI;
-		this.initialized = true;
+		this._initialized = true;
 
 		this.log("Initializing Zotero Moment-o7 v" + version);
 
@@ -55,6 +68,10 @@ Zotero.MomentO7 = {
 		this.registerNotifier();
 	},
 
+	/**
+	 * Log a message with the plugin prefix
+	 * @param {string} msg - Message to log
+	 */
 	log(msg) {
 		Zotero.debug("Zotero Moment-o7: " + msg);
 	},
@@ -116,18 +133,22 @@ Zotero.MomentO7 = {
 			}
 		};
 
-		this.notifierID = Zotero.Notifier.registerObserver(notifierCallbacks, ["item"]);
-		this.log("Notifier registered with ID: " + this.notifierID);
+		this._notifierID = Zotero.Notifier.registerObserver(notifierCallbacks, ["item"]);
+		this.log("Notifier registered with ID: " + this._notifierID);
 	},
 
 	unregisterNotifier() {
-		if (this.notifierID) {
-			Zotero.Notifier.unregisterObserver(this.notifierID);
+		if (this._notifierID) {
+			Zotero.Notifier.unregisterObserver(this._notifierID);
 			this.log("Notifier unregistered");
-			this.notifierID = null;
+			this._notifierID = null;
 		}
 	},
 
+	/**
+	 * Add plugin UI elements to a Zotero window
+	 * @param {Window} window - The Zotero window
+	 */
 	addToWindow(window) {
 		if (!window || !window.document) {
 			return;
@@ -136,7 +157,7 @@ Zotero.MomentO7 = {
 		this.log("Adding to window");
 
 		// Store window-specific data
-		this.windows.set(window, {
+		this._windows.set(window, {
 			menuItems: [],
 			listeners: []
 		});
@@ -487,7 +508,7 @@ Zotero.MomentO7 = {
 		zoteroItemMenu.appendChild(menu);
 
 		// Store references for cleanup
-		const windowData = this.windows.get(window);
+		const windowData = this._windows.get(window);
 		windowData.menuItems.push(separator, menu);
 
 		this.storeAddedElement(separator);
@@ -498,9 +519,13 @@ Zotero.MomentO7 = {
 		if (!elem.id) {
 			throw new Error("Element must have an id");
 		}
-		this.addedElementIDs.push(elem.id);
+		this._addedElementIDs.push(elem.id);
 	},
 
+	/**
+	 * Remove plugin UI elements from a Zotero window
+	 * @param {Window} window - The Zotero window
+	 */
 	removeFromWindow(window) {
 		if (!window || !window.document) {
 			return;
@@ -510,7 +535,7 @@ Zotero.MomentO7 = {
 		this.log("Removing from window");
 
 		// Remove all elements added to DOM
-		for (const id of this.addedElementIDs) {
+		for (const id of this._addedElementIDs) {
 			const elem = doc.getElementById(id);
 			if (elem) {
 				elem.remove();
@@ -524,7 +549,7 @@ Zotero.MomentO7 = {
 		}
 
 		// Clear window data
-		this.windows.delete(window);
+		this._windows.delete(window);
 	},
 
 	addToAllWindows() {
@@ -547,9 +572,32 @@ Zotero.MomentO7 = {
 		}
 	},
 
+	/**
+	 * Open the preferences dialog
+	 */
 	openPreferences() {
-		// Use the simple inline preferences dialog
-		Zotero.MomentO7.Preferences.createInlinePreferences();
+		this.log("Opening preferences...");
+		// Open Zotero's preferences window to our pane
+		if (typeof Zotero.PreferencePanes !== 'undefined' && Zotero.PreferencePanes.register) {
+			this.log("Using Zotero preference panes system");
+			// Register our pane if not already registered
+			if (!Zotero.PreferencePanes.pluginPanes?.find(p => p.id === 'momento7')) {
+				this.log("Registering preference pane");
+				Zotero.PreferencePanes.register({
+					pluginID: 'momento7@github.com',
+					src: this.rootURI + 'chrome/content/preferences.xhtml',
+					label: 'Moment-o7',
+					image: this.rootURI + 'icon48.png'
+				});
+			}
+			// Open preferences to our pane
+			this.log("Opening preferences window");
+			Zotero.Utilities.Internal.openPreferences('momento7@github.com');
+		} else {
+			this.log("Falling back to inline preferences");
+			// Fallback to simple dialog
+			Zotero.MomentO7.Preferences.createInlinePreferences();
+		}
 	},
 
 	getPreferencesHTML() {
@@ -580,7 +628,7 @@ Zotero.MomentO7 = {
 		this.unregisterNotifier();
 
 		// Clear element ID list
-		this.addedElementIDs = [];
+		this._addedElementIDs = [];
 
 		// Clear other properties
 		this.initialized = false;

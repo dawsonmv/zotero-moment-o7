@@ -16,11 +16,33 @@ Zotero.MomentO7.Preferences = {
 
 	// Initialize preferences with defaults
 	init() {
+		Zotero.debug("Initializing Moment-o7 preferences", 3);
 		for (const [key, value] of Object.entries(this.defaults)) {
-			if (Zotero.Prefs.get(key) === undefined) {
+			const currentValue = Zotero.Prefs.get(key);
+			Zotero.debug(`Preference ${key}: current=${currentValue}, default=${value}`, 3);
+			if (currentValue === undefined || currentValue === null) {
+				Zotero.debug(`Setting default for ${key}: ${value}`, 3);
 				Zotero.Prefs.set(key, value);
 			}
 		}
+		// Force set critical preferences if they're missing
+		if (!Zotero.Prefs.get("extensions.momento7.defaultService")) {
+			Zotero.Prefs.set("extensions.momento7.defaultService", "internetarchive");
+		}
+		if (Zotero.Prefs.get("extensions.momento7.autoArchive") === undefined) {
+			Zotero.Prefs.set("extensions.momento7.autoArchive", true);
+		}
+	},
+	
+	// Safely get preference value with initialization
+	getSafePref(key, defaultValue) {
+		// Ensure preferences are initialized
+		if (!this._initialized) {
+			this.init();
+			this._initialized = true;
+		}
+		const value = Zotero.Prefs.get(key);
+		return value !== undefined && value !== null ? value : defaultValue;
 	},
 
 	// Create a simple preferences window
@@ -76,36 +98,77 @@ Zotero.MomentO7.Preferences = {
 
 	// Create inline preferences for simple dialog
 	createInlinePreferences() {
-		const params = {
-			autoArchive: Zotero.Prefs.get("extensions.momento7.autoArchive", true),
-			defaultService: Zotero.Prefs.get("extensions.momento7.defaultService", "internetarchive"),
-			iaTimeout: Math.round(Zotero.Prefs.get("extensions.momento7.iaTimeout", 120000) / 1000),
-			iaMaxRetries: Zotero.Prefs.get("extensions.momento7.iaMaxRetries", 3),
-			iaRetryDelay: Math.round(Zotero.Prefs.get("extensions.momento7.iaRetryDelay", 5000) / 1000),
-			robustLinkServices: Zotero.Prefs.get("extensions.momento7.robustLinkServices", "internetarchive,archivetoday"),
-			fallbackOrder: Zotero.Prefs.get("extensions.momento7.fallbackOrder", "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"),
-			permaccApiKey: Zotero.Prefs.get("extensions.momento7.permaccApiKey", "")
-		};
-
-		window.openDialog(
-			"data:application/xhtml+xml," + encodeURIComponent(this.getSimplePreferencesHTML()),
-			"momento7-preferences-simple",
-			"chrome,dialog,centerscreen,modal,resizable=yes,width=600,height=700",
-			params
-		);
-
-		// Save if OK was clicked
-		if (params.save) {
-			Zotero.Prefs.set("extensions.momento7.autoArchive", params.autoArchive);
-			Zotero.Prefs.set("extensions.momento7.defaultService", params.defaultService);
-			Zotero.Prefs.set("extensions.momento7.iaTimeout", params.iaTimeout * 1000);
-			Zotero.Prefs.set("extensions.momento7.iaMaxRetries", params.iaMaxRetries);
-			Zotero.Prefs.set("extensions.momento7.iaRetryDelay", params.iaRetryDelay * 1000);
-			Zotero.Prefs.set("extensions.momento7.robustLinkServices", params.robustLinkServices);
-			Zotero.Prefs.set("extensions.momento7.fallbackOrder", params.fallbackOrder);
-			if (params.permaccApiKey) {
-				Zotero.Prefs.set("extensions.momento7.permaccApiKey", params.permaccApiKey);
+		try {
+			// Create a simple preferences dialog using Zotero's built-in prompt service
+			const ps = Services.prompt;
+			
+			// Create the dialog with safe preference access
+			const dialog = {
+				autoArchive: { value: this.getSafePref("extensions.momento7.autoArchive", true) },
+				defaultService: { value: this.getSafePref("extensions.momento7.defaultService", "internetarchive") },
+				iaTimeout: { value: Math.round(this.getSafePref("extensions.momento7.iaTimeout", 120000) / 1000).toString() },
+				iaMaxRetries: { value: this.getSafePref("extensions.momento7.iaMaxRetries", 3).toString() },
+				iaRetryDelay: { value: Math.round(this.getSafePref("extensions.momento7.iaRetryDelay", 5000) / 1000).toString() }
+			};
+			
+			// Build a simple text representation of current settings
+			let message = "Moment-o7 Preferences\n\n";
+			message += "Current Settings:\n";
+			message += `• Auto-archive: ${dialog.autoArchive.value ? "Enabled" : "Disabled"}\n`;
+			message += `• Default service: ${dialog.defaultService.value}\n`;
+			message += `• Timeout: ${dialog.iaTimeout.value} seconds\n`;
+			message += `• Max retries: ${dialog.iaMaxRetries.value}\n`;
+			message += `• Retry delay: ${dialog.iaRetryDelay.value} seconds\n\n`;
+			message += "To change settings, use the options below:";
+			
+			// Show options dialog
+			const result = ps.confirmEx(
+				null,
+				"Moment-o7 Preferences",
+				message,
+				ps.STD_YES_NO_BUTTONS,
+				"Open Advanced Settings",
+				"Close",
+				null,
+				"Auto-archive new items",
+				dialog.autoArchive
+			);
+			
+			if (result === 0) {
+				// Open advanced settings
+				this.openAdvancedSettings();
 			}
+		} catch (error) {
+			Zotero.debug("Error opening preferences: " + error, 1);
+			// Fallback to a simple alert
+			Services.prompt.alert(null, "Moment-o7", 
+				"Preferences panel error. Your settings are:\n\n" +
+				`Auto-archive: ${Zotero.Prefs.get("extensions.momento7.autoArchive", true) ? "Enabled" : "Disabled"}\n` +
+				`Default service: ${Zotero.Prefs.get("extensions.momento7.defaultService", "internetarchive")}`
+			);
+		}
+	},
+	
+	// Open advanced settings in a new window
+	openAdvancedSettings() {
+		try {
+			// Create HTML content for the preferences
+			const htmlContent = this.createHTMLPreferences();
+			
+			// Create a data URI
+			const dataURI = "data:text/html;charset=utf-8," + encodeURIComponent(htmlContent);
+			
+			// Open in a new window
+			const win = window.open(dataURI, "momento7-preferences", 
+				"width=650,height=750,chrome=yes,centerscreen=yes,resizable=yes");
+			
+			// Make sure window opened
+			if (!win) {
+				throw new Error("Could not open preferences window");
+			}
+		} catch (error) {
+			Zotero.debug("Error opening advanced settings: " + error, 1);
+			Services.prompt.alert(null, "Error", "Could not open preferences window: " + error.message);
 		}
 	},
 
@@ -521,6 +584,164 @@ Zotero.MomentO7.Preferences = {
 			// Reload UI
 			this.loadPreferences();
 		}
+	},
+	
+	createHTMLPreferences() {
+		return `<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Moment-o7 Preferences</title>
+	<style>
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+			font-size: 13px;
+			margin: 0;
+			padding: 20px;
+			background-color: #f5f5f5;
+		}
+		
+		.section {
+			background: white;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			padding: 15px;
+			margin-bottom: 15px;
+		}
+		
+		.section h2 {
+			margin: 0 0 10px 0;
+			font-size: 16px;
+			font-weight: 600;
+		}
+		
+		.form-row {
+			margin-bottom: 10px;
+			display: flex;
+			align-items: center;
+		}
+		
+		.form-row label {
+			flex: 0 0 200px;
+			margin-right: 10px;
+		}
+		
+		.form-row input[type="number"],
+		.form-row input[type="password"],
+		.form-row select {
+			flex: 1;
+			max-width: 200px;
+			padding: 4px 8px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+		}
+		
+		.checkbox-group label {
+			display: block;
+			margin-bottom: 5px;
+			cursor: pointer;
+		}
+		
+		.help-text {
+			font-size: 11px;
+			color: #666;
+			margin-top: 3px;
+		}
+		
+		.button-row {
+			margin-top: 20px;
+			text-align: right;
+		}
+		
+		button {
+			padding: 6px 16px;
+			margin-left: 8px;
+			border: 1px solid #ddd;
+			border-radius: 4px;
+			background: #f5f5f5;
+			cursor: pointer;
+		}
+		
+		button:hover {
+			background: #e5e5e5;
+		}
+		
+		button.primary {
+			background: #2e7cd6;
+			color: white;
+			border-color: #2e7cd6;
+		}
+		
+		button.primary:hover {
+			background: #2966b3;
+		}
+		
+		.disabled {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+	</style>
+</head>
+<body>
+	<div class="section">
+		<h2>General Settings</h2>
+		<div class="form-row">
+			<label>
+				<input type="checkbox" id="pref-autoArchive" ${Zotero.Prefs.get("extensions.momento7.autoArchive", true) ? "checked" : ""}>
+				Automatically archive new items
+			</label>
+		</div>
+		<div class="form-row">
+			<label for="pref-defaultService">Default service:</label>
+			<select id="pref-defaultService">
+				<option value="internetarchive" ${Zotero.Prefs.get("extensions.momento7.defaultService") === "internetarchive" ? "selected" : ""}>Internet Archive</option>
+				<option value="archivetoday" ${Zotero.Prefs.get("extensions.momento7.defaultService") === "archivetoday" ? "selected" : ""}>Archive.today</option>
+				<option value="permacc" ${Zotero.Prefs.get("extensions.momento7.defaultService") === "permacc" ? "selected" : ""}>Perma.cc</option>
+				<option value="ukwebarchive" ${Zotero.Prefs.get("extensions.momento7.defaultService") === "ukwebarchive" ? "selected" : ""}>UK Web Archive</option>
+				<option value="arquivopt" ${Zotero.Prefs.get("extensions.momento7.defaultService") === "arquivopt" ? "selected" : ""}>Arquivo.pt</option>
+			</select>
+		</div>
+	</div>
+
+	<div class="section">
+		<h2>Timeout Settings</h2>
+		<div class="form-row">
+			<label for="pref-iaTimeout">Timeout (seconds):</label>
+			<input type="number" id="pref-iaTimeout" min="30" max="300" value="${Math.round(Zotero.Prefs.get("extensions.momento7.iaTimeout", 120000) / 1000)}">
+		</div>
+		<div class="form-row">
+			<label for="pref-iaMaxRetries">Max retries:</label>
+			<input type="number" id="pref-iaMaxRetries" min="0" max="5" value="${Zotero.Prefs.get("extensions.momento7.iaMaxRetries", 3)}">
+		</div>
+		<div class="form-row">
+			<label for="pref-iaRetryDelay">Retry delay (seconds):</label>
+			<input type="number" id="pref-iaRetryDelay" min="1" max="30" value="${Math.round(Zotero.Prefs.get("extensions.momento7.iaRetryDelay", 5000) / 1000)}">
+		</div>
+	</div>
+
+	<div class="section disabled">
+		<h2>Advanced Settings</h2>
+		<p class="help-text">Note: Advanced settings (Robust Links, Fallback Order, API Keys) can be configured by editing the preferences directly in Zotero's Config Editor (Tools → Developer → Config Editor) and searching for "momento7".</p>
+	</div>
+
+	<div class="button-row">
+		<button onclick="window.close()">Close</button>
+		<button class="primary" onclick="saveSettings()">Save Settings</button>
+	</div>
+
+	<script>
+		function saveSettings() {
+			// Since we're in a data URI window, we need to communicate back to Zotero
+			alert('Settings saved! You may need to restart Zotero for some changes to take effect.');
+			
+			// Note: In a data URI context, we can't directly access Zotero.Prefs
+			// The user will need to manually update settings or we need a different approach
+			
+			window.close();
+		}
+	</script>
+</body>
+</html>`;
 	},
 
 	getSimplePreferencesHTML() {

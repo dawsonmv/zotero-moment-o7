@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<script src="chrome://zotero/content/include.js"/>
+	<script src="preferences.js"/>
+</head>
+<body>
+	<vbox id="zotero-prefpane-momento7" flex="1">
+		<groupbox>
+			<label><html:h2>General Settings</html:h2></label>
+			<checkbox id="momento7-autoArchive" 
+				label="Automatically archive new items added via Browser Connector"
+				preference="pref-momento7-autoArchive"/>
+			
+			<hbox align="center">
+				<label value="Default archive service:" control="momento7-defaultService"/>
+				<menulist id="momento7-defaultService" preference="pref-momento7-defaultService">
+					<menupopup>
+						<menuitem value="internetarchive" label="Internet Archive"/>
+						<menuitem value="archivetoday" label="Archive.today"/>
+						<menuitem value="permacc" label="Perma.cc"/>
+						<menuitem value="ukwebarchive" label="UK Web Archive"/>
+						<menuitem value="arquivopt" label="Arquivo.pt"/>
+					</menupopup>
+				</menulist>
+			</hbox>
+		</groupbox>
+
+		<groupbox>
+			<label><html:h2>Timeout and Retry Settings</html:h2></label>
+			<grid>
+				<columns>
+					<column flex="1"/>
+					<column/>
+				</columns>
+				<rows>
+					<row align="center">
+						<label value="Internet Archive timeout (seconds):" control="momento7-iaTimeout"/>
+						<html:input id="momento7-iaTimeout" type="number" min="30" max="300" 
+							preference="pref-momento7-iaTimeout" style="width: 60px"/>
+					</row>
+					<row align="center">
+						<label value="Maximum retry attempts:" control="momento7-iaMaxRetries"/>
+						<html:input id="momento7-iaMaxRetries" type="number" min="0" max="5" 
+							preference="pref-momento7-iaMaxRetries" style="width: 60px"/>
+					</row>
+					<row align="center">
+						<label value="Delay between retries (seconds):" control="momento7-iaRetryDelay"/>
+						<html:input id="momento7-iaRetryDelay" type="number" min="1" max="30" 
+							preference="pref-momento7-iaRetryDelay" style="width: 60px"/>
+					</row>
+				</rows>
+			</grid>
+		</groupbox>
+
+		<groupbox>
+			<label><html:h2>Robust Links Settings</html:h2></label>
+			<description>Select which services to include when creating Robust Links:</description>
+			<checkbox id="robust-internetarchive" label="Internet Archive" 
+				oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+			<checkbox id="robust-archivetoday" label="Archive.today" 
+				oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+			<checkbox id="robust-permacc" label="Perma.cc (requires API key)" 
+				oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+			<checkbox id="robust-ukwebarchive" label="UK Web Archive (UK domains only)" 
+				oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+			<checkbox id="robust-arquivopt" label="Arquivo.pt" 
+				oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+		</groupbox>
+
+		<groupbox>
+			<label><html:h2>Service API Keys</html:h2></label>
+			<hbox align="center">
+				<label value="Perma.cc API Key:" control="momento7-permaccApiKey"/>
+				<html:input id="momento7-permaccApiKey" type="password" 
+					preference="pref-momento7-permaccApiKey" flex="1"/>
+			</hbox>
+			<description style="font-size: small;">
+				Get your free API key at: 
+				<label class="text-link" value="https://perma.cc/settings/tools" 
+					href="https://perma.cc/settings/tools"/>
+			</description>
+		</groupbox>
+	</vbox>
+
+	<preferences>
+		<preference id="pref-momento7-autoArchive" name="extensions.momento7.autoArchive" type="bool"/>
+		<preference id="pref-momento7-defaultService" name="extensions.momento7.defaultService" type="string"/>
+		<preference id="pref-momento7-iaTimeout" name="extensions.momento7.iaTimeout" type="int"/>
+		<preference id="pref-momento7-iaMaxRetries" name="extensions.momento7.iaMaxRetries" type="int"/>
+		<preference id="pref-momento7-iaRetryDelay" name="extensions.momento7.iaRetryDelay" type="int"/>
+		<preference id="pref-momento7-permaccApiKey" name="extensions.momento7.permaccApiKey" type="string"/>
+	</preferences>
+</body>
+</html>
