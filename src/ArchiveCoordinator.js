@@ -117,11 +117,27 @@ Zotero.MomentO7.ArchiveCoordinator = {
 			existingArchives.map(a => this.getServiceIdFromArchive(a.archive))
 		);
 
-		const preferredServices = availableServices.filter(
-			({ id }) => !existingServiceIds.has(id)
-		);
+		// Get fallback order from preferences
+		const fallbackOrder = Zotero.Prefs.get("extensions.momento7.fallbackOrder",
+			"internetarchive,archivetoday,arquivopt,permacc,ukwebarchive").split(",");
 
-		const servicesToTry = preferredServices.length > 0 ? preferredServices : availableServices;
+		// Sort available services according to fallback order
+		const orderedServices = [];
+		for (const serviceId of fallbackOrder) {
+			const service = availableServices.find(s => s.id === serviceId);
+			if (service && !existingServiceIds.has(serviceId)) {
+				orderedServices.push(service);
+			}
+		}
+
+		// Add any remaining services not in the fallback order
+		for (const service of availableServices) {
+			if (!orderedServices.find(s => s.id === service.id) && !existingServiceIds.has(service.id)) {
+				orderedServices.push(service);
+			}
+		}
+
+		const servicesToTry = orderedServices.length > 0 ? orderedServices : availableServices;
 
 		const errors = [];
 		for (const { id, service } of servicesToTry) {
@@ -158,18 +174,16 @@ Zotero.MomentO7.ArchiveCoordinator = {
 	},
 
 	async autoArchive(item) {
-		const autoArchiveEnabled = Zotero.Prefs.get("extensions.moment-o7.autoArchive", true);
-		if (!autoArchiveEnabled) {
-			return null;
-		}
-
 		const url = item.getField("url");
 		if (!url || !this.shouldAutoArchive(url)) {
 			return null;
 		}
 
+		// Use default service from preferences
+		const defaultService = Zotero.Prefs.get("extensions.momento7.defaultService", "internetarchive");
+
 		try {
-			return await this.archiveItem(item);
+			return await this.archiveItem(item, defaultService);
 		} catch (e) {
 			Zotero.debug(`MomentO7: Auto-archive failed for item ${item.id}: ${e}`);
 			return null;

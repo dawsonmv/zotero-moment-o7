@@ -11,6 +11,9 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 			supportsMemento: true,
 			rateLimit: 2000 // 2 seconds between requests
 		});
+
+		// Configurable timeout and retry settings
+		this.reloadSettings();
 	}
 
 	async isAvailable() {
@@ -37,6 +40,9 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 	}
 
 	async archiveItem(item) {
+		// Reload settings in case they changed
+		this.reloadSettings();
+
 		const url = this.getBestUrl(item);
 
 		if (!this.checkValidUrl(url)) {
@@ -58,74 +64,98 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 			`Archiving: ${item.getField("title") || url}`
 		);
 
-		try {
-			const archiveUrl = `https://web.archive.org/save/${url}`;
+		let lastError = null;
+		let attempt = 0;
 
-			const response = await Zotero.HTTP.request("GET", archiveUrl, {
-				headers: {
-					"User-Agent": "Zotero Moment-o7",
-					"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-				},
-				timeout: 60000,
-				responseType: "text"
-			});
+		while (attempt < this.maxRetries) {
+			try {
+				if (attempt > 0) {
+					progressWindow.addDescription(`Retry attempt ${attempt} of ${this.maxRetries - 1}...`);
+					await this.delay(this.retryDelay);
+				}
 
-			this.updateLastRequest();
+				const archiveUrl = `https://web.archive.org/save/${url}`;
 
-			let archivedUrl = null;
+				const response = await Zotero.HTTP.request("GET", archiveUrl, {
+					headers: {
+						"User-Agent": "Zotero Moment-o7",
+						"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+					},
+					timeout: this.timeout,
+					responseType: "text"
+				});
 
-			const linkHeader = response.getResponseHeader("Link");
-			if (linkHeader) {
-				archivedUrl = this.getLastMemento(linkHeader);
-			}
+				this.updateLastRequest();
 
-			if (!archivedUrl && response.responseText) {
-				const match = response.responseText.match(/https:\/\/web\.archive\.org\/web\/\d{14}\/[^\s"<>]+/);
-				if (match) {
-					archivedUrl = match[0];
+				let archivedUrl = null;
+
+				const linkHeader = response.getResponseHeader("Link");
+				if (linkHeader) {
+					archivedUrl = this.getLastMemento(linkHeader);
+				}
+
+				if (!archivedUrl && response.responseText) {
+					const match = response.responseText.match(/https:\/\/web\.archive\.org\/web\/\d{14}\/[^\s"<>]+/);
+					if (match) {
+						archivedUrl = match[0];
+					}
+				}
+
+				if (archivedUrl) {
+					await this.saveToItem(item, archivedUrl);
+					item.addTag("archived");
+					await item.saveTx();
+
+					progressWindow.close();
+					this.showSuccess(`Archived successfully: ${archivedUrl}`);
+
+					return {
+						item: item,
+						success: true,
+						archivedUrl: archivedUrl
+					};
+				} else {
+					throw new Error("Could not extract archived URL from response");
+				}
+
+			} catch (error) {
+				lastError = error;
+				attempt++;
+
+				// Don't retry for certain errors
+				if (error.status === 523 || error.status === 403 || error.status === 404) {
+					break;
+				}
+
+				// For timeout errors, increase timeout for next attempt
+				if (error.message && error.message.includes("timeout")) {
+					this.timeout = Math.min(this.timeout * 1.5, 300000); // Max 5 minutes
 				}
 			}
-
-			if (archivedUrl) {
-				await this.saveToItem(item, archivedUrl);
-				item.addTag("archived");
-				await item.saveTx();
-
-				progressWindow.close();
-				this.showSuccess(`Archived successfully: ${archivedUrl}`);
-
-				return {
-					item: item,
-					success: true,
-					archivedUrl: archivedUrl
-				};
-			} else {
-				throw new Error("Could not extract archived URL from response");
-			}
-
-		} catch (error) {
-			progressWindow.close();
-
-			let errorMessage = "Archive failed";
-
-			if (error.status === 523) {
-				errorMessage = "This site cannot be archived (blocked by publisher)";
-			} else if (error.status === 429) {
-				errorMessage = "Archive service is rate limiting. Please wait a few minutes and try again";
-			} else if (error.status === 403) {
-				errorMessage = "Access denied - this site blocks archiving services";
-			} else if (error.status === 404) {
-				errorMessage = "The URL could not be found";
-			} else if (error.status >= 500) {
-				errorMessage = "Archive service is temporarily unavailable";
-			} else if (error.message && error.message.includes("timeout")) {
-				errorMessage = "Archive request timed out - the site may be slow or blocking archiving";
-			} else if (error.message) {
-				errorMessage = error.message;
-			}
-
-			throw new Error(errorMessage);
 		}
+
+		// All retries failed
+		progressWindow.close();
+
+		let errorMessage = "Archive failed";
+
+		if (lastError.status === 523) {
+			errorMessage = "This site cannot be archived (blocked by publisher)";
+		} else if (lastError.status === 429) {
+			errorMessage = "Archive service is rate limiting. Please wait a few minutes and try again";
+		} else if (lastError.status === 403) {
+			errorMessage = "Access denied - this site blocks archiving services";
+		} else if (lastError.status === 404) {
+			errorMessage = "The URL could not be found";
+		} else if (lastError.status >= 500) {
+			errorMessage = "Archive service is temporarily unavailable";
+		} else if (lastError.message && lastError.message.includes("timeout")) {
+			errorMessage = `Archive request timed out after ${attempt} attempts - the site may be slow or blocking archiving`;
+		} else if (lastError.message) {
+			errorMessage = lastError.message;
+		}
+
+		throw new Error(errorMessage);
 	}
 
 	isArchived(item) {
@@ -161,5 +191,15 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 			return urlMatch ? urlMatch[1] : null;
 		}
 		return null;
+	}
+
+	async delay(ms) {
+		return new Promise(resolve => Zotero.setTimeout(resolve, ms));
+	}
+
+	reloadSettings() {
+		this.timeout = Zotero.Prefs.get("extensions.momento7.iaTimeout") || 120000; // Default: 2 minutes
+		this.maxRetries = Zotero.Prefs.get("extensions.momento7.iaMaxRetries") || 3;
+		this.retryDelay = Zotero.Prefs.get("extensions.momento7.iaRetryDelay") || 5000; // 5 seconds
 	}
 };

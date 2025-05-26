@@ -9,7 +9,7 @@
   "applications": {
     "zotero": {
       "id": "zotero-moment-o7@github.com",
-      "strict_min_version": "7.0",
+      "strict_min_version": "6.999",
       "strict_max_version": "7.*",
       "update_url": "https://raw.githubusercontent.com/dawsonmv/zotero-moment-o7/master/update.json"
     }
