@@ -1,57 +1,56 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-Zotero Moment-o7 is a Zotero plugin that automatically archives web resources to Internet Archive and Archive.today to prevent link rot. When items are saved via the Browser Connector, it archives them and stores archival URLs in the item's metadata. The plugin also supports creating "Robust Links" with multiple archive sources.
+Zotero Moment-o7 is a plugin that archives web resources to Internet Archive and Archive.today to prevent link rot.
 
 ## Architecture
 
-This is a Zotero 7 Bootstrap plugin with a modular service architecture:
+### Current Branch (master)
+- Complex architecture with 50+ files
+- Service registry pattern, base classes, TypeScript
+- See README.md for details
 
-### Core Components
-- **bootstrap.js**: Main entry point with lifecycle hooks for Zotero 7
-- **zotero-moment-o7.js**: Core plugin logic with window management and service initialization
-- **ServiceRegistry.js**: Manages dynamic registration of archiving services
-- **BaseArchiveService.js**: Base class for all archiving services
-- **ArchiveCoordinator.js**: Coordinates archiving workflow with Memento pre-checks
+### KISS Branch (kiss-refactor) 
+- Simple implementation with 6 files
+- Direct function calls, no abstractions
+- Same features, 85% less code
+- **Recommended for new development**
 
-### Archive Services
-- **InternetArchiveService.js**: Internet Archive integration (extends BaseArchiveService)
-- **ArchiveTodayService.js**: Archive.today integration via Cloudflare Worker
-- **IaPusher.js**: Legacy Internet Archive implementation (being phased out)
-- **ArchiveTodayPusher.js**: Legacy Archive.today implementation (being phased out)
-- **RobustLinkCreator.js**: Creates robust links with multiple archive sources
+## Key Files
 
-### Additional Components
-- **MementoChecker.js**: Checks existing archives using Memento Protocol
-- **MementoProtocol.js**: RFC 7089 compliant Memento implementation
-- **Signpost.js**: Extracts ORCID profiles using the Signposting protocol
-- **moment-o7.ftl**: Fluent localization file for UI strings
-- **cloudflare-worker/**: Contains the Cloudflare Worker proxy for Archive.today
+### KISS Version
+- `src/momento7-simple.js` - All plugin logic (280 lines)
+- `bootstrap-simple.js` - Plugin lifecycle (90 lines)
+- `addon/content/preferences-simple.xhtml` - Preferences UI
 
-## Key Technical Details
+### Building
+```bash
+# Current version
+npm run build
 
-- The plugin targets Zotero 7 with Bootstrap architecture
-- Uses Service Registry pattern for extensible archiving services
-- Uses Zotero.HTTP.request for HTTP requests
-- Archive.today support implemented via Cloudflare Worker proxy to bypass CORS
-- Implements Memento Protocol (RFC 7089) to check existing archives before creating new ones
-- Stores archived URLs in the item's "Extra" field and creates notes with robust links
-- Includes custom export translators in src/translators/
-- Generates Robust Link HTML with data-originalurl, data-versionurl, and data-versiondate attributes
-- Auto-archives new items saved through Browser Connector
+# KISS version
+./build-simple.sh
+```
+
+## Development Guidelines
+
+1. **Follow KISS principles** - Keep it simple
+2. **Use Zotero APIs directly** - No unnecessary wrappers
+3. **Minimize abstractions** - Direct function calls preferred
+4. **Test manually** - Install .xpi in Zotero to test
+
+## Common Tasks
+
+- Archive to Internet Archive: `archiveToIA(url)`
+- Archive to Archive.today: `archiveToAT(url)` (uses proxy)
+- Create robust link: Archives to multiple services
 
 ## Testing
 
-- Plugin functionality can be tested through Zotero's developer tools
-- Use the Error Console (Tools → Developer → Error Console) to debug
-
-## Development Notes
-
-- Uses Bootstrap architecture for Zotero 7
-- Main namespace is Zotero.MomentO7
-- To modify the plugin, edit files in src/
-- Archive.today proxy URL is hardcoded in ArchiveTodayPusher.js
-- Cloudflare Worker deployment details in cloudflare-worker/README.md
+1. Build the plugin
+2. Install in Zotero (Tools → Add-ons → Install from file)
+3. Right-click an item with URL to test archiving
+4. Check preferences in Zotero settings
