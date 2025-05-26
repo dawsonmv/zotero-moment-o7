@@ -1,0 +1,263 @@
+<script xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+    <![CDATA[
+    // Initialize preferences when pane loads
+    if (!Zotero.MomentO7) {
+        Zotero.MomentO7 = {};
+    }
+    
+    Zotero.MomentO7.PreferencesPane = {
+        init() {
+            // Initialize service checkboxes
+            const services = ['internetarchive', 'archivetoday', 'permacc', 'ukwebarchive', 'arquivopt'];
+            
+            // Initialize enabled services
+            const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",");
+            
+            // Initialize robust link services
+            const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",");
+            
+            services.forEach(service => {
+                // Set enabled checkbox
+                const enabledCheckbox = document.getElementById(`service-${service}-enabled`);
+                if (enabledCheckbox) {
+                    enabledCheckbox.checked = enabledServices.includes(service);
+                }
+                
+                // Set robust checkbox
+                const robustCheckbox = document.getElementById(`service-${service}-robust`);
+                if (robustCheckbox) {
+                    robustCheckbox.checked = robustServices.includes(service);
+                    robustCheckbox.disabled = !enabledServices.includes(service);
+                }
+            });
+            
+            // Initialize other preferences
+            const autoArchiveCheckbox = document.getElementById("auto-archive");
+            if (autoArchiveCheckbox) {
+                autoArchiveCheckbox.checked = Zotero.Prefs.get("extensions.zotero.momento7.autoArchive", true);
+            }
+            
+            const enableMementoCheckbox = document.getElementById("enable-memento");
+            if (enableMementoCheckbox) {
+                enableMementoCheckbox.checked = Zotero.Prefs.get("extensions.zotero.momento7.enableMemento", true);
+            }
+            
+            const createNoteCheckbox = document.getElementById("create-note");
+            if (createNoteCheckbox) {
+                createNoteCheckbox.checked = Zotero.Prefs.get("extensions.zotero.momento7.createArchiveNote", true);
+            }
+            
+            // Initialize timeout
+            const timeoutInput = document.getElementById("archive-timeout");
+            if (timeoutInput) {
+                const timeout = Zotero.Prefs.get("extensions.zotero.momento7.archiveTimeout", 30000);
+                timeoutInput.value = timeout / 1000;
+            }
+            
+            // Initialize delay
+            const delayInput = document.getElementById("archive-delay");
+            if (delayInput) {
+                const delay = Zotero.Prefs.get("extensions.zotero.momento7.autoArchiveDelay", 3000);
+                delayInput.value = delay / 1000;
+            }
+        },
+        
+        updateServiceEnabled(service) {
+            const enabledCheckbox = document.getElementById(`service-${service}-enabled`);
+            const robustCheckbox = document.getElementById(`service-${service}-robust`);
+            
+            if (robustCheckbox) {
+                robustCheckbox.disabled = !enabledCheckbox.checked;
+                if (!enabledCheckbox.checked) {
+                    robustCheckbox.checked = false;
+                }
+            }
+            
+            // Update enabled services preference
+            const services = [];
+            ['internetarchive', 'archivetoday', 'permacc', 'ukwebarchive', 'arquivopt'].forEach(s => {
+                const checkbox = document.getElementById(`service-${s}-enabled`);
+                if (checkbox && checkbox.checked) {
+                    services.push(s);
+                }
+            });
+            
+            Zotero.Prefs.set("extensions.zotero.momento7.enabledServices", services.join(","));
+        },
+        
+        updateRobustServices() {
+            const services = [];
+            ['internetarchive', 'archivetoday', 'permacc', 'ukwebarchive', 'arquivopt'].forEach(service => {
+                const checkbox = document.getElementById(`service-${service}-robust`);
+                if (checkbox && checkbox.checked && !checkbox.disabled) {
+                    services.push(service);
+                }
+            });
+            
+            Zotero.Prefs.set("extensions.zotero.momento7.robustLinkServices", services.join(","));
+        },
+        
+        saveTimeout() {
+            const timeoutInput = document.getElementById("archive-timeout");
+            if (timeoutInput) {
+                const seconds = parseInt(timeoutInput.value) || 30;
+                Zotero.Prefs.set("extensions.zotero.momento7.archiveTimeout", seconds * 1000);
+            }
+        },
+        
+        saveDelay() {
+            const delayInput = document.getElementById("archive-delay");
+            if (delayInput) {
+                const seconds = parseInt(delayInput.value) || 3;
+                Zotero.Prefs.set("extensions.zotero.momento7.autoArchiveDelay", seconds * 1000);
+            }
+        }
+    };
+    
+    // Initialize when DOM is ready
+    window.addEventListener("DOMContentLoaded", () => {
+        Zotero.MomentO7.PreferencesPane.init();
+    });
+    ]]>
+</script>
+
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>General Settings</html:strong></label>
+    <checkbox id="auto-archive" label="Automatically archive new items added via Browser Connector"
+        oncommand="Zotero.Prefs.set('extensions.zotero.momento7.autoArchive', this.checked)"/>
+    
+    <separator/>
+    
+    <checkbox id="enable-memento" label="Enable Memento Protocol checking before archiving"
+        oncommand="Zotero.Prefs.set('extensions.zotero.momento7.enableMemento', this.checked)"/>
+    
+    <checkbox id="create-note" label="Create archive note when archiving items"
+        oncommand="Zotero.Prefs.set('extensions.zotero.momento7.createArchiveNote', this.checked)"/>
+</groupbox>
+
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>Archive Services</html:strong></label>
+    <description>Enable services and select which ones to include in Robust Links:</description>
+    
+    <grid style="margin-top: 10px;">
+        <columns>
+            <column style="width: 50px;"/>
+            <column style="width: 50px;"/>
+            <column flex="1"/>
+        </columns>
+        <rows>
+            <row align="center" style="margin-bottom: 5px;">
+                <label value="Enabled" style="font-weight: bold; font-size: small;"/>
+                <label value="Robust Link" style="font-weight: bold; font-size: small;"/>
+                <label value="Service" style="font-weight: bold; font-size: small;"/>
+            </row>
+            
+            <row align="center" style="padding-top: 8px;">
+                <checkbox id="service-internetarchive-enabled" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('internetarchive')"/>
+                <checkbox id="service-internetarchive-robust" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+                <vbox align="start">
+                    <label value="Internet Archive" style="font-weight: bold;"/>
+                    <description style="font-size: small; margin: 0;">Free, open archive service</description>
+                </vbox>
+            </row>
+            
+            <row align="center" style="padding-top: 8px;">
+                <checkbox id="service-archivetoday-enabled" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('archivetoday')"/>
+                <checkbox id="service-archivetoday-robust" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+                <vbox align="start">
+                    <label value="Archive.today" style="font-weight: bold;"/>
+                    <description style="font-size: small; margin: 0;">Private archive service</description>
+                </vbox>
+            </row>
+            
+            <row align="center" style="padding-top: 8px;">
+                <checkbox id="service-permacc-enabled" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('permacc')"/>
+                <checkbox id="service-permacc-robust" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+                <vbox align="start">
+                    <label value="Perma.cc" style="font-weight: bold;"/>
+                    <description style="font-size: small; margin: 0;">Academic archive (requires API key)</description>
+                </vbox>
+            </row>
+            
+            <row align="center" style="padding-top: 8px;">
+                <checkbox id="service-ukwebarchive-enabled" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('ukwebarchive')"/>
+                <checkbox id="service-ukwebarchive-robust" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+                <vbox align="start">
+                    <label value="UK Web Archive" style="font-weight: bold;"/>
+                    <description style="font-size: small; margin: 0;">British Library archive</description>
+                </vbox>
+            </row>
+            
+            <row align="center" style="padding-top: 8px;">
+                <checkbox id="service-arquivopt-enabled" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateServiceEnabled('arquivopt')"/>
+                <checkbox id="service-arquivopt-robust" 
+                    oncommand="Zotero.MomentO7.PreferencesPane.updateRobustServices()"/>
+                <vbox align="start">
+                    <label value="Arquivo.pt" style="font-weight: bold;"/>
+                    <description style="font-size: small; margin: 0;">Portuguese web archive</description>
+                </vbox>
+            </row>
+        </rows>
+    </grid>
+</groupbox>
+
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>Timing Settings</html:strong></label>
+    
+    <grid>
+        <columns>
+            <column/>
+            <column/>
+        </columns>
+        <rows>
+            <row align="center">
+                <label value="Archive timeout (seconds):" control="archive-timeout"/>
+                <html:input id="archive-timeout" type="number" min="5" max="300" 
+                    style="width: 60px;" onchange="Zotero.MomentO7.PreferencesPane.saveTimeout()"/>
+            </row>
+            <row align="center">
+                <label value="Auto-archive delay (seconds):" control="archive-delay"/>
+                <html:input id="archive-delay" type="number" min="1" max="60" 
+                    style="width: 60px;" onchange="Zotero.MomentO7.PreferencesPane.saveDelay()"/>
+            </row>
+        </rows>
+    </grid>
+</groupbox>
+
+<groupbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    xmlns:html="http://www.w3.org/1999/xhtml">
+    <label><html:strong>Perma.cc API Configuration</html:strong></label>
+    
+    <grid>
+        <columns>
+            <column/>
+            <column flex="1"/>
+        </columns>
+        <rows>
+            <row align="center">
+                <label value="API Key:" control="permacc-apikey"/>
+                <html:input id="permacc-apikey" type="password" 
+                    style="width: 300px;" placeholder="Enter your Perma.cc API key"
+                    onchange="Zotero.Prefs.set('extensions.zotero.momento7.permacc.apiKey', this.value)"/>
+            </row>
+        </rows>
+    </grid>
+    
+    <description style="font-size: small; margin-top: 5px;">
+        Get your free API key at: 
+        <label class="text-link" value="https://perma.cc/settings/tools" 
+            onclick="Zotero.launchURL('https://perma.cc/settings/tools')"/>
+    </description>
+</groupbox>

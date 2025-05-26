@@ -1,21 +1,21 @@
-/* global Zotero, Services */
+/* global Zotero */
 
 Zotero.MomentO7.PreferencesHTML = {
 	// Create a modern HTML-based preferences dialog
 	openPreferences() {
 		const dialogData = {
-			autoArchive: Zotero.Prefs.get("extensions.momento7.autoArchive", true),
-			defaultService: Zotero.Prefs.get("extensions.momento7.defaultService", "internetarchive"),
-			iaTimeout: Math.round(Zotero.Prefs.get("extensions.momento7.iaTimeout", 120000) / 1000),
-			iaMaxRetries: Zotero.Prefs.get("extensions.momento7.iaMaxRetries", 3),
-			iaRetryDelay: Math.round(Zotero.Prefs.get("extensions.momento7.iaRetryDelay", 5000) / 1000),
-			robustLinkServices: Zotero.Prefs.get("extensions.momento7.robustLinkServices", "internetarchive,archivetoday"),
-			fallbackOrder: Zotero.Prefs.get("extensions.momento7.fallbackOrder", "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"),
-			permaccApiKey: Zotero.Prefs.get("extensions.momento7.permaccApiKey", "")
+			autoArchive: Zotero.Prefs.get("extensions.zotero.momento7.autoArchive", true),
+			defaultService: Zotero.Prefs.get("extensions.zotero.momento7.defaultService", "internetarchive"),
+			iaTimeout: Math.round(Zotero.Prefs.get("extensions.zotero.momento7.iaTimeout", 120000) / 1000),
+			iaMaxRetries: Zotero.Prefs.get("extensions.zotero.momento7.iaMaxRetries", 3),
+			iaRetryDelay: Math.round(Zotero.Prefs.get("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000),
+			robustLinkServices: Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday"),
+			fallbackOrder: Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder", "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"),
+			permaccApiKey: Zotero.Prefs.get("extensions.zotero.momento7.permaccApiKey", "")
 		};
 
 		const io = { dataIn: dialogData, dataOut: null };
-		
+
 		window.openDialog(
 			"chrome://zotero/content/preferences/preferences.xhtml",
 			"momento7-preferences",
@@ -328,16 +328,16 @@ Zotero.MomentO7.PreferencesHTML = {
 			prefs.fallbackOrder = order.join(',');
 			
 			// Save to Zotero preferences
-			window.opener.Zotero.Prefs.set("extensions.momento7.autoArchive", prefs.autoArchive);
-			window.opener.Zotero.Prefs.set("extensions.momento7.defaultService", prefs.defaultService);
-			window.opener.Zotero.Prefs.set("extensions.momento7.iaTimeout", prefs.iaTimeout * 1000);
-			window.opener.Zotero.Prefs.set("extensions.momento7.iaMaxRetries", prefs.iaMaxRetries);
-			window.opener.Zotero.Prefs.set("extensions.momento7.iaRetryDelay", prefs.iaRetryDelay * 1000);
-			window.opener.Zotero.Prefs.set("extensions.momento7.robustLinkServices", prefs.robustLinkServices);
-			window.opener.Zotero.Prefs.set("extensions.momento7.fallbackOrder", prefs.fallbackOrder);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.autoArchive", prefs.autoArchive);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.defaultService", prefs.defaultService);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.iaTimeout", prefs.iaTimeout * 1000);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.iaMaxRetries", prefs.iaMaxRetries);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.iaRetryDelay", prefs.iaRetryDelay * 1000);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.robustLinkServices", prefs.robustLinkServices);
+			window.opener.Zotero.Prefs.set("extensions.zotero.momento7.fallbackOrder", prefs.fallbackOrder);
 			
 			if (prefs.permaccApiKey) {
-				window.opener.Zotero.Prefs.set("extensions.momento7.permaccApiKey", prefs.permaccApiKey);
+				window.opener.Zotero.Prefs.set("extensions.zotero.momento7.permaccApiKey", prefs.permaccApiKey);
 			}
 			
 			window.arguments[0].dataOut = prefs;

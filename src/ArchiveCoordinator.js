@@ -118,7 +118,7 @@ Zotero.MomentO7.ArchiveCoordinator = {
 		);
 
 		// Get fallback order from preferences
-		const fallbackOrder = Zotero.Prefs.get("extensions.momento7.fallbackOrder",
+		const fallbackOrder = Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder",
 			"internetarchive,archivetoday,arquivopt,permacc,ukwebarchive").split(",");
 
 		// Sort available services according to fallback order
@@ -180,7 +180,7 @@ Zotero.MomentO7.ArchiveCoordinator = {
 		}
 
 		// Use default service from preferences
-		const defaultService = Zotero.Prefs.get("extensions.momento7.defaultService", "internetarchive");
+		const defaultService = Zotero.Prefs.get("extensions.zotero.momento7.defaultService", "internetarchive");
 
 		try {
 			return await this.archiveItem(item, defaultService);

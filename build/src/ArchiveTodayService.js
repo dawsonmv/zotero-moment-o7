@@ -17,7 +17,7 @@ Zotero.MomentO7.ArchiveTodayService = class extends Zotero.MomentO7.BaseArchiveS
 
 	async isAvailable() {
 		// Check if worker URL is configured
-		const savedUrl = Zotero.Prefs.get("extensions.momento7.archiveTodayWorkerUrl");
+		const savedUrl = Zotero.Prefs.get("extensions.zotero.momento7.archiveTodayWorkerUrl");
 		if (savedUrl) {
 			this.WORKER_URL = savedUrl;
 		}

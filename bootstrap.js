@@ -46,6 +46,16 @@ async function startup({ id, version, rootURI }, _reason) {
 	ZoteroMomentO7 = Zotero.MomentO7;
 	ZoteroMomentO7.init({ id, version, rootURI });
 
+	// Register preferences pane for Zotero 7
+	if (Zotero.PreferencePanes && Zotero.PreferencePanes.register) {
+		Zotero.PreferencePanes.register({
+			pluginID: "zotero-moment-o7@github.com",
+			src: rootURI + "addon/content/preferences.xhtml",
+			label: "Moment-o7",
+			image: rootURI + "icon48.png"
+		});
+	}
+
 	// Add to all existing windows
 	ZoteroMomentO7.addToAllWindows();
 

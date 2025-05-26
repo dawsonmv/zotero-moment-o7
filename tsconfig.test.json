@@ -3,10 +3,14 @@
 	"compilerOptions": {
 		"types": ["jest", "node"],
 		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true
 	},
 	"include": [
+		"src/**/*.ts",
+		"src/**/*.js",
 		"tests/**/*.ts",
-		"tests/**/*.js"
+		"tests/**/*.js",
+		"tests/setup.ts"
 	]
 }

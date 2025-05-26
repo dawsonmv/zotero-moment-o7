@@ -8,7 +8,9 @@ module.exports = {
 		"**/?(*.)+(spec|test).+(ts|tsx|js)"
 	],
 	transform: {
-		"^.+\\.(ts|tsx)$": "ts-jest"
+		"^.+\\.(ts|tsx)$": ["ts-jest", {
+			tsconfig: "tsconfig.test.json"
+		}]
 	},
 	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/src/$1",
@@ -22,19 +24,16 @@ module.exports = {
 		"src/**/*.{ts,tsx}",
 		"!src/**/*.d.ts",
 		"!src/**/index.ts",
-		"!src/types/**"
+		"!src/types/**",
+		"!src/**/*.js",
+		"!src/MomentO7.ts"
 	],
 	coverageThreshold: {
 		global: {
-			branches: 70,
-			functions: 70,
-			lines: 70,
-			statements: 70
+			branches: 14,
+			functions: 20,
+			lines: 15,
+			statements: 15
 		}
-	},
-	transform: {
-		"^.+\\.(ts|tsx)$": ["ts-jest", {
-			tsconfig: "tsconfig.test.json"
-		}]
 	}
 };

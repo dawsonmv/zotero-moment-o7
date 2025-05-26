@@ -29,10 +29,15 @@ cp bootstrap.js build/
 cp update.json build/
 cp icon*.png build/
 
-# Copy chrome directory for preference pane
-if [ -d "chrome" ]; then
-    echo "Copying chrome directory..."
-    cp -r chrome build/
+# Copy chrome.manifest if it exists
+if [ -f "chrome.manifest" ]; then
+    cp chrome.manifest build/
+fi
+
+# Copy addon directory for preference pane and prefs
+if [ -d "addon" ]; then
+    echo "Copying addon directory..."
+    cp -r addon build/
 fi
 
 # Copy the main JavaScript file and its dependencies

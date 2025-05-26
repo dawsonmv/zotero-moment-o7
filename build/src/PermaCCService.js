@@ -21,7 +21,7 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 
 	async isAvailable() {
 		// Check if API key is configured
-		const apiKey = Zotero.Prefs.get("extensions.momento7.permaccApiKey");
+		const apiKey = Zotero.Prefs.get("extensions.zotero.momento7.permaccApiKey");
 		if (!apiKey) {
 			return false;
 		}
@@ -74,7 +74,7 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 	}
 
 	getApiKey() {
-		let apiKey = Zotero.Prefs.get("extensions.momento7.permaccApiKey");
+		let apiKey = Zotero.Prefs.get("extensions.zotero.momento7.permaccApiKey");
 
 		if (!apiKey) {
 			// Prompt user for API key
@@ -93,7 +93,7 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 
 			if (result && input.value) {
 				apiKey = input.value.trim();
-				Zotero.Prefs.set("extensions.momento7.permaccApiKey", apiKey);
+				Zotero.Prefs.set("extensions.zotero.momento7.permaccApiKey", apiKey);
 			}
 		}
 
@@ -215,7 +215,7 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 			if (error.status === 401) {
 				errorMessage = "Invalid API key. Please check your Perma.cc API key.";
 				// Clear invalid API key
-				Zotero.Prefs.clear("extensions.momento7.permaccApiKey");
+				Zotero.Prefs.clear("extensions.zotero.momento7.permaccApiKey");
 			} else if (error.status === 403) {
 				if (error.message && error.message.includes("link limit")) {
 					errorMessage = "Monthly quota exceeded (10 free archives/month). Resets on the 1st.";

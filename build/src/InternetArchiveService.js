@@ -198,8 +198,8 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 	}
 
 	reloadSettings() {
-		this.timeout = Zotero.Prefs.get("extensions.momento7.iaTimeout") || 120000; // Default: 2 minutes
-		this.maxRetries = Zotero.Prefs.get("extensions.momento7.iaMaxRetries") || 3;
-		this.retryDelay = Zotero.Prefs.get("extensions.momento7.iaRetryDelay") || 5000; // 5 seconds
+		this.timeout = Zotero.Prefs.get("extensions.zotero.momento7.iaTimeout") || 120000; // Default: 2 minutes
+		this.maxRetries = Zotero.Prefs.get("extensions.zotero.momento7.iaMaxRetries") || 3;
+		this.retryDelay = Zotero.Prefs.get("extensions.zotero.momento7.iaRetryDelay") || 5000; // 5 seconds
 	}
 };

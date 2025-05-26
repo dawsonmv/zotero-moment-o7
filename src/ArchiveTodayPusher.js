@@ -10,14 +10,14 @@ Zotero.ArchiveTodayPusher = {
    */
 	setWorkerUrl: function (url) {
 		this.WORKER_URL = url;
-		Zotero.Prefs.set("extensions.momento7.archiveTodayWorkerUrl", url);
+		Zotero.Prefs.set("extensions.zotero.momento7.archiveTodayWorkerUrl", url);
 	},
 
 	/**
    * Get the configured Worker URL
    */
 	getWorkerUrl: function () {
-		const savedUrl = Zotero.Prefs.get("extensions.momento7.archiveTodayWorkerUrl");
+		const savedUrl = Zotero.Prefs.get("extensions.zotero.momento7.archiveTodayWorkerUrl");
 		if (savedUrl) {
 			this.WORKER_URL = savedUrl;
 		}
