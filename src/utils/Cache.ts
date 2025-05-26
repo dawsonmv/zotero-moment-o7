@@ -329,8 +329,8 @@ export function memoize<T extends (...args: any[]) => any>(
   const cache = new Map<string, { value: ReturnType<T>; expires: number }>();
   
   return function(
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;

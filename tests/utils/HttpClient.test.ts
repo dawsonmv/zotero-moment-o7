@@ -10,7 +10,7 @@ describe('HttpClient', () => {
 
   beforeEach(() => {
     httpClient = new HttpClient();
-    mockRequest = Zotero.HTTP.request as jest.Mock;
+    mockRequest = (global as any).Zotero.HTTP.request as jest.Mock;
     mockRequest.mockClear();
   });
 

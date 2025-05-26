@@ -3,6 +3,8 @@
  * Separates HTTP concerns from business logic
  */
 
+declare const Zotero: any;
+
 export interface HttpRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: Record<string, string>;
@@ -34,7 +36,7 @@ export class HttpClient {
     'User-Agent': 'Mozilla/5.0 (compatible; Zotero)'
   };
 
-  constructor(private baseTimeout?: number) {
+  constructor(baseTimeout?: number) {
     if (baseTimeout) {
       this.defaultTimeout = baseTimeout;
     }

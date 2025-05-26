@@ -72,8 +72,8 @@ describe('HtmlUtils', () => {
       );
 
       expect(result).toContain('href="https:&#x2F;&#x2F;example.com"');
-      expect(result).toContain('data-originalurl="https://example.com"');
-      expect(result).toContain('data-versionurl="https://archive.org/example"');
+      expect(result).toContain('data-originalurl="https:&#x2F;&#x2F;example.com"');
+      expect(result).toContain('data-versionurl="https:&#x2F;&#x2F;archive.org&#x2F;example"');
       expect(result).toContain('data-versiondate="2024-01-01T00:00:00Z"');
       expect(result).toContain('>Example Site</a>');
     });
@@ -86,7 +86,7 @@ describe('HtmlUtils', () => {
       );
 
       expect(result).toContain('Test &amp; Example</a>');
-      expect(result).toContain('data-originalurl="https://example.com?q=test&p=1"');
+      expect(result).toContain('data-originalurl="https:&#x2F;&#x2F;example.com?q=test&amp;p=1"');
     });
   });
 

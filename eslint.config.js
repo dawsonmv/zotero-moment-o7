@@ -82,5 +82,27 @@ module.exports = [
 		rules: {
 			"strict": "off"
 		}
+	},
+	{
+		files: ["jest.config.js", "*.config.js", "tests/**/*.js", "tests/**/*.ts"],
+		languageOptions: {
+			globals: {
+				module: "readonly",
+				require: "readonly",
+				exports: "readonly",
+				process: "readonly",
+				__dirname: "readonly",
+				__filename: "readonly",
+				jest: "readonly",
+				describe: "readonly",
+				it: "readonly",
+				test: "readonly",
+				expect: "readonly",
+				beforeEach: "readonly",
+				afterEach: "readonly",
+				beforeAll: "readonly",
+				afterAll: "readonly"
+			}
+		}
 	}
 ];

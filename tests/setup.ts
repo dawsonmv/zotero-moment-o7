@@ -3,8 +3,10 @@
  * Mocks Zotero globals and sets up test environment
  */
 
+/// <reference types="jest" />
+
 // Mock Zotero global
-global.Zotero = {
+(global as any).Zotero = {
   debug: jest.fn(),
   log: jest.fn(),
   logError: jest.fn(),
@@ -59,17 +61,17 @@ global.Zotero = {
 } as any;
 
 // Mock global Services
-global.Services = {
+(global as any).Services = {
   scriptloader: {
     loadSubScript: jest.fn()
   }
 } as any;
 
 // Mock window
-global.window = {
+(global as any).window = {
   document: {
     createElement: jest.fn((tag: string) => {
-      const element = {
+      const element: any = {
         tagName: tag.toUpperCase(),
         innerHTML: '',
         textContent: '',
@@ -78,7 +80,7 @@ global.window = {
         setAttribute: jest.fn((name: string, value: string) => {
           element.attributes.set(name, value);
         }),
-        getAttribute: jest.fn((name: string) => {
+        getAttribute: jest.fn((name: string): string | null => {
           return element.attributes.get(name);
         }),
         addEventListener: jest.fn(),
@@ -101,8 +103,8 @@ global.window = {
 } as any;
 
 // Mock DOMParser
-global.DOMParser = jest.fn().mockImplementation(() => ({
-  parseFromString: jest.fn((text: string, type: string) => {
+(global as any).DOMParser = jest.fn().mockImplementation(() => ({
+  parseFromString: jest.fn((_text: string, _type: string) => {
     return global.window.document;
   })
 })) as any;
@@ -120,3 +122,6 @@ expect.extend({
     };
   }
 });
+
+// Export to make this a module
+export {};

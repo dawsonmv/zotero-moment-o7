@@ -30,7 +30,7 @@ export interface CircuitBreakerState {
  * Circuit Breaker implementation
  * Protects against cascading failures in distributed systems
  */
-export class CircuitBreaker<T = any> {
+export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
   private failures = 0;
   private successes = 0;

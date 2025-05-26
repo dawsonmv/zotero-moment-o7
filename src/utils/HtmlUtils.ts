@@ -72,7 +72,7 @@ export class HtmlUtils {
     versionDate: string = new Date().toISOString()
   ): string {
     return this.createSafeElement('a', linkText, {
-      href: this.escape(originalUrl),
+      href: originalUrl,
       'data-originalurl': originalUrl,
       'data-versionurl': archivedUrl,
       'data-versiondate': versionDate
