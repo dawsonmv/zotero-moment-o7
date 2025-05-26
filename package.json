@@ -6,8 +6,13 @@
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "build": "./scripts/build.sh",
-    "release": "./scripts/release.sh"
+    "build": "npm run build:ts && ./scripts/build.sh",
+    "build:ts": "webpack --config webpack.config.js",
+    "build:watch": "webpack --config webpack.config.js --watch",
+    "install-dev": "./scripts/install-dev.sh",
+    "release": "./scripts/release.sh",
+    "zotero-dev": "./scripts/zotero-dev.sh",
+    "type-check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -27,7 +32,12 @@
   },
   "homepage": "https://github.com/dawsonmv/zotero-moment-o7#readme",
   "devDependencies": {
-    "eslint": "^9.27.0"
+    "@types/node": "^20.11.0",
+    "eslint": "^9.27.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
   },
   "engines": {
     "node": ">=14.0.0"

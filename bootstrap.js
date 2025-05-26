@@ -31,8 +31,16 @@ async function startup({ id, version, rootURI }, _reason) {
 			.wrappedJSObject;
 	}
 
-	// Load plugin scripts
-	Services.scriptloader.loadSubScript(rootURI + "src/zotero-moment-o7.js");
+	// Check if we're in development mode (TypeScript sources)
+	const isDev = rootURI.includes('zotero-moment-o7/src/');
+	
+	if (isDev) {
+		// Development mode - load original JavaScript files
+		Services.scriptloader.loadSubScript(rootURI + "src/zotero-moment-o7.js");
+	} else {
+		// Production mode - load compiled bundle
+		Services.scriptloader.loadSubScript(rootURI + "zotero-moment-o7.js");
+	}
 
 	// Initialize plugin
 	ZoteroMomentO7 = Zotero.MomentO7;

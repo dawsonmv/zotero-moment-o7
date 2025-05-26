@@ -1,5 +1,6 @@
 #!/bin/bash
 # Build script for zotero-moment-o7 plugin
+# Note: Run 'npm run build:ts' first to compile TypeScript
 
 # Colors for output
 RED='\033[0;31m'
@@ -16,27 +17,31 @@ echo -e "${YELLOW}Building zotero-moment-o7 plugin...${NC}"
 # Change to project directory
 cd "$PROJECT_DIR"
 
+# Create build directory if it doesn't exist
+mkdir -p build
+
+# Copy non-TypeScript files to build directory
+echo "Copying static files to build directory..."
+cp -r locale build/
+cp -r cloudflare-worker build/
+cp manifest.json build/
+cp bootstrap.js build/
+cp update.json build/
+cp icon*.png build/
+
 # Remove old build
 if [ -f "zotero-moment-o7.xpi" ]; then
     rm -f zotero-moment-o7.xpi
     echo "Removed old XPI file"
 fi
 
-# Create XPI (excluding unnecessary files)
-zip -r zotero-moment-o7.xpi . \
+# Create XPI from build directory
+cd build
+zip -r ../zotero-moment-o7.xpi . \
     -x "*.git*" \
     -x "*.DS_Store" \
-    -x "scripts/*" \
-    -x "*.md" \
-    -x "*.xpi" \
-    -x "node_modules/*" \
-    -x ".vscode/*" \
-    -x "logs/*" \
-    -x "test/*" \
-    -x "tests/*" \
-    -x "docs/*" \
-    -x "console_output.log/*" \
-    -x "console_errors/*"
+    -x "*.map"
+cd ..
 
 if [ -f "zotero-moment-o7.xpi" ]; then
     echo -e "${GREEN}✓ Successfully built zotero-moment-o7.xpi${NC}"
