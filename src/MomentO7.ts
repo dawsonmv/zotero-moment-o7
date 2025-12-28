@@ -8,6 +8,10 @@ import { ServiceRegistry } from './services/ServiceRegistry';
 import { ArchiveCoordinator } from './services/ArchiveCoordinator';
 import { PreferencesManager } from './preferences/PreferencesManager';
 import { InternetArchiveService } from './services/InternetArchiveService';
+import { ArchiveTodayService } from './services/ArchiveTodayService';
+import { PermaCCService } from './services/PermaCCService';
+import { UKWebArchiveService } from './services/UKWebArchiveService';
+import { ArquivoPtService } from './services/ArquivoPtService';
 import { MenuItemConfig } from './services/types';
 
 export class MomentO7 {
@@ -50,16 +54,14 @@ export class MomentO7 {
     const registry = ServiceRegistry.getInstance();
     registry.init();
 
-    // Register built-in services
+    // Register all archive services
     registry.register('internetarchive', new InternetArchiveService());
-    
-    // TODO: Register other services when ported to TypeScript
-    // registry.register('archivetoday', new ArchiveTodayService());
-    // registry.register('permacc', new PermaCCService());
-    // registry.register('ukwebarchive', new UKWebArchiveService());
-    // registry.register('arquivopt', new ArquivoPtService());
+    registry.register('archivetoday', new ArchiveTodayService());
+    registry.register('permacc', new PermaCCService());
+    registry.register('ukwebarchive', new UKWebArchiveService());
+    registry.register('arquivopt', new ArquivoPtService());
 
-    this.log('Services initialized and registered');
+    this.log(`Services initialized: ${registry.getAll().length} services registered`);
   }
 
   /**
