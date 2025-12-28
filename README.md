@@ -2,6 +2,32 @@
 
 A modern rewrite of the classic Zotero Memento plugin, now compatible with Zotero 7.
 
+> **Beta Release**: This plugin is currently in public beta. We welcome testing and feedback from the community!
+
+## Beta Testing
+
+### How to Test
+1. Download the latest `.xpi` from [Releases](https://github.com/dawsonmv/zotero-moment-o7/releases)
+2. Install in Zotero 7 (Tools → Add-ons → gear icon → Install Add-on From File)
+3. Test the archive services on various websites
+4. Report issues on [GitHub Issues](https://github.com/dawsonmv/zotero-moment-o7/issues)
+
+### What to Test
+- [ ] Auto-archiving when saving items via Browser Connector
+- [ ] Manual archiving via right-click menu (all 5 services)
+- [ ] "Create Robust Link" option
+- [ ] Preferences dialog
+- [ ] Error handling (try archiving sites that block archiving)
+
+### Reporting Issues
+When reporting bugs, please include:
+- Zotero version
+- Operating system
+- Steps to reproduce
+- Error messages from Tools → Developer → Error Console
+
+---
+
 ## Features
 
 Moment-o7 brings all the classic memento plugin functionality to Zotero 7, allowing you to archive your research articles and prevent link rot.
@@ -134,10 +160,10 @@ To install translators:
 
 ## Known Limitations
 
-- Archive.is and related sites are no longer supported due to CORS restrictions
-- Some websites may block automated archiving attempts
+- Some websites may block automated archiving attempts (e.g., JSTOR, some academic publishers)
 - Perma.cc free tier limited to 10 archives/month
 - UK Web Archive only accepts UK domains
+- Archive.today uses a Cloudflare Worker proxy which may have rate limits
 
 ## Contributing
 
