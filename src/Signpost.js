@@ -48,9 +48,10 @@ Zotero.Signpost = {
 				break;
 			}
 			const startOrcid = linkHdrText.lastIndexOf("http", currAuthor);
-			const endOrcid = (linkHdrText.lastIndexOf(">;", currAuthor) !== -1)
-				? linkHdrText.lastIndexOf(">;", currAuthor)
-				: linkHdrText.lastIndexOf(";", currAuthor);
+			const endOrcid =
+				linkHdrText.lastIndexOf(">;", currAuthor) !== -1
+					? linkHdrText.lastIndexOf(">;", currAuthor)
+					: linkHdrText.lastIndexOf(";", currAuthor);
 			if (linkHdrText.slice(startOrcid, endOrcid).indexOf("orcid") !== -1) {
 				orcids.push(linkHdrText.slice(startOrcid, endOrcid));
 			}
@@ -86,19 +87,19 @@ Zotero.Signpost = {
 		const orcidPattern = /[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}/;
 		const orcidIdStart = fullOrcidUrl.search(orcidPattern);
 		const orcidId = fullOrcidUrl.slice(orcidIdStart, orcidIdStart + 19);
-		const orcidReqUrl = "https://cors-anywhere.herokuapp.com/https://sandbox.orcid.org/v2.0/" +
-			orcidId + "/record";
+		const orcidReqUrl =
+			"https://cors-anywhere.herokuapp.com/https://sandbox.orcid.org/v2.0/" + orcidId + "/record";
 		const req = Zotero.IaPusher.createCORSRequest("GET", orcidReqUrl, false);
 		this.setRequestProperties(req);
 		req.send();
 
-		const authorNameStart = req.responseText.indexOf(">",
-			req.responseText.indexOf("<personal-details:credit-name>")) + 1;
+		const authorNameStart =
+			req.responseText.indexOf(">", req.responseText.indexOf("<personal-details:credit-name>")) + 1;
 		const authorNameEnd = req.responseText.indexOf("</personal-details:", authorNameStart);
 
-
-		return (authorNameStart < 1 || authorNameEnd < 1) ? null :
-			req.responseText.slice(authorNameStart, authorNameEnd);
+		return authorNameStart < 1 || authorNameEnd < 1
+			? null
+			: req.responseText.slice(authorNameStart, authorNameEnd);
 	},
 
 	/*
@@ -121,7 +122,7 @@ Zotero.Signpost = {
 			Zotero.Attachments.linkFromURL({
 				url: orcids[orcidUrl.toString()],
 				parentItemID: item.getField("id"),
-				title: (authorName) ? authorName + "'s ORCID Profile" : "Author's ORCID Profile"
+				title: authorName ? authorName + "'s ORCID Profile" : "Author's ORCID Profile"
 			});
 		}
 	},

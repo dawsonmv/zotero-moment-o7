@@ -39,7 +39,7 @@ Zotero.PermaCCPusher = {
 		try {
 			const response = await Zotero.HTTP.request("GET", this.USER_URL, {
 				headers: {
-					"Authorization": `ApiKey ${apiKey}`,
+					Authorization: `ApiKey ${apiKey}`,
 					"Content-Type": "application/json"
 				},
 				timeout: 10000,
@@ -88,7 +88,7 @@ Zotero.PermaCCPusher = {
 		try {
 			const response = await Zotero.HTTP.request("POST", this.ARCHIVE_URL, {
 				headers: {
-					"Authorization": `ApiKey ${apiKey}`,
+					Authorization: `ApiKey ${apiKey}`,
 					"Content-Type": "application/json"
 				},
 				body: JSON.stringify(requestBody),
@@ -145,9 +145,7 @@ Zotero.PermaCCPusher = {
 		}
 
 		const archiveInfo = `Perma.cc: ${permaUrl}`;
-		const newExtra = currentExtra ?
-			currentExtra + "\n" + archiveInfo :
-			archiveInfo;
+		const newExtra = currentExtra ? currentExtra + "\n" + archiveInfo : archiveInfo;
 
 		item.setField("extra", newExtra);
 		return item.saveTx();
@@ -165,8 +163,8 @@ Zotero.PermaCCPusher = {
 				null,
 				"Perma.cc API Key Required",
 				"Please enter your Perma.cc API key.\n\n" +
-				"Get your free API key at: https://perma.cc/settings/tools\n" +
-				"(10 free archives per month)",
+					"Get your free API key at: https://perma.cc/settings/tools\n" +
+					"(10 free archives per month)",
 				input,
 				null,
 				{ value: false }
@@ -252,7 +250,9 @@ Zotero.PermaCCPusher = {
 					// Update remaining quota
 					quota.remaining--;
 					if (quota.remaining <= 2) {
-						progressWin.addDescription(`Warning: Only ${quota.remaining} archives remaining this month`);
+						progressWin.addDescription(
+							`Warning: Only ${quota.remaining} archives remaining this month`
+						);
 					}
 				}
 			} catch (error) {

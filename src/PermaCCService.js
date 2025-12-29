@@ -51,14 +51,18 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 			throw new Error("Perma.cc API key not configured");
 		}
 
-		const response = await Zotero.HTTP.request("GET", `${this.API_BASE}/${this.API_VERSION}/user/`, {
-			headers: {
-				"Authorization": `ApiKey ${apiKey}`,
-				"Content-Type": "application/json"
-			},
-			timeout: 30000,
-			responseType: "json"
-		});
+		const response = await Zotero.HTTP.request(
+			"GET",
+			`${this.API_BASE}/${this.API_VERSION}/user/`,
+			{
+				headers: {
+					Authorization: `ApiKey ${apiKey}`,
+					"Content-Type": "application/json"
+				},
+				timeout: 30000,
+				responseType: "json"
+			}
+		);
 
 		if (response.status !== 200) {
 			throw new Error(`Failed to get user info: ${response.status}`);
@@ -78,8 +82,9 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 
 		if (!apiKey) {
 			// Prompt user for API key
-			const prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-				.getService(Components.interfaces.nsIPromptService);
+			const prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].getService(
+				Components.interfaces.nsIPromptService
+			);
 
 			const input = { value: "" };
 			const result = prompts.prompt(
@@ -106,7 +111,9 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 		// Check quota before starting
 		const quota = await this.checkQuotaCached();
 		if (quota.remaining === 0) {
-			throw new Error(`Perma.cc monthly quota exceeded (${quota.limit} archives/month). Resets on the 1st of each month.`);
+			throw new Error(
+				`Perma.cc monthly quota exceeded (${quota.limit} archives/month). Resets on the 1st of each month.`
+			);
 		}
 
 		for (const item of items) {
@@ -170,15 +177,19 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 				folder: folderId || undefined
 			};
 
-			const response = await Zotero.HTTP.request("POST", `${this.API_BASE}/${this.API_VERSION}/archives/`, {
-				headers: {
-					"Authorization": `ApiKey ${apiKey}`,
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify(requestData),
-				timeout: 60000,
-				responseType: "json"
-			});
+			const response = await Zotero.HTTP.request(
+				"POST",
+				`${this.API_BASE}/${this.API_VERSION}/archives/`,
+				{
+					headers: {
+						Authorization: `ApiKey ${apiKey}`,
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(requestData),
+					timeout: 60000,
+					responseType: "json"
+				}
+			);
 
 			this.updateLastRequest();
 
@@ -206,7 +217,6 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 				const errorData = JSON.parse(response.responseText);
 				throw new Error(errorData.error || errorData.detail || `HTTP ${response.status}`);
 			}
-
 		} catch (error) {
 			progressWindow.close();
 
@@ -242,14 +252,18 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 
 		try {
 			// Get existing folders
-			const response = await Zotero.HTTP.request("GET", `${this.API_BASE}/${this.API_VERSION}/folders/`, {
-				headers: {
-					"Authorization": `ApiKey ${apiKey}`,
-					"Content-Type": "application/json"
-				},
-				timeout: 30000,
-				responseType: "json"
-			});
+			const response = await Zotero.HTTP.request(
+				"GET",
+				`${this.API_BASE}/${this.API_VERSION}/folders/`,
+				{
+					headers: {
+						Authorization: `ApiKey ${apiKey}`,
+						"Content-Type": "application/json"
+					},
+					timeout: 30000,
+					responseType: "json"
+				}
+			);
 
 			if (response.status === 200) {
 				const data = JSON.parse(response.responseText);
@@ -262,15 +276,19 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 				}
 
 				// Create new folder
-				const createResponse = await Zotero.HTTP.request("POST", `${this.API_BASE}/${this.API_VERSION}/folders/`, {
-					headers: {
-						"Authorization": `ApiKey ${apiKey}`,
-						"Content-Type": "application/json"
-					},
-					body: JSON.stringify({ name: folderName }),
-					timeout: 30000,
-					responseType: "json"
-				});
+				const createResponse = await Zotero.HTTP.request(
+					"POST",
+					`${this.API_BASE}/${this.API_VERSION}/folders/`,
+					{
+						headers: {
+							Authorization: `ApiKey ${apiKey}`,
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({ name: folderName }),
+						timeout: 30000,
+						responseType: "json"
+					}
+				);
 
 				if (createResponse.status === 201 || createResponse.status === 200) {
 					const newFolder = JSON.parse(createResponse.responseText);
@@ -286,7 +304,9 @@ Zotero.MomentO7.PermaCCService = class extends Zotero.MomentO7.BaseArchiveServic
 
 	hasPermaCCLink(item) {
 		const extra = item.getField("extra") || "";
-		return extra.includes("perma.cc/") || item.getTags().some(tag => tag.tag === "archived:permacc");
+		return (
+			extra.includes("perma.cc/") || item.getTags().some(tag => tag.tag === "archived:permacc")
+		);
 	}
 
 	checkValidUrl(url) {

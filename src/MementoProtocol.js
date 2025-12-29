@@ -139,7 +139,6 @@ Zotero.MomentO7.MementoProtocol = class {
 			}
 
 			return result;
-
 		} catch (error) {
 			// Handle specific error codes as per RFC 7089
 			if (error.status === 400) {
@@ -160,9 +159,8 @@ Zotero.MomentO7.MementoProtocol = class {
 	 * @returns {Object} TimeMap data
 	 */
 	async getTimeMap(url, format = "json") {
-		const timeMapUrl = format === "json"
-			? `${this.timeMapUrl}json/${url}`
-			: `${this.timeMapUrl}link/${url}`;
+		const timeMapUrl =
+			format === "json" ? `${this.timeMapUrl}json/${url}` : `${this.timeMapUrl}link/${url}`;
 
 		try {
 			const response = await Zotero.HTTP.request("GET", timeMapUrl, {
@@ -175,7 +173,6 @@ Zotero.MomentO7.MementoProtocol = class {
 			} else {
 				return this.parseLinkTimeMap(response.responseText);
 			}
-
 		} catch (error) {
 			if (error.status === 404) {
 				return {

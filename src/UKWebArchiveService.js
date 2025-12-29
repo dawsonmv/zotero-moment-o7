@@ -90,7 +90,8 @@ Zotero.MomentO7.UKWebArchiveService = class extends Zotero.MomentO7.BaseArchiveS
 			if (response.status === 200 || response.status === 201) {
 				// UK Web Archive doesn't provide immediate archives
 				// It's a nomination system, so we can only confirm submission
-				const message = "Nominated for archiving. UK Web Archive will review and archive if accepted.";
+				const message =
+					"Nominated for archiving. UK Web Archive will review and archive if accepted.";
 
 				// Add note about nomination
 				const note = new Zotero.Item("note");
@@ -116,7 +117,6 @@ Zotero.MomentO7.UKWebArchiveService = class extends Zotero.MomentO7.BaseArchiveS
 			} else {
 				throw new Error(`Nomination failed: HTTP ${response.status}`);
 			}
-
 		} catch (error) {
 			progressWindow.close();
 
@@ -127,7 +127,10 @@ Zotero.MomentO7.UKWebArchiveService = class extends Zotero.MomentO7.BaseArchiveS
 					timeout: 30000
 				});
 
-				if (searchResponse.status === 200 && searchResponse.responseText.includes("results found")) {
+				if (
+					searchResponse.status === 200 &&
+					searchResponse.responseText.includes("results found")
+				) {
 					const message = "URL may already be archived. Check UK Web Archive search.";
 					this.showSuccess(message);
 
@@ -166,19 +169,23 @@ Zotero.MomentO7.UKWebArchiveService = class extends Zotero.MomentO7.BaseArchiveS
 			const hostname = match[1].toLowerCase();
 
 			// Check for UK domains
-			if (hostname.endsWith(".uk") ||
+			if (
+				hostname.endsWith(".uk") ||
 				hostname.endsWith(".scot") ||
 				hostname.endsWith(".wales") ||
 				hostname.endsWith(".cymru") ||
-				hostname.endsWith(".london")) {
+				hostname.endsWith(".london")
+			) {
 				return true;
 			}
 
 			// Check for UK government domains
-			if (hostname.endsWith(".gov.uk") ||
+			if (
+				hostname.endsWith(".gov.uk") ||
 				hostname.endsWith(".nhs.uk") ||
 				hostname.endsWith(".police.uk") ||
-				hostname.endsWith(".mod.uk")) {
+				hostname.endsWith(".mod.uk")
+			) {
 				return true;
 			}
 
@@ -195,7 +202,9 @@ Zotero.MomentO7.UKWebArchiveService = class extends Zotero.MomentO7.BaseArchiveS
 
 	hasUKWebArchiveLink(item) {
 		const tags = item.getTags();
-		return tags.some(tag => tag.tag === "nominated:ukwebarchive" || tag.tag === "archived:ukwebarchive");
+		return tags.some(
+			tag => tag.tag === "nominated:ukwebarchive" || tag.tag === "archived:ukwebarchive"
+		);
 	}
 
 	checkValidUrl(url) {

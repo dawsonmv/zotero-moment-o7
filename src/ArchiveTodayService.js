@@ -91,9 +91,9 @@ Zotero.MomentO7.ArchiveTodayService = class extends Zotero.MomentO7.BaseArchiveS
 
 			if (data.archivedUrl) {
 				await this.saveToItem(item, data.archivedUrl, {
-					additionalInfo: data.isInProgress ?
-						"Note: Archive.today is still processing this URL. The archived version may take a few minutes to complete." :
-						null
+					additionalInfo: data.isInProgress
+						? "Note: Archive.today is still processing this URL. The archived version may take a few minutes to complete."
+						: null
 				});
 
 				item.addTag("archived-archive.today");
@@ -101,9 +101,9 @@ Zotero.MomentO7.ArchiveTodayService = class extends Zotero.MomentO7.BaseArchiveS
 
 				progressWindow.close();
 
-				const status = data.isInProgress ?
-					"Archiving in progress (may take a few minutes)" :
-					"Archived successfully";
+				const status = data.isInProgress
+					? "Archiving in progress (may take a few minutes)"
+					: "Archived successfully";
 				this.showSuccess(`${status}: ${data.archivedUrl}`);
 
 				return {
@@ -115,7 +115,6 @@ Zotero.MomentO7.ArchiveTodayService = class extends Zotero.MomentO7.BaseArchiveS
 			} else {
 				throw new Error("No archived URL returned");
 			}
-
 		} catch (error) {
 			progressWindow.close();
 
@@ -137,9 +136,13 @@ Zotero.MomentO7.ArchiveTodayService = class extends Zotero.MomentO7.BaseArchiveS
 
 	isArchived(item) {
 		const extra = item.getField("extra");
-		return extra.includes("archive.today") || extra.includes("archive.ph") ||
-               extra.includes("archive.is") || extra.includes("archive.li") ||
-               extra.includes("archiveTodayArchived:");
+		return (
+			extra.includes("archive.today") ||
+			extra.includes("archive.ph") ||
+			extra.includes("archive.is") ||
+			extra.includes("archive.li") ||
+			extra.includes("archiveTodayArchived:")
+		);
 	}
 
 	checkValidUrl(url) {

@@ -116,7 +116,10 @@ Zotero.MomentO7 = {
 							const item = await Zotero.Items.getAsync(id);
 
 							// Check if auto-archive is enabled
-							const autoArchiveEnabled = Zotero.Prefs.get("extensions.zotero.momento7.autoArchive", true);
+							const autoArchiveEnabled = Zotero.Prefs.get(
+								"extensions.zotero.momento7.autoArchive",
+								true
+							);
 
 							// Only process web pages and other items with URLs
 							if (autoArchiveEnabled && item && item.getField("url")) {
@@ -189,7 +192,12 @@ Zotero.MomentO7 = {
 		separator.id = "zotero-momento7-separator";
 
 		// Get enabled services from preferences
-		const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",").filter(s => s);
+		const enabledServices = Zotero.Prefs.get(
+			"extensions.zotero.momento7.enabledServices",
+			"internetarchive,archivetoday"
+		)
+			.split(",")
+			.filter(s => s);
 
 		// Create menu items for enabled services
 		const menuItems = [];
@@ -218,7 +226,12 @@ Zotero.MomentO7 = {
 		});
 
 		// Add robust link option if any services are enabled for robust links
-		const robustLinkServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",").filter(s => s);
+		const robustLinkServices = Zotero.Prefs.get(
+			"extensions.zotero.momento7.robustLinkServices",
+			"internetarchive,archivetoday"
+		)
+			.split(",")
+			.filter(s => s);
 		if (robustLinkServices.length > 0) {
 			menuItems.push({
 				id: "zotero-momento7-archive-robust",
@@ -238,7 +251,7 @@ Zotero.MomentO7 = {
 			menuItem.setAttribute("label", itemConfig.label);
 
 			// Add command handler
-			menuItem.addEventListener("command", async (event) => {
+			menuItem.addEventListener("command", async event => {
 				event.stopPropagation();
 				await this.handleMenuCommand(window, itemConfig.service);
 			});
@@ -246,7 +259,6 @@ Zotero.MomentO7 = {
 			itemMenu.appendChild(menuItem);
 			this._addedElementIDs.push(menuItem.id);
 		});
-
 	},
 
 	async handleMenuCommand(window, service) {
@@ -269,7 +281,10 @@ Zotero.MomentO7 = {
 				await this.createRobustLinks(itemsWithUrls);
 			} else {
 				// Handle single service archiving
-				const results = await Zotero.MomentO7.ArchiveCoordinator.archiveItems(itemsWithUrls, service);
+				const results = await Zotero.MomentO7.ArchiveCoordinator.archiveItems(
+					itemsWithUrls,
+					service
+				);
 				this.showArchiveResults(results, service);
 			}
 		} catch (error) {
@@ -314,9 +329,13 @@ Zotero.MomentO7 = {
 		if (failures.length === 0) {
 			this.showSuccess(`Archived ${successes.length} item(s) to ${this.getServiceName(service)}`);
 		} else if (successes.length === 0) {
-			this.showError(`Failed to archive to ${this.getServiceName(service)}: ${failures[0].error || "Unknown error"}`);
+			this.showError(
+				`Failed to archive to ${this.getServiceName(service)}: ${failures[0].error || "Unknown error"}`
+			);
 		} else {
-			this.showWarning(`${this.getServiceName(service)}: ${successes.length} succeeded, ${failures.length} failed`);
+			this.showWarning(
+				`${this.getServiceName(service)}: ${successes.length} succeeded, ${failures.length} failed`
+			);
 		}
 	},
 

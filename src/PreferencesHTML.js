@@ -5,12 +5,25 @@ Zotero.MomentO7.PreferencesHTML = {
 	openPreferences() {
 		const dialogData = {
 			autoArchive: Zotero.Prefs.get("extensions.zotero.momento7.autoArchive", true),
-			defaultService: Zotero.Prefs.get("extensions.zotero.momento7.defaultService", "internetarchive"),
-			iaTimeout: Math.round(Zotero.Prefs.get("extensions.zotero.momento7.iaTimeout", 120000) / 1000),
+			defaultService: Zotero.Prefs.get(
+				"extensions.zotero.momento7.defaultService",
+				"internetarchive"
+			),
+			iaTimeout: Math.round(
+				Zotero.Prefs.get("extensions.zotero.momento7.iaTimeout", 120000) / 1000
+			),
 			iaMaxRetries: Zotero.Prefs.get("extensions.zotero.momento7.iaMaxRetries", 3),
-			iaRetryDelay: Math.round(Zotero.Prefs.get("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000),
-			robustLinkServices: Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday"),
-			fallbackOrder: Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder", "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"),
+			iaRetryDelay: Math.round(
+				Zotero.Prefs.get("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000
+			),
+			robustLinkServices: Zotero.Prefs.get(
+				"extensions.zotero.momento7.robustLinkServices",
+				"internetarchive,archivetoday"
+			),
+			fallbackOrder: Zotero.Prefs.get(
+				"extensions.zotero.momento7.fallbackOrder",
+				"internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"
+			),
 			permaccApiKey: Zotero.Prefs.get("extensions.zotero.momento7.permaccApiKey", "")
 		};
 

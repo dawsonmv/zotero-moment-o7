@@ -6,16 +6,16 @@ Zotero.ArchiveTodayPusher = {
 	WORKER_URL: "https://zotero-archive-proxy.2pc9prprn5.workers.dev",
 
 	/**
-   * Set the Cloudflare Worker URL
-   */
+	 * Set the Cloudflare Worker URL
+	 */
 	setWorkerUrl: function (url) {
 		this.WORKER_URL = url;
 		Zotero.Prefs.set("extensions.zotero.momento7.archiveTodayWorkerUrl", url);
 	},
 
 	/**
-   * Get the configured Worker URL
-   */
+	 * Get the configured Worker URL
+	 */
 	getWorkerUrl: function () {
 		const savedUrl = Zotero.Prefs.get("extensions.zotero.momento7.archiveTodayWorkerUrl");
 		if (savedUrl) {
@@ -25,25 +25,29 @@ Zotero.ArchiveTodayPusher = {
 	},
 
 	/**
-   * Check if an item has already been archived to Archive.today
-   */
+	 * Check if an item has already been archived to Archive.today
+	 */
 	isArchived: function (item) {
 		const extra = item.getField("extra");
-		return extra.includes("archive.today") || extra.includes("archive.ph") ||
-           extra.includes("archive.is") || extra.includes("archive.li");
+		return (
+			extra.includes("archive.today") ||
+			extra.includes("archive.ph") ||
+			extra.includes("archive.is") ||
+			extra.includes("archive.li")
+		);
 	},
 
 	/**
-   * Check if URL is valid for archiving
-   */
+	 * Check if URL is valid for archiving
+	 */
 	checkValidUrl: function (url) {
 		const pattern = /^https?:\/\/.+/;
 		return pattern.test(url);
 	},
 
 	/**
-   * Set the Extra field with archived URL
-   */
+	 * Set the Extra field with archived URL
+	 */
 	setExtra: function (item, archivedUrl) {
 		const currentExtra = item.getField("extra");
 
@@ -52,17 +56,15 @@ Zotero.ArchiveTodayPusher = {
 		}
 
 		const archiveInfo = `Archive.today: ${archivedUrl}`;
-		const newExtra = currentExtra ?
-			currentExtra + "\n" + archiveInfo :
-			archiveInfo;
+		const newExtra = currentExtra ? currentExtra + "\n" + archiveInfo : archiveInfo;
 
 		item.setField("extra", newExtra);
 		return item.saveTx();
 	},
 
 	/**
-   * Create a Robust Link HTML snippet
-   */
+	 * Create a Robust Link HTML snippet
+	 */
 	createRobustLinkHTML: function (originalUrl, archivedUrl, linkText, useArchivedHref = false) {
 		const versionDate = new Date().toISOString();
 		const href = useArchivedHref ? archivedUrl : originalUrl;
@@ -71,15 +73,15 @@ Zotero.ArchiveTodayPusher = {
 	},
 
 	/**
-   * Escape HTML for display
-   */
+	 * Escape HTML for display
+	 */
 	escapeHtml: function (html) {
 		return html.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 	},
 
 	/**
-   * Attach a note with the archived link
-   */
+	 * Attach a note with the archived link
+	 */
 	attachArchiveNote: async function (item, archivedUrl, originalUrl) {
 		if (!archivedUrl) {
 			return;
@@ -117,8 +119,8 @@ Zotero.ArchiveTodayPusher = {
 	},
 
 	/**
-   * Get the best URL for archiving (prefer DOI if available)
-   */
+	 * Get the best URL for archiving (prefer DOI if available)
+	 */
 	getBestUrl: function (item) {
 		let url = item.getField("url");
 		const doi = item.getField("DOI");
@@ -132,8 +134,8 @@ Zotero.ArchiveTodayPusher = {
 	},
 
 	/**
-   * Archive a URL using the Cloudflare Worker
-   */
+	 * Archive a URL using the Cloudflare Worker
+	 */
 	archiveUrl: async function (item) {
 		const url = this.getBestUrl(item);
 
@@ -168,8 +170,8 @@ Zotero.ArchiveTodayPusher = {
 	},
 
 	/**
-   * Main function to archive selected items
-   */
+	 * Main function to archive selected items
+	 */
 	archiveSelected: async function () {
 		const ZoteroPane = Zotero.getActiveZoteroPane();
 		const selectedItems = ZoteroPane.getSelectedItems();
@@ -215,9 +217,7 @@ Zotero.ArchiveTodayPusher = {
 
 					// Show status
 					const icon = result.isInProgress ? "⏳" : "✓";
-					const status = result.isInProgress ?
-						"Archiving in progress" :
-						"Archived successfully";
+					const status = result.isInProgress ? "Archiving in progress" : "Archived successfully";
 					progressWin.addLines([`${icon} ${item.getField("title")}: ${status}`]);
 				}
 			} catch (error) {
@@ -248,8 +248,8 @@ Zotero.ArchiveTodayPusher = {
 	},
 
 	/**
-   * Initialize the module
-   */
+	 * Initialize the module
+	 */
 	init: function () {
 		// Worker URL is now hardcoded
 		Zotero.log("Archive.today Pusher: Using Cloudflare Worker at " + this.WORKER_URL);

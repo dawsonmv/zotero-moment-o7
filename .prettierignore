@@ -1,0 +1,19 @@
+# Build outputs
+build/
+dist/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.min.js
+*.bundle.js
+package-lock.json
+
+# Zotero specific
+*.xpi
+src/translators/
+
+# Documentation build
+docs/_build/

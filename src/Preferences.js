@@ -11,7 +11,8 @@ Zotero.MomentO7.Preferences = {
 		"extensions.zotero.momento7.iaMaxRetries": 3,
 		"extensions.zotero.momento7.iaRetryDelay": 5000, // 5 seconds
 		"extensions.zotero.momento7.robustLinkServices": "internetarchive,archivetoday",
-		"extensions.zotero.momento7.fallbackOrder": "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"
+		"extensions.zotero.momento7.fallbackOrder":
+			"internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"
 	},
 
 	// Initialize preferences with defaults
@@ -105,10 +106,22 @@ Zotero.MomentO7.Preferences = {
 			// Create the dialog with safe preference access
 			const dialog = {
 				autoArchive: { value: this.getSafePref("extensions.zotero.momento7.autoArchive", true) },
-				defaultService: { value: this.getSafePref("extensions.zotero.momento7.defaultService", "internetarchive") },
-				iaTimeout: { value: Math.round(this.getSafePref("extensions.zotero.momento7.iaTimeout", 120000) / 1000).toString() },
-				iaMaxRetries: { value: this.getSafePref("extensions.zotero.momento7.iaMaxRetries", 3).toString() },
-				iaRetryDelay: { value: Math.round(this.getSafePref("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000).toString() }
+				defaultService: {
+					value: this.getSafePref("extensions.zotero.momento7.defaultService", "internetarchive")
+				},
+				iaTimeout: {
+					value: Math.round(
+						this.getSafePref("extensions.zotero.momento7.iaTimeout", 120000) / 1000
+					).toString()
+				},
+				iaMaxRetries: {
+					value: this.getSafePref("extensions.zotero.momento7.iaMaxRetries", 3).toString()
+				},
+				iaRetryDelay: {
+					value: Math.round(
+						this.getSafePref("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000
+					).toString()
+				}
 			};
 
 			// Build a simple text representation of current settings
@@ -141,10 +154,12 @@ Zotero.MomentO7.Preferences = {
 		} catch (error) {
 			Zotero.debug("Error opening preferences: " + error, 1);
 			// Fallback to a simple alert
-			Services.prompt.alert(null, "Moment-o7",
+			Services.prompt.alert(
+				null,
+				"Moment-o7",
 				"Preferences panel error. Your settings are:\n\n" +
-				`Auto-archive: ${Zotero.Prefs.get("extensions.zotero.momento7.autoArchive", true) ? "Enabled" : "Disabled"}\n` +
-				`Default service: ${Zotero.Prefs.get("extensions.zotero.momento7.defaultService", "internetarchive")}`
+					`Auto-archive: ${Zotero.Prefs.get("extensions.zotero.momento7.autoArchive", true) ? "Enabled" : "Disabled"}\n` +
+					`Default service: ${Zotero.Prefs.get("extensions.zotero.momento7.defaultService", "internetarchive")}`
 			);
 		}
 	},
@@ -159,8 +174,11 @@ Zotero.MomentO7.Preferences = {
 			const dataURI = "data:text/html;charset=utf-8," + encodeURIComponent(htmlContent);
 
 			// Open in a new window
-			const win = window.open(dataURI, "momento7-preferences",
-				"width=650,height=750,chrome=yes,centerscreen=yes,resizable=yes");
+			const win = window.open(
+				dataURI,
+				"momento7-preferences",
+				"width=650,height=750,chrome=yes,centerscreen=yes,resizable=yes"
+			);
 
 			// Make sure window opened
 			if (!win) {
@@ -208,7 +226,10 @@ Zotero.MomentO7.Preferences = {
 		autoArchiveRow.setAttribute("align", "center");
 		const autoArchiveCheckbox = prefWindow.createElement("checkbox");
 		autoArchiveCheckbox.setAttribute("id", "pref-autoArchive");
-		autoArchiveCheckbox.setAttribute("label", "Automatically archive new items added via Browser Connector");
+		autoArchiveCheckbox.setAttribute(
+			"label",
+			"Automatically archive new items added via Browser Connector"
+		);
 		autoArchiveCheckbox.setAttribute("preference", "extensions.zotero.momento7.autoArchive");
 		autoArchiveRow.appendChild(autoArchiveCheckbox);
 		generalGroup.appendChild(autoArchiveRow);
@@ -250,33 +271,42 @@ Zotero.MomentO7.Preferences = {
 		const timeoutGroup = this.createGroupBox(prefWindow, "Timeout and Retry Settings");
 
 		// IA Timeout
-		const timeoutRow = this.createNumberRow(prefWindow,
+		const timeoutRow = this.createNumberRow(
+			prefWindow,
 			"Internet Archive timeout (seconds):",
 			"pref-iaTimeout",
 			"extensions.zotero.momento7.iaTimeout",
-			30, 300, 120,
+			30,
+			300,
+			120,
 			"How long to wait for Internet Archive to respond (30-300 seconds)"
 		);
 		timeoutGroup.appendChild(timeoutRow.container);
 		timeoutGroup.appendChild(timeoutRow.help);
 
 		// Max retries
-		const retriesRow = this.createNumberRow(prefWindow,
+		const retriesRow = this.createNumberRow(
+			prefWindow,
 			"Maximum retry attempts:",
 			"pref-iaMaxRetries",
 			"extensions.zotero.momento7.iaMaxRetries",
-			0, 5, 3,
+			0,
+			5,
+			3,
 			"Number of times to retry if archiving fails"
 		);
 		timeoutGroup.appendChild(retriesRow.container);
 		timeoutGroup.appendChild(retriesRow.help);
 
 		// Retry delay
-		const delayRow = this.createNumberRow(prefWindow,
+		const delayRow = this.createNumberRow(
+			prefWindow,
 			"Delay between retries (seconds):",
 			"pref-iaRetryDelay",
 			"extensions.zotero.momento7.iaRetryDelay",
-			1, 30, 5,
+			1,
+			30,
+			5,
 			"How long to wait between retry attempts"
 		);
 		timeoutGroup.appendChild(delayRow.container);
@@ -297,7 +327,8 @@ Zotero.MomentO7.Preferences = {
 		// Fallback Order Group
 		const fallbackGroup = this.createGroupBox(prefWindow, "Fallback Order");
 		const fallbackDesc = prefWindow.createElement("description");
-		fallbackDesc.textContent = "When archiving fails with one service, the next service will be tried";
+		fallbackDesc.textContent =
+			"When archiving fails with one service, the next service will be tried";
 		fallbackGroup.appendChild(fallbackDesc);
 
 		const fallbackList = this.createFallbackList(prefWindow);
@@ -495,13 +526,18 @@ Zotero.MomentO7.Preferences = {
 		// Load default service
 		const defaultService = document.getElementById("pref-defaultService");
 		if (defaultService) {
-			defaultService.value = Zotero.Prefs.get("extensions.zotero.momento7.defaultService", "internetarchive");
+			defaultService.value = Zotero.Prefs.get(
+				"extensions.zotero.momento7.defaultService",
+				"internetarchive"
+			);
 		}
 
 		// Load timeout settings (convert from milliseconds)
 		const iaTimeout = document.getElementById("pref-iaTimeout");
 		if (iaTimeout) {
-			iaTimeout.value = Math.round(Zotero.Prefs.get("extensions.zotero.momento7.iaTimeout", 120000) / 1000);
+			iaTimeout.value = Math.round(
+				Zotero.Prefs.get("extensions.zotero.momento7.iaTimeout", 120000) / 1000
+			);
 		}
 
 		const iaMaxRetries = document.getElementById("pref-iaMaxRetries");
@@ -511,11 +547,16 @@ Zotero.MomentO7.Preferences = {
 
 		const iaRetryDelay = document.getElementById("pref-iaRetryDelay");
 		if (iaRetryDelay) {
-			iaRetryDelay.value = Math.round(Zotero.Prefs.get("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000);
+			iaRetryDelay.value = Math.round(
+				Zotero.Prefs.get("extensions.zotero.momento7.iaRetryDelay", 5000) / 1000
+			);
 		}
 
 		// Load robust link services
-		const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",");
+		const robustServices = Zotero.Prefs.get(
+			"extensions.zotero.momento7.robustLinkServices",
+			"internetarchive,archivetoday"
+		).split(",");
 		["internetarchive", "archivetoday", "permacc", "ukwebarchive", "arquivopt"].forEach(service => {
 			const checkbox = document.getElementById(`robust-${service}`);
 			if (checkbox) {
@@ -524,8 +565,10 @@ Zotero.MomentO7.Preferences = {
 		});
 
 		// Load fallback order
-		const fallbackOrder = Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder",
-			"internetarchive,archivetoday,arquivopt,permacc,ukwebarchive").split(",");
+		const fallbackOrder = Zotero.Prefs.get(
+			"extensions.zotero.momento7.fallbackOrder",
+			"internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"
+		).split(",");
 		const listbox = document.getElementById("fallback-order");
 		if (listbox) {
 			// Reorder items according to saved preference
@@ -554,7 +597,10 @@ Zotero.MomentO7.Preferences = {
 
 		const iaRetryDelay = document.getElementById("pref-iaRetryDelay");
 		if (iaRetryDelay) {
-			Zotero.Prefs.set("extensions.zotero.momento7.iaRetryDelay", parseInt(iaRetryDelay.value) * 1000);
+			Zotero.Prefs.set(
+				"extensions.zotero.momento7.iaRetryDelay",
+				parseInt(iaRetryDelay.value) * 1000
+			);
 		}
 
 		// Save fallback order
@@ -569,8 +615,13 @@ Zotero.MomentO7.Preferences = {
 	},
 
 	restoreDefaults() {
-		if (Services.prompt.confirm(window, "Restore Defaults",
-			"Are you sure you want to restore all settings to their defaults?")) {
+		if (
+			Services.prompt.confirm(
+				window,
+				"Restore Defaults",
+				"Are you sure you want to restore all settings to their defaults?"
+			)
+		) {
 			// Clear preferences (except API keys)
 			for (const key of Object.keys(this.defaults)) {
 				if (!key.includes("ApiKey")) {

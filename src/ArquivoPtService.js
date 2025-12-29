@@ -78,7 +78,7 @@ Zotero.MomentO7.ArquivoPtService = class extends Zotero.MomentO7.BaseArchiveServ
 			const response = await Zotero.HTTP.request("GET", saveUrl, {
 				headers: {
 					"User-Agent": "Zotero Moment-o7",
-					"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+					Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 				},
 				timeout: 90000, // 90 seconds - Arquivo.pt can be slow
 				responseType: "text"
@@ -99,7 +99,9 @@ Zotero.MomentO7.ArquivoPtService = class extends Zotero.MomentO7.BaseArchiveServ
 			// Try to extract from response headers or content
 			if (!archivedUrl) {
 				// Look for the archived URL in the response
-				const match = response.responseText.match(/https:\/\/arquivo\.pt\/wayback\/\d{14}[a-z]*\/[^\s"<>]+/);
+				const match = response.responseText.match(
+					/https:\/\/arquivo\.pt\/wayback\/\d{14}[a-z]*\/[^\s"<>]+/
+				);
 				if (match) {
 					archivedUrl = match[0];
 				}
@@ -133,7 +135,6 @@ Zotero.MomentO7.ArquivoPtService = class extends Zotero.MomentO7.BaseArchiveServ
 			} else {
 				throw new Error("Could not retrieve archived URL");
 			}
-
 		} catch (error) {
 			progressWindow.close();
 
@@ -162,7 +163,7 @@ Zotero.MomentO7.ArquivoPtService = class extends Zotero.MomentO7.BaseArchiveServ
 
 			const response = await Zotero.HTTP.request("GET", searchUrl, {
 				headers: {
-					"Accept": "application/json"
+					Accept: "application/json"
 				},
 				timeout: 30000,
 				responseType: "json"

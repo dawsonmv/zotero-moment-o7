@@ -4,223 +4,213 @@
  */
 
 declare namespace Zotero {
-  // Core Zotero types
-  interface Item {
-    id: number;
-    key: string;
-    version: number;
-    itemType: string;
-    parentID?: number;
-    
-    getField(field: string): string;
-    setField(field: string, value: string): void;
-    getTags(): Tag[];
-    addTag(tag: string, type?: number): void;
-    removeTag(tag: string): void;
-    saveTx(): Promise<void>;
-    save(): Promise<void>;
-    
-    // Notes methods (optional as not all items support notes)
-    getNotes?(): number[];
-    getNote?(): string;
-    setNote?(content: string): void;
-    
-    // Creators (optional as not all items have creators)
-    getCreators?(): Creator[];
-    setCreators?(creators: Creator[]): void;
-    
-    // Relations
-    addRelatedItem(item: Item): void;
-    removeRelatedItem(item: Item): void;
-  }
+	// Core Zotero types
+	interface Item {
+		id: number;
+		key: string;
+		version: number;
+		itemType: string;
+		parentID?: number;
 
-  interface Tag {
-    tag: string;
-    type: number;
-  }
+		getField(field: string): string;
+		setField(field: string, value: string): void;
+		getTags(): Tag[];
+		addTag(tag: string, type?: number): void;
+		removeTag(tag: string): void;
+		saveTx(): Promise<void>;
+		save(): Promise<void>;
 
-  interface Creator {
-    firstName?: string;
-    lastName: string;
-    creatorType: string;
-    fieldMode?: number;
-  }
+		// Notes methods (optional as not all items support notes)
+		getNotes?(): number[];
+		getNote?(): string;
+		setNote?(content: string): void;
 
-  interface Collection {
-    id: number;
-    name: string;
-    parentID?: number;
-    
-    addItem(item: Item): void;
-    removeItem(item: Item): void;
-    getChildItems(): Item[];
-  }
+		// Creators (optional as not all items have creators)
+		getCreators?(): Creator[];
+		setCreators?(creators: Creator[]): void;
 
-  interface Library {
-    id: number;
-    type: 'user' | 'group';
-    name: string;
-  }
+		// Relations
+		addRelatedItem(item: Item): void;
+		removeRelatedItem(item: Item): void;
+	}
 
-  // Zotero API objects
-  const Items: {
-    get(id: number): Item | false;
-    getAsync(id: number): Promise<Item | false>;
-    getAll(): Item[];
-  };
+	interface Tag {
+		tag: string;
+		type: number;
+	}
 
-  const Collections: {
-    get(id: number): Collection | false;
-    getAsync(id: number): Promise<Collection | false>;
-  };
+	interface Creator {
+		firstName?: string;
+		lastName: string;
+		creatorType: string;
+		fieldMode?: number;
+	}
 
-  const Prefs: {
-    get(pref: string): any;
-    get(pref: string, defaultValue: string): string;
-    get(pref: string, defaultValue: number): number;
-    get(pref: string, defaultValue: boolean): boolean;
-    set(pref: string, value: any): void;
-    clear(pref: string): void;
-  };
+	interface Collection {
+		id: number;
+		name: string;
+		parentID?: number;
 
-  interface HTTPRequestOptions {
-    headers?: Record<string, string>;
-    body?: string;
-    timeout?: number;
-    responseType?: 'text' | 'json';
-    responseCharset?: string;
-    method?: string;
-  }
+		addItem(item: Item): void;
+		removeItem(item: Item): void;
+		getChildItems(): Item[];
+	}
 
-  const HTTP: {
-    request(
-      method: string,
-      url: string,
-      options?: HTTPRequestOptions
-    ): Promise<{
-      status: number;
-      statusText: string;
-      responseText: string;
-      responseJSON?: any;
-      getAllResponseHeaders(): string;
-      getResponseHeader(header: string): string | null;
-    }>;
-  };
+	interface Library {
+		id: number;
+		type: 'user' | 'group';
+		name: string;
+	}
 
-  class ProgressWindow {
-    constructor(options?: { closeOnClick?: boolean });
-    changeHeadline(text: string): void;
-    addDescription(text: string): void;
-    show(): void;
-    close(): void;
-    startCloseTimer(ms: number): void;
-  }
+	// Zotero API objects
+	const Items: {
+		get(id: number): Item | false;
+		getAsync(id: number): Promise<Item | false>;
+		getAll(): Item[];
+	};
 
-  const Notifier: {
-    registerObserver(
-      observer: {
-        notify: (
-          event: string,
-          type: string,
-          ids: number[],
-          extraData?: any
-        ) => void;
-      },
-      types: string[],
-      id?: string
-    ): string;
-    unregisterObserver(id: string): void;
-  };
+	const Collections: {
+		get(id: number): Collection | false;
+		getAsync(id: number): Promise<Collection | false>;
+	};
 
-  const Translate: {
-    Export: any;
-    Import: any;
-  };
+	const Prefs: {
+		get(pref: string): any;
+		get(pref: string, defaultValue: string): string;
+		get(pref: string, defaultValue: number): number;
+		get(pref: string, defaultValue: boolean): boolean;
+		set(pref: string, value: any): void;
+		clear(pref: string): void;
+	};
 
-  const File: {
-    pathToFile(path: string): any;
-    getContentsAsync(path: string): Promise<string>;
-    putContentsAsync(path: string, contents: string): Promise<void>;
-  };
+	interface HTTPRequestOptions {
+		headers?: Record<string, string>;
+		body?: string;
+		timeout?: number;
+		responseType?: 'text' | 'json';
+		responseCharset?: string;
+		method?: string;
+	}
 
-  function debug(message: string): void;
-  function log(message: string): void;
-  function logError(error: Error | string): void;
-  
-  const version: string;
-  const platformMajorVersion: number;
-  
-  function getMainWindows(): Window[];
-  function getActiveZoteroPane(): ZoteroPane;
-  
-  function setTimeout(fn: Function, delay: number): number;
-  function clearTimeout(id: number): void;
-  
-  function launchURL(url: string): void;
-  
-  // Initialization promise
-  const initializationPromise: Promise<void>;
-  
-  // Constructor for new items
-  function Item(itemType: string): Item;
+	const HTTP: {
+		request(
+			method: string,
+			url: string,
+			options?: HTTPRequestOptions
+		): Promise<{
+			status: number;
+			statusText: string;
+			responseText: string;
+			responseJSON?: any;
+			getAllResponseHeaders(): string;
+			getResponseHeader(header: string): string | null;
+		}>;
+	};
+
+	class ProgressWindow {
+		constructor(options?: { closeOnClick?: boolean });
+		changeHeadline(text: string): void;
+		addDescription(text: string): void;
+		show(): void;
+		close(): void;
+		startCloseTimer(ms: number): void;
+	}
+
+	const Notifier: {
+		registerObserver(
+			observer: {
+				notify: (event: string, type: string, ids: number[], extraData?: any) => void;
+			},
+			types: string[],
+			id?: string
+		): string;
+		unregisterObserver(id: string): void;
+	};
+
+	const Translate: {
+		Export: any;
+		Import: any;
+	};
+
+	const File: {
+		pathToFile(path: string): any;
+		getContentsAsync(path: string): Promise<string>;
+		putContentsAsync(path: string, contents: string): Promise<void>;
+	};
+
+	function debug(message: string): void;
+	function log(message: string): void;
+	function logError(error: Error | string): void;
+
+	const version: string;
+	const platformMajorVersion: number;
+
+	function getMainWindows(): Window[];
+	function getActiveZoteroPane(): ZoteroPane;
+
+	function setTimeout(fn: Function, delay: number): number;
+	function clearTimeout(id: number): void;
+
+	function launchURL(url: string): void;
+
+	// Initialization promise
+	const initializationPromise: Promise<void>;
+
+	// Constructor for new items
+	function Item(itemType: string): Item;
 }
 
 // Window extensions
 interface Window {
-  Zotero: typeof Zotero;
-  ZoteroPane: ZoteroPane;
-  openDialog(
-    url: string,
-    name: string,
-    features: string,
-    ...args: any[]
-  ): Window;
+	Zotero: typeof Zotero;
+	ZoteroPane: ZoteroPane;
+	openDialog(url: string, name: string, features: string, ...args: any[]): Window;
 }
 
 interface ZoteroPane {
-  getSelectedItems(): Zotero.Item[];
-  getSelectedCollection(): Zotero.Collection | false;
-  itemsView: any;
+	getSelectedItems(): Zotero.Item[];
+	getSelectedCollection(): Zotero.Collection | false;
+	itemsView: any;
 }
 
 // Services global
 declare const Services: {
-  scriptloader: {
-    loadSubScript(url: string, scope?: any): void;
-  };
-  prompt: {
-    confirm(parent: Window | null, title: string, message: string): boolean;
-    prompt(
-      parent: Window | null,
-      title: string,
-      message: string,
-      value: { value: string },
-      checkLabel: string | null,
-      checkValue: { value: boolean }
-    ): boolean;
-  };
-  io: {
-    newURI(spec: string): any;
-  };
+	scriptloader: {
+		loadSubScript(url: string, scope?: any): void;
+	};
+	prompt: {
+		confirm(parent: Window | null, title: string, message: string): boolean;
+		prompt(
+			parent: Window | null,
+			title: string,
+			message: string,
+			value: { value: string },
+			checkLabel: string | null,
+			checkValue: { value: boolean }
+		): boolean;
+	};
+	io: {
+		newURI(spec: string): any;
+	};
 };
 
 // Components global
 declare const Components: {
-  classes: Record<string, any>;
-  interfaces: {
-    nsIPromptService: any;
-  };
-  utils: {
-    import(url: string): void;
-  };
+	classes: Record<string, any>;
+	interfaces: {
+		nsIPromptService: any;
+	};
+	utils: {
+		import(url: string): void;
+	};
 };
 
 // Document extensions
 interface Document {
-  createXULElement(tagName: string): XULElement;
+	createXULElement(tagName: string): XULElement;
 }
 
 interface XULElement extends Element {
-  setAttribute(name: string, value: string): void;
-  addEventListener(event: string, handler: (event: Event) => void): void;
+	setAttribute(name: string, value: string): void;
+	addEventListener(event: string, handler: (event: Event) => void): void;
 }

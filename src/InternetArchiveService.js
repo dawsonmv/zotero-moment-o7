@@ -79,7 +79,7 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 				const response = await Zotero.HTTP.request("GET", archiveUrl, {
 					headers: {
 						"User-Agent": "Zotero Moment-o7",
-						"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+						Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 					},
 					timeout: this.timeout,
 					responseType: "text"
@@ -95,7 +95,9 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 				}
 
 				if (!archivedUrl && response.responseText) {
-					const match = response.responseText.match(/https:\/\/web\.archive\.org\/web\/\d{14}\/[^\s"<>]+/);
+					const match = response.responseText.match(
+						/https:\/\/web\.archive\.org\/web\/\d{14}\/[^\s"<>]+/
+					);
 					if (match) {
 						archivedUrl = match[0];
 					}
@@ -117,7 +119,6 @@ Zotero.MomentO7.InternetArchiveService = class extends Zotero.MomentO7.BaseArchi
 				} else {
 					throw new Error("Could not extract archived URL from response");
 				}
-
 			} catch (error) {
 				lastError = error;
 				attempt++;

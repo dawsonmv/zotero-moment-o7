@@ -6,169 +6,161 @@
 import { ZoteroWebAPI } from '../types/zotero-web-api';
 
 export class WebAPIClient implements ZoteroWebAPI.APIClient {
-  private baseUrl = 'https://api.zotero.org';
-  private apiVersion = 3;
-  
-  constructor(private config: ZoteroWebAPI.ClientConfig) {}
+	private baseUrl = 'https://api.zotero.org';
+	private apiVersion = 3;
 
-  /**
-   * Get API headers
-   */
-  private getHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-      'Zotero-API-Version': String(this.config.apiVersion || this.apiVersion)
-    };
+	constructor(private config: ZoteroWebAPI.ClientConfig) {}
 
-    if (this.config.apiKey) {
-      headers['Zotero-API-Key'] = this.config.apiKey;
-    }
+	/**
+	 * Get API headers
+	 */
+	private getHeaders(): Record<string, string> {
+		const headers: Record<string, string> = {
+			'Zotero-API-Version': String(this.config.apiVersion || this.apiVersion),
+		};
 
-    return headers;
-  }
+		if (this.config.apiKey) {
+			headers['Zotero-API-Key'] = this.config.apiKey;
+		}
 
-  /**
-   * Make API request
-   */
-  private async request<T>(
-    method: string,
-    path: string,
-    options?: {
-      body?: any;
-      headers?: Record<string, string>;
-      params?: Record<string, string>;
-    }
-  ): Promise<T> {
-    const url = new URL(`${this.baseUrl}${path}`);
-    
-    if (options?.params) {
-      Object.entries(options.params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-    }
+		return headers;
+	}
 
-    const response = await Zotero.HTTP.request(method, url.toString(), {
-      headers: {
-        ...this.getHeaders(),
-        ...options?.headers,
-        'Content-Type': 'application/json'
-      },
-      body: options?.body ? JSON.stringify(options.body) : undefined,
-      responseType: 'json'
-    });
+	/**
+	 * Make API request
+	 */
+	private async request<T>(
+		method: string,
+		path: string,
+		options?: {
+			body?: any;
+			headers?: Record<string, string>;
+			params?: Record<string, string>;
+		}
+	): Promise<T> {
+		const url = new URL(`${this.baseUrl}${path}`);
 
-    if (response.status >= 400) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
+		if (options?.params) {
+			Object.entries(options.params).forEach(([key, value]) => {
+				url.searchParams.append(key, value);
+			});
+		}
 
-    return JSON.parse(response.responseText);
-  }
+		const response = await Zotero.HTTP.request(method, url.toString(), {
+			headers: {
+				...this.getHeaders(),
+				...options?.headers,
+				'Content-Type': 'application/json',
+			},
+			body: options?.body ? JSON.stringify(options.body) : undefined,
+			responseType: 'json',
+		});
 
-  /**
-   * Get a single item
-   */
-  async getItem(
-    libraryType: string, 
-    libraryId: number, 
-    itemKey: string
-  ): Promise<ZoteroWebAPI.ItemResponse> {
-    return this.request<ZoteroWebAPI.ItemResponse>(
-      'GET',
-      `/${libraryType}/${libraryId}/items/${itemKey}`
-    );
-  }
+		if (response.status >= 400) {
+			throw new Error(`API Error: ${response.status} ${response.statusText}`);
+		}
 
-  /**
-   * Get multiple items
-   */
-  async getItems(
-    libraryType: string,
-    libraryId: number,
-    params?: ZoteroWebAPI.SearchParams
-  ): Promise<ZoteroWebAPI.ItemResponse[]> {
-    return this.request<ZoteroWebAPI.ItemResponse[]>(
-      'GET',
-      `/${libraryType}/${libraryId}/items`,
-      { params: params as any }
-    );
-  }
+		return JSON.parse(response.responseText);
+	}
 
-  /**
-   * Create item
-   */
-  async createItem(
-    libraryType: string,
-    libraryId: number,
-    item: Partial<ZoteroWebAPI.ItemData>
-  ): Promise<ZoteroWebAPI.WriteResponse> {
-    return this.request<ZoteroWebAPI.WriteResponse>(
-      'POST',
-      `/${libraryType}/${libraryId}/items`,
-      { body: [item] }
-    );
-  }
+	/**
+	 * Get a single item
+	 */
+	async getItem(
+		libraryType: string,
+		libraryId: number,
+		itemKey: string
+	): Promise<ZoteroWebAPI.ItemResponse> {
+		return this.request<ZoteroWebAPI.ItemResponse>(
+			'GET',
+			`/${libraryType}/${libraryId}/items/${itemKey}`
+		);
+	}
 
-  /**
-   * Update item
-   */
-  async updateItem(
-    libraryType: string,
-    libraryId: number,
-    itemKey: string,
-    item: Partial<ZoteroWebAPI.ItemData>,
-    version: number
-  ): Promise<ZoteroWebAPI.WriteResponse> {
-    return this.request<ZoteroWebAPI.WriteResponse>(
-      'PATCH',
-      `/${libraryType}/${libraryId}/items/${itemKey}`,
-      {
-        body: item,
-        headers: { 'If-Unmodified-Since-Version': String(version) }
-      }
-    );
-  }
+	/**
+	 * Get multiple items
+	 */
+	async getItems(
+		libraryType: string,
+		libraryId: number,
+		params?: ZoteroWebAPI.SearchParams
+	): Promise<ZoteroWebAPI.ItemResponse[]> {
+		return this.request<ZoteroWebAPI.ItemResponse[]>('GET', `/${libraryType}/${libraryId}/items`, {
+			params: params as any,
+		});
+	}
 
-  /**
-   * Delete item
-   */
-  async deleteItem(
-    libraryType: string,
-    libraryId: number,
-    itemKey: string,
-    version: number
-  ): Promise<void> {
-    await this.request<void>(
-      'DELETE',
-      `/${libraryType}/${libraryId}/items/${itemKey}`,
-      {
-        headers: { 'If-Unmodified-Since-Version': String(version) }
-      }
-    );
-  }
+	/**
+	 * Create item
+	 */
+	async createItem(
+		libraryType: string,
+		libraryId: number,
+		item: Partial<ZoteroWebAPI.ItemData>
+	): Promise<ZoteroWebAPI.WriteResponse> {
+		return this.request<ZoteroWebAPI.WriteResponse>('POST', `/${libraryType}/${libraryId}/items`, {
+			body: [item],
+		});
+	}
 
-  /**
-   * Sync archive data to the cloud
-   * This would store archive metadata in item relations or notes
-   */
-  async syncArchiveData(
-    _libraryType: string,
-    _libraryId: number,
-    _archives: ZoteroWebAPI.ArchiveData[]
-  ): Promise<ZoteroWebAPI.WriteResponse> {
-    // Implementation would create/update items with archive data
-    // For now, this is a placeholder for future implementation
-    throw new Error('Not implemented yet');
-  }
+	/**
+	 * Update item
+	 */
+	async updateItem(
+		libraryType: string,
+		libraryId: number,
+		itemKey: string,
+		item: Partial<ZoteroWebAPI.ItemData>,
+		version: number
+	): Promise<ZoteroWebAPI.WriteResponse> {
+		return this.request<ZoteroWebAPI.WriteResponse>(
+			'PATCH',
+			`/${libraryType}/${libraryId}/items/${itemKey}`,
+			{
+				body: item,
+				headers: { 'If-Unmodified-Since-Version': String(version) },
+			}
+		);
+	}
 
-  /**
-   * Get archive data from the cloud
-   */
-  async getArchiveData(
-    _libraryType: string,
-    _libraryId: number,
-    _itemKey: string
-  ): Promise<ZoteroWebAPI.ArchiveData[]> {
-    // Implementation would extract archive data from item relations or notes
-    // For now, this is a placeholder for future implementation
-    throw new Error('Not implemented yet');
-  }
+	/**
+	 * Delete item
+	 */
+	async deleteItem(
+		libraryType: string,
+		libraryId: number,
+		itemKey: string,
+		version: number
+	): Promise<void> {
+		await this.request<void>('DELETE', `/${libraryType}/${libraryId}/items/${itemKey}`, {
+			headers: { 'If-Unmodified-Since-Version': String(version) },
+		});
+	}
+
+	/**
+	 * Sync archive data to the cloud
+	 * This would store archive metadata in item relations or notes
+	 */
+	async syncArchiveData(
+		_libraryType: string,
+		_libraryId: number,
+		_archives: ZoteroWebAPI.ArchiveData[]
+	): Promise<ZoteroWebAPI.WriteResponse> {
+		// Implementation would create/update items with archive data
+		// For now, this is a placeholder for future implementation
+		throw new Error('Not implemented yet');
+	}
+
+	/**
+	 * Get archive data from the cloud
+	 */
+	async getArchiveData(
+		_libraryType: string,
+		_libraryId: number,
+		_itemKey: string
+	): Promise<ZoteroWebAPI.ArchiveData[]> {
+		// Implementation would extract archive data from item relations or notes
+		// For now, this is a placeholder for future implementation
+		throw new Error('Not implemented yet');
+	}
 }

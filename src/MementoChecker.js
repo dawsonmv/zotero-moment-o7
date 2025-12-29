@@ -106,7 +106,11 @@ Zotero.MementoChecker = {
 	getArchiveSource: function (uri) {
 		if (uri.includes("web.archive.org")) {
 			return "Internet Archive";
-		} else if (uri.includes("archive.today") || uri.includes("archive.is") || uri.includes("archive.ph")) {
+		} else if (
+			uri.includes("archive.today") ||
+			uri.includes("archive.is") ||
+			uri.includes("archive.ph")
+		) {
 			return "Archive.today";
 		} else if (uri.includes("perma.cc")) {
 			return "Perma.cc";
@@ -194,9 +198,8 @@ Zotero.MementoChecker = {
 		}
 
 		// Show summary
-		const summary = totalArchives > 0 ?
-			`Found ${totalArchives} total archives` :
-			"No existing archives found";
+		const summary =
+			totalArchives > 0 ? `Found ${totalArchives} total archives` : "No existing archives found";
 		progressWin.addDescription(summary);
 		progressWin.startCloseTimer(8000);
 	},
@@ -260,7 +263,8 @@ Zotero.MementoChecker = {
 		}
 
 		if (!archives.sources.includes("Perma.cc")) {
-			noteContent += "<li>No Perma.cc archive found. Consider creating one for permanent citation.</li>";
+			noteContent +=
+				"<li>No Perma.cc archive found. Consider creating one for permanent citation.</li>";
 		}
 
 		noteContent += "</ul>";

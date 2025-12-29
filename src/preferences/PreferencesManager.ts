@@ -5,183 +5,183 @@
 import { Preferences } from '../services/types';
 
 export class PreferencesManager {
-  private static instance: PreferencesManager;
-  
-  // Default preferences
-  private readonly defaults: Preferences = {
-    autoArchive: true,
-    defaultService: 'internetarchive',
-    iaTimeout: 120000, // 2 minutes
-    iaMaxRetries: 3,
-    iaRetryDelay: 5000, // 5 seconds
-    robustLinkServices: ['internetarchive', 'archivetoday'],
-    fallbackOrder: ['internetarchive', 'archivetoday', 'arquivopt', 'permacc', 'ukwebarchive']
-  };
+	private static instance: PreferencesManager;
 
-  private constructor() {}
+	// Default preferences
+	private readonly defaults: Preferences = {
+		autoArchive: true,
+		defaultService: 'internetarchive',
+		iaTimeout: 120000, // 2 minutes
+		iaMaxRetries: 3,
+		iaRetryDelay: 5000, // 5 seconds
+		robustLinkServices: ['internetarchive', 'archivetoday'],
+		fallbackOrder: ['internetarchive', 'archivetoday', 'arquivopt', 'permacc', 'ukwebarchive'],
+	};
 
-  static getInstance(): PreferencesManager {
-    if (!PreferencesManager.instance) {
-      PreferencesManager.instance = new PreferencesManager();
-    }
-    return PreferencesManager.instance;
-  }
+	private constructor() {}
 
-  /**
-   * Initialize preferences with defaults
-   */
-  init(): void {
-    // Set defaults for any missing preferences
-    for (const [key, value] of Object.entries(this.defaults)) {
-      const prefKey = `extensions.momento7.${key}`;
-      if (Zotero.Prefs.get(prefKey) === undefined) {
-        this.setPref(key as keyof Preferences, value);
-      }
-    }
-  }
+	static getInstance(): PreferencesManager {
+		if (!PreferencesManager.instance) {
+			PreferencesManager.instance = new PreferencesManager();
+		}
+		return PreferencesManager.instance;
+	}
 
-  /**
-   * Get all preferences
-   */
-  getAll(): Preferences {
-    return {
-      autoArchive: this.getPref('autoArchive'),
-      defaultService: this.getPref('defaultService'),
-      iaTimeout: this.getPref('iaTimeout'),
-      iaMaxRetries: this.getPref('iaMaxRetries'),
-      iaRetryDelay: this.getPref('iaRetryDelay'),
-      robustLinkServices: this.getPref('robustLinkServices'),
-      fallbackOrder: this.getPref('fallbackOrder'),
-      permaccApiKey: this.getStringPref('permaccApiKey')
-    };
-  }
+	/**
+	 * Initialize preferences with defaults
+	 */
+	init(): void {
+		// Set defaults for any missing preferences
+		for (const [key, value] of Object.entries(this.defaults)) {
+			const prefKey = `extensions.momento7.${key}`;
+			if (Zotero.Prefs.get(prefKey) === undefined) {
+				this.setPref(key as keyof Preferences, value);
+			}
+		}
+	}
 
-  /**
-   * Get a single preference
-   */
-  getPref<K extends keyof Preferences>(key: K): Preferences[K] {
-    const prefKey = `extensions.momento7.${key}`;
-    const defaultValue = this.defaults[key];
+	/**
+	 * Get all preferences
+	 */
+	getAll(): Preferences {
+		return {
+			autoArchive: this.getPref('autoArchive'),
+			defaultService: this.getPref('defaultService'),
+			iaTimeout: this.getPref('iaTimeout'),
+			iaMaxRetries: this.getPref('iaMaxRetries'),
+			iaRetryDelay: this.getPref('iaRetryDelay'),
+			robustLinkServices: this.getPref('robustLinkServices'),
+			fallbackOrder: this.getPref('fallbackOrder'),
+			permaccApiKey: this.getStringPref('permaccApiKey'),
+		};
+	}
 
-    if (Array.isArray(defaultValue)) {
-      const value = Zotero.Prefs.get(prefKey, defaultValue.join(','));
-      return value.split(',').filter((s: string) => s.trim()) as Preferences[K];
-    }
+	/**
+	 * Get a single preference
+	 */
+	getPref<K extends keyof Preferences>(key: K): Preferences[K] {
+		const prefKey = `extensions.momento7.${key}`;
+		const defaultValue = this.defaults[key];
 
-    if (defaultValue !== undefined) {
-      if (typeof defaultValue === 'string') {
-        return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
-      } else if (typeof defaultValue === 'number') {
-        return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
-      } else if (typeof defaultValue === 'boolean') {
-        return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
-      }
-    }
-    return Zotero.Prefs.get(prefKey) as Preferences[K];
-  }
+		if (Array.isArray(defaultValue)) {
+			const value = Zotero.Prefs.get(prefKey, defaultValue.join(','));
+			return value.split(',').filter((s: string) => s.trim()) as Preferences[K];
+		}
 
-  /**
-   * Get string preference (may be undefined)
-   */
-  private getStringPref(key: string): string | undefined {
-    const value = Zotero.Prefs.get(`extensions.momento7.${key}`);
-    return value || undefined;
-  }
+		if (defaultValue !== undefined) {
+			if (typeof defaultValue === 'string') {
+				return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+			} else if (typeof defaultValue === 'number') {
+				return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+			} else if (typeof defaultValue === 'boolean') {
+				return Zotero.Prefs.get(prefKey, defaultValue) as Preferences[K];
+			}
+		}
+		return Zotero.Prefs.get(prefKey) as Preferences[K];
+	}
 
-  /**
-   * Set a preference
-   */
-  setPref<K extends keyof Preferences>(key: K, value: Preferences[K]): void {
-    const prefKey = `extensions.momento7.${key}`;
-    
-    if (Array.isArray(value)) {
-      Zotero.Prefs.set(prefKey, value.join(','));
-    } else {
-      Zotero.Prefs.set(prefKey, value);
-    }
-  }
+	/**
+	 * Get string preference (may be undefined)
+	 */
+	private getStringPref(key: string): string | undefined {
+		const value = Zotero.Prefs.get(`extensions.momento7.${key}`);
+		return value || undefined;
+	}
 
-  /**
-   * Clear a preference
-   */
-  clearPref(key: keyof Preferences): void {
-    Zotero.Prefs.clear(`extensions.momento7.${key}`);
-  }
+	/**
+	 * Set a preference
+	 */
+	setPref<K extends keyof Preferences>(key: K, value: Preferences[K]): void {
+		const prefKey = `extensions.momento7.${key}`;
 
-  /**
-   * Reset all preferences to defaults (except API keys)
-   */
-  resetToDefaults(): void {
-    for (const key of Object.keys(this.defaults) as Array<keyof Preferences>) {
-      if (!key.includes('ApiKey')) {
-        this.clearPref(key);
-      }
-    }
-    this.init();
-  }
+		if (Array.isArray(value)) {
+			Zotero.Prefs.set(prefKey, value.join(','));
+		} else {
+			Zotero.Prefs.set(prefKey, value);
+		}
+	}
 
-  /**
-   * Open preferences dialog
-   */
-  openDialog(): void {
-    const params = this.getAll();
-    
-    window.openDialog(
-      'data:application/xhtml+xml,' + encodeURIComponent(this.getPreferencesXML()),
-      'momento7-preferences',
-      'chrome,dialog,centerscreen,modal,resizable=yes,width=600,height=700',
-      params
-    );
+	/**
+	 * Clear a preference
+	 */
+	clearPref(key: keyof Preferences): void {
+		Zotero.Prefs.clear(`extensions.momento7.${key}`);
+	}
 
-    // Save if OK was clicked
-    if ((params as any).save) {
-      this.saveFromDialog(params);
-    }
-  }
+	/**
+	 * Reset all preferences to defaults (except API keys)
+	 */
+	resetToDefaults(): void {
+		for (const key of Object.keys(this.defaults) as Array<keyof Preferences>) {
+			if (!key.includes('ApiKey')) {
+				this.clearPref(key);
+			}
+		}
+		this.init();
+	}
 
-  /**
-   * Save preferences from dialog
-   */
-  private saveFromDialog(params: Preferences & { save?: boolean }): void {
-    this.setPref('autoArchive', params.autoArchive);
-    this.setPref('defaultService', params.defaultService);
-    this.setPref('iaTimeout', params.iaTimeout);
-    this.setPref('iaMaxRetries', params.iaMaxRetries);
-    this.setPref('iaRetryDelay', params.iaRetryDelay);
-    this.setPref('robustLinkServices', params.robustLinkServices);
-    this.setPref('fallbackOrder', params.fallbackOrder);
-    
-    if (params.permaccApiKey) {
-      this.setPref('permaccApiKey' as any, params.permaccApiKey);
-    }
-  }
+	/**
+	 * Open preferences dialog
+	 */
+	openDialog(): void {
+		const params = this.getAll();
 
-  /**
-   * Static convenience methods
-   */
-  static getTimeout(service: string): number {
-    const instance = PreferencesManager.getInstance();
-    if (service === 'internetarchive') {
-      return instance.getPref('iaTimeout');
-    }
-    // Default timeout for other services
-    return 60000;
-  }
+		window.openDialog(
+			'data:application/xhtml+xml,' + encodeURIComponent(this.getPreferencesXML()),
+			'momento7-preferences',
+			'chrome,dialog,centerscreen,modal,resizable=yes,width=600,height=700',
+			params
+		);
 
-  static getEnabledServices(): string[] {
-    return PreferencesManager.getInstance().getPref('robustLinkServices');
-  }
+		// Save if OK was clicked
+		if ((params as any).save) {
+			this.saveFromDialog(params);
+		}
+	}
 
-  static getFallbackOrder(): string[] {
-    return PreferencesManager.getInstance().getPref('fallbackOrder');
-  }
+	/**
+	 * Save preferences from dialog
+	 */
+	private saveFromDialog(params: Preferences & { save?: boolean }): void {
+		this.setPref('autoArchive', params.autoArchive);
+		this.setPref('defaultService', params.defaultService);
+		this.setPref('iaTimeout', params.iaTimeout);
+		this.setPref('iaMaxRetries', params.iaMaxRetries);
+		this.setPref('iaRetryDelay', params.iaRetryDelay);
+		this.setPref('robustLinkServices', params.robustLinkServices);
+		this.setPref('fallbackOrder', params.fallbackOrder);
 
-  /**
-   * Get preferences dialog XML
-   */
-  private getPreferencesXML(): string {
-    // Simplified version - in production this would be in a separate file
-    return `<?xml version="1.0"?>
+		if (params.permaccApiKey) {
+			this.setPref('permaccApiKey' as any, params.permaccApiKey);
+		}
+	}
+
+	/**
+	 * Static convenience methods
+	 */
+	static getTimeout(service: string): number {
+		const instance = PreferencesManager.getInstance();
+		if (service === 'internetarchive') {
+			return instance.getPref('iaTimeout');
+		}
+		// Default timeout for other services
+		return 60000;
+	}
+
+	static getEnabledServices(): string[] {
+		return PreferencesManager.getInstance().getPref('robustLinkServices');
+	}
+
+	static getFallbackOrder(): string[] {
+		return PreferencesManager.getInstance().getPref('fallbackOrder');
+	}
+
+	/**
+	 * Get preferences dialog XML
+	 */
+	private getPreferencesXML(): string {
+		// Simplified version - in production this would be in a separate file
+		return `<?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <dialog xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   title="Moment-o7 Preferences"
@@ -207,5 +207,5 @@ export class PreferencesManager {
   
   <script>loadPreferences();</script>
 </dialog>`;
-  }
+	}
 }

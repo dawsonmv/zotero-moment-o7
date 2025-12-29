@@ -3,16 +3,16 @@
 
 Zotero.IaPusher = {
 	/**
-   * Check if an item has already been archived
-   */
+	 * Check if an item has already been archived
+	 */
 	isArchived: function (item) {
 		const tags = item.getTags();
 		return tags.some(tag => tag.tag === "archived");
 	},
 
 	/**
-   * Construct the Internet Archive save URL
-   */
+	 * Construct the Internet Archive save URL
+	 */
 	constructUri: function (uri) {
 		if (!uri || typeof uri !== "string") {
 			return null;
@@ -22,16 +22,16 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Check if a URL is valid for archiving
-   */
+	 * Check if a URL is valid for archiving
+	 */
 	checkValidUrl: function (url) {
 		const pattern = /^https?:\/\/.+/;
 		return pattern.test(url);
 	},
 
 	/**
-   * Extract archived URL from Link header
-   */
+	 * Extract archived URL from Link header
+	 */
 	getLastMemento: function (linkHeader) {
 		if (!linkHeader) {
 			return null;
@@ -48,8 +48,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Extract date from archived URL
-   */
+	 * Extract date from archived URL
+	 */
 	getDate: function (archivedUrl) {
 		const match = archivedUrl.match(/\/web\/(\d{4,14})\//);
 		if (!match) {
@@ -60,15 +60,23 @@ Zotero.IaPusher = {
 		const year = dateString.slice(0, 4);
 		const month = dateString.length >= 6 ? "-" + dateString.slice(4, 6) : "";
 		const day = dateString.length >= 8 ? "-" + dateString.slice(6, 8) : "";
-		const time = dateString.length >= 14 ?
-			"T" + dateString.slice(8, 10) + ":" + dateString.slice(10, 12) + ":" + dateString.slice(12, 14) + "Z" : "";
+		const time =
+			dateString.length >= 14
+				? "T" +
+					dateString.slice(8, 10) +
+					":" +
+					dateString.slice(10, 12) +
+					":" +
+					dateString.slice(12, 14) +
+					"Z"
+				: "";
 
 		return year + month + day + time;
 	},
 
 	/**
-   * Set the Extra field with archived URL
-   */
+	 * Set the Extra field with archived URL
+	 */
 	setExtra: function (item, archivedUrl) {
 		const currentExtra = item.getField("extra");
 
@@ -76,17 +84,15 @@ Zotero.IaPusher = {
 			return;
 		}
 
-		const newExtra = currentExtra ?
-			currentExtra + "; " + archivedUrl :
-			archivedUrl;
+		const newExtra = currentExtra ? currentExtra + "; " + archivedUrl : archivedUrl;
 
 		item.setField("extra", newExtra);
 		return item.saveTx();
 	},
 
 	/**
-   * Create a Robust Link HTML snippet
-   */
+	 * Create a Robust Link HTML snippet
+	 */
 	createRobustLinkHTML: function (originalUrl, archivedUrl, linkText, useArchivedHref = false) {
 		const versionDate = this.getDate(archivedUrl);
 		const href = useArchivedHref ? archivedUrl : originalUrl;
@@ -95,15 +101,15 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Escape HTML for display
-   */
+	 * Escape HTML for display
+	 */
 	escapeHtml: function (html) {
 		return html.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 	},
 
 	/**
-   * Attach a note with the archived link
-   */
+	 * Attach a note with the archived link
+	 */
 	attachAnchorNote: async function (item, archivedUrl) {
 		if (!archivedUrl) {
 			this.showNotification("Archive URL not found.", "error");
@@ -147,8 +153,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Show notification window
-   */
+	 * Show notification window
+	 */
 	showNotification: function (message, type = "info") {
 		const notifWindow = new Zotero.ProgressWindow({ closeOnClick: true });
 		notifWindow.changeHeadline(message);
@@ -157,8 +163,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Handle response status
-   */
+	 * Handle response status
+	 */
 	handleStatus: async function (item, status, archivedUrl) {
 		let message = "";
 
@@ -188,8 +194,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Get the best URL for archiving (prefer DOI if available)
-   */
+	 * Get the best URL for archiving (prefer DOI if available)
+	 */
 	getBestUrl: function (item) {
 		let url = item.getField("url");
 		const doi = item.getField("DOI");
@@ -203,8 +209,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Archive a single item
-   */
+	 * Archive a single item
+	 */
 	archiveItem: async function (item) {
 		const url = this.getBestUrl(item);
 
@@ -225,7 +231,7 @@ Zotero.IaPusher = {
 			const response = await Zotero.HTTP.request("GET", archiveUrl, {
 				headers: {
 					"User-Agent": "Zotero Moment-o7",
-					"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+					Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
 				},
 				timeout: 60000, // 60 second timeout
 				responseType: "text"
@@ -243,7 +249,9 @@ Zotero.IaPusher = {
 			// If not in header, try to extract from response
 			if (!archivedUrl && response.responseText) {
 				// Look for the archived URL in the response
-				const match = response.responseText.match(/https:\/\/web\.archive\.org\/web\/\d{14}\/[^\s"<>]+/);
+				const match = response.responseText.match(
+					/https:\/\/web\.archive\.org\/web\/\d{14}\/[^\s"<>]+/
+				);
 				if (match) {
 					archivedUrl = match[0];
 				}
@@ -256,7 +264,6 @@ Zotero.IaPusher = {
 			}
 
 			await this.handleStatus(item, response.status, archivedUrl);
-
 		} catch (error) {
 			Zotero.logError(`Archive request failed: ${error}`);
 
@@ -294,8 +301,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Archive selected items (called from menu)
-   */
+	 * Archive selected items (called from menu)
+	 */
 	sendReq: async function () {
 		const pane = Zotero.getActiveZoteroPane();
 		const selectedItems = pane.getSelectedItems();
@@ -372,8 +379,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Extract DOI from response (for journal articles)
-   */
+	 * Extract DOI from response (for journal articles)
+	 */
 	recognizeDoiPattern: function (responseText, tagName) {
 		const doiPattern = /10\.\d{4,}\/[-._;()/:a-zA-Z0-9]+/;
 		const toMatchTag = new RegExp(tagName + ".*?content=\"([^\"]+)\"", "i");
@@ -389,8 +396,8 @@ Zotero.IaPusher = {
 	},
 
 	/**
-   * Create DOI URL for journal articles
-   */
+	 * Create DOI URL for journal articles
+	 */
 	makeDoiUrl: function (responseText) {
 		const dcId = this.recognizeDoiPattern(responseText, "DC.identifier");
 		const citDoi = this.recognizeDoiPattern(responseText, "citation_doi");
