@@ -7,6 +7,7 @@ module.exports = {
 		"**/__tests__/**/*.+(ts|tsx|js)",
 		"**/?(*.)+(spec|test).+(ts|tsx|js)"
 	],
+	testPathIgnorePatterns: ["/node_modules/", "/build/", "/e2e/"],
 	transform: {
 		"^.+\\.(ts|tsx)$": ["ts-jest", {
 			tsconfig: "tsconfig.test.json"
@@ -17,8 +18,10 @@ module.exports = {
 		"^@services/(.*)$": "<rootDir>/src/services/$1",
 		"^@utils/(.*)$": "<rootDir>/src/utils/$1",
 		"^@memento/(.*)$": "<rootDir>/src/memento/$1",
-		"^@preferences/(.*)$": "<rootDir>/src/preferences/$1"
+		"^@preferences/(.*)$": "<rootDir>/src/preferences/$1",
+		"^@monitoring/(.*)$": "<rootDir>/src/monitoring/$1"
 	},
+	modulePathIgnorePatterns: ["<rootDir>/build/"],
 	setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
 	collectCoverageFrom: [
 		"src/**/*.{ts,tsx}",
@@ -30,10 +33,14 @@ module.exports = {
 	],
 	coverageThreshold: {
 		global: {
-			branches: 14,
-			functions: 20,
-			lines: 15,
-			statements: 15
+			branches: 20,
+			functions: 25,
+			lines: 25,
+			statements: 25
 		}
-	}
+	},
+	coverageReporters: ["text", "text-summary", "lcov", "html"],
+	coverageDirectory: "coverage",
+	testTimeout: 10000,
+	verbose: true
 };

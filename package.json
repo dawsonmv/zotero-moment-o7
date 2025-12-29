@@ -14,8 +14,13 @@
     "zotero-dev": "./scripts/zotero-dev.sh",
     "type-check": "tsc --noEmit",
     "test": "jest",
+    "test:unit": "jest --selectProjects unit",
+    "test:integration": "jest --selectProjects integration",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run test:coverage && npm run test:e2e"
   },
   "repository": {
     "type": "git",
@@ -35,6 +40,7 @@
   },
   "homepage": "https://github.com/dawsonmv/zotero-moment-o7#readme",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.21",
     "eslint": "^9.27.0",
