@@ -459,7 +459,8 @@ Zotero.MomentO7.Preferences = {
 	},
 
 	reorderFallbackList(draggedId, targetId) {
-		const currentOrder = Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder").split(",");
+		const fallbackOrderStr = Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder") || "internetarchive,archivetoday,permacc,ukwebarchive,arquivopt";
+		const currentOrder = fallbackOrderStr.split(",");
 		const draggedIndex = currentOrder.indexOf(draggedId);
 		const targetIndex = currentOrder.indexOf(targetId);
 
@@ -515,7 +516,8 @@ Zotero.MomentO7.Preferences = {
 		}
 
 		// Load robust link services
-		const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",");
+		const robustServicesStr = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices") || "internetarchive,archivetoday";
+		const robustServices = robustServicesStr.split(",");
 		["internetarchive", "archivetoday", "permacc", "ukwebarchive", "arquivopt"].forEach(service => {
 			const checkbox = document.getElementById(`robust-${service}`);
 			if (checkbox) {

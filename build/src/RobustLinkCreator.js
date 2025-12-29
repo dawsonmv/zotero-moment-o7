@@ -17,8 +17,8 @@ Zotero.MomentO7.RobustLinkCreator = {
 		}
 
 		// Get enabled services from preferences
-		const robustServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices",
-			"internetarchive,archivetoday").split(",").filter(s => s);
+		const robustServicesStr = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices") || "internetarchive,archivetoday";
+		const robustServices = robustServicesStr.split(",").filter(s => s);
 
 		if (robustServices.length === 0) {
 			throw new Error("No services enabled for robust links");

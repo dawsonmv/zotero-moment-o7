@@ -189,7 +189,8 @@ Zotero.MomentO7 = {
 		separator.id = "zotero-momento7-separator";
 
 		// Get enabled services from preferences
-		const enabledServices = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices", "internetarchive,archivetoday").split(",").filter(s => s);
+		const enabledServicesStr = Zotero.Prefs.get("extensions.zotero.momento7.enabledServices") || "internetarchive,archivetoday";
+		const enabledServices = enabledServicesStr.split(",").filter(s => s);
 
 		// Create menu items for enabled services
 		const menuItems = [];
@@ -218,7 +219,8 @@ Zotero.MomentO7 = {
 		});
 
 		// Add robust link option if any services are enabled for robust links
-		const robustLinkServices = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices", "internetarchive,archivetoday").split(",").filter(s => s);
+		const robustLinkServicesStr = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices") || "internetarchive,archivetoday";
+		const robustLinkServices = robustLinkServicesStr.split(",").filter(s => s);
 		if (robustLinkServices.length > 0) {
 			menuItems.push({
 				id: "zotero-momento7-archive-robust",

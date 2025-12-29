@@ -96,13 +96,13 @@ function shutdown({ _id, _version, _rootURI }, _reason) {
 }
 
 // Window management hooks
-function onMainWindowLoad({ _window }) {
+function onMainWindowLoad({ window }) {
 	if (ZoteroMomentO7) {
 		ZoteroMomentO7.addToWindow(window);
 	}
 }
 
-function onMainWindowUnload({ _window }) {
+function onMainWindowUnload({ window }) {
 	if (ZoteroMomentO7) {
 		ZoteroMomentO7.removeFromWindow(window);
 	}
