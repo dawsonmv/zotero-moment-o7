@@ -1,13 +1,31 @@
+# OS files
 .DS_Store
-make-it-red/
-*.xpi
-.vscode/extensions.json
-logs/
+
+# Dependencies
 node_modules/
+cloudflare-worker/node_modules/
+
+# Build outputs
+build/
+dist/
+*.xpi
+
+# Test coverage
+coverage/
+
+# Logs
+logs/
 *.log
 console_output.log/
 console_errors/
-cloudflare-worker/node_modules/
+
+# IDE
+.vscode/extensions.json
+.idea/
+
+# Project specific
+make-it-red/
+
 # Test scripts
 diagnose-plugin.js
 test-*.js
