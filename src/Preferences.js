@@ -490,7 +490,10 @@ Zotero.MomentO7.Preferences = {
 	},
 
 	reorderFallbackList(draggedId, targetId) {
-		const currentOrder = Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder").split(",");
+		const fallbackRaw = Zotero.Prefs.get("extensions.zotero.momento7.fallbackOrder");
+		const currentOrder = (
+			fallbackRaw || "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive"
+		).split(",");
 		const draggedIndex = currentOrder.indexOf(draggedId);
 		const targetIndex = currentOrder.indexOf(targetId);
 

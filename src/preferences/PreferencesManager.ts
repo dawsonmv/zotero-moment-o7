@@ -50,6 +50,8 @@ export class PreferencesManager {
 			iaTimeout: this.getPref('iaTimeout'),
 			iaMaxRetries: this.getPref('iaMaxRetries'),
 			iaRetryDelay: this.getPref('iaRetryDelay'),
+			iaAccessKey: this.getStringPref('iaAccessKey'),
+			iaSecretKey: this.getStringPref('iaSecretKey'),
 			robustLinkServices: this.getPref('robustLinkServices'),
 			fallbackOrder: this.getPref('fallbackOrder'),
 			permaccApiKey: this.getStringPref('permaccApiKey'),
@@ -151,6 +153,12 @@ export class PreferencesManager {
 		this.setPref('robustLinkServices', params.robustLinkServices);
 		this.setPref('fallbackOrder', params.fallbackOrder);
 
+		if (params.iaAccessKey) {
+			this.setPref('iaAccessKey' as any, params.iaAccessKey);
+		}
+		if (params.iaSecretKey) {
+			this.setPref('iaSecretKey' as any, params.iaSecretKey);
+		}
 		if (params.permaccApiKey) {
 			this.setPref('permaccApiKey' as any, params.permaccApiKey);
 		}
@@ -174,6 +182,19 @@ export class PreferencesManager {
 
 	static getFallbackOrder(): string[] {
 		return PreferencesManager.getInstance().getPref('fallbackOrder');
+	}
+
+	static getIACredentials(): { accessKey?: string; secretKey?: string } {
+		const instance = PreferencesManager.getInstance();
+		return {
+			accessKey: instance.getAll().iaAccessKey,
+			secretKey: instance.getAll().iaSecretKey,
+		};
+	}
+
+	static hasIACredentials(): boolean {
+		const creds = PreferencesManager.getIACredentials();
+		return !!(creds.accessKey && creds.secretKey);
 	}
 
 	/**

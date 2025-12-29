@@ -1,5 +1,6 @@
 /**
  * Internet Archive service implementation
+ * Supports both authenticated (SPN2 API) and unauthenticated archiving
  */
 
 import { BaseArchiveService } from './BaseArchiveService';
@@ -38,6 +39,150 @@ export class InternetArchiveService extends BaseArchiveService {
 		// Reload settings in case they changed
 		this.reloadSettings();
 
+		// Check if we have API credentials
+		const hasCredentials = PreferencesManager.hasIACredentials();
+
+		if (hasCredentials) {
+			return this.archiveWithSPN2(url, progress);
+		} else {
+			return this.archiveWithPublicAPI(url, progress);
+		}
+	}
+
+	/**
+	 * Archive using the authenticated SPN2 API
+	 */
+	private async archiveWithSPN2(
+		url: string,
+		progress?: ArchiveProgress
+	): Promise<SingleArchiveResult> {
+		const credentials = PreferencesManager.getIACredentials();
+
+		let lastError: Error = new Error('Unknown error');
+		let attempt = 0;
+
+		while (attempt < this.maxRetries) {
+			if (attempt > 0) {
+				progress?.onStatusUpdate(`Retrying (attempt ${attempt + 1}/${this.maxRetries})...`);
+				await this.delay(this.retryDelay);
+			}
+
+			try {
+				progress?.onStatusUpdate(`Submitting ${url} to Internet Archive (authenticated)...`);
+
+				const response = await Zotero.HTTP.request('POST', 'https://web.archive.org/save', {
+					timeout: this.timeout,
+					headers: {
+						Accept: 'application/json',
+						Authorization: `LOW ${credentials.accessKey}:${credentials.secretKey}`,
+						'Content-Type': 'application/x-www-form-urlencoded',
+					},
+					body: `url=${encodeURIComponent(url)}`,
+				});
+
+				const result = JSON.parse(response.responseText);
+
+				if (result.url) {
+					return {
+						success: true,
+						url: result.url,
+						metadata: {
+							originalUrl: url,
+							archiveDate: new Date().toISOString(),
+							service: this.name,
+							jobId: result.job_id,
+						},
+					};
+				} else if (result.job_id) {
+					// Job submitted, poll for result
+					progress?.onStatusUpdate('Archive job submitted, waiting for completion...');
+					const archivedUrl = await this.pollJobStatus(result.job_id, credentials, progress);
+					if (archivedUrl) {
+						return {
+							success: true,
+							url: archivedUrl,
+							metadata: {
+								originalUrl: url,
+								archiveDate: new Date().toISOString(),
+								service: this.name,
+								jobId: result.job_id,
+							},
+						};
+					}
+				}
+
+				throw new Error(result.message || 'Failed to archive URL');
+			} catch (error) {
+				lastError = error as Error;
+				attempt++;
+
+				const archiveError = error instanceof ArchiveError ? error : this.mapHttpError(error);
+				if (
+					archiveError.type === ArchiveErrorType.Blocked ||
+					archiveError.type === ArchiveErrorType.NotFound ||
+					archiveError.type === ArchiveErrorType.InvalidUrl
+				) {
+					break;
+				}
+			}
+		}
+
+		return {
+			success: false,
+			error: lastError.message,
+		};
+	}
+
+	/**
+	 * Poll the SPN2 job status endpoint
+	 */
+	private async pollJobStatus(
+		jobId: string,
+		credentials: { accessKey?: string; secretKey?: string },
+		progress?: ArchiveProgress
+	): Promise<string | null> {
+		const maxPolls = 30;
+		const pollInterval = 2000;
+
+		for (let i = 0; i < maxPolls; i++) {
+			await this.delay(pollInterval);
+
+			try {
+				const response = await Zotero.HTTP.request(
+					'GET',
+					`https://web.archive.org/save/status/${jobId}`,
+					{
+						headers: {
+							Accept: 'application/json',
+							Authorization: `LOW ${credentials.accessKey}:${credentials.secretKey}`,
+						},
+					}
+				);
+
+				const result = JSON.parse(response.responseText);
+
+				if (result.status === 'success') {
+					return `https://web.archive.org/web/${result.timestamp}/${result.original_url}`;
+				} else if (result.status === 'error') {
+					throw new Error(result.message || 'Archive job failed');
+				}
+
+				progress?.onStatusUpdate(`Archive in progress... (${i + 1}/${maxPolls})`);
+			} catch (error) {
+				// Continue polling on non-fatal errors
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Archive using the public (unauthenticated) API - may fail if login required
+	 */
+	private async archiveWithPublicAPI(
+		url: string,
+		progress?: ArchiveProgress
+	): Promise<SingleArchiveResult> {
 		let lastError: Error = new Error('Unknown error');
 		let attempt = 0;
 		let currentTimeout = this.timeout;
@@ -76,6 +221,15 @@ export class InternetArchiveService extends BaseArchiveService {
 			} catch (error) {
 				lastError = error as Error;
 				attempt++;
+
+				// Check for auth required error
+				if ((error as any)?.status === 401 || (error as any)?.status === 403) {
+					return {
+						success: false,
+						error:
+							'Internet Archive requires authentication. Please add your API keys in Moment-o7 preferences.',
+					};
+				}
 
 				// Don't retry for certain errors
 				const archiveError = error instanceof ArchiveError ? error : this.mapHttpError(error);

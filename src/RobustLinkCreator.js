@@ -16,11 +16,9 @@ Zotero.MomentO7.RobustLinkCreator = {
 			throw new Error("No items provided");
 		}
 
-		// Get enabled services from preferences
-		const robustServices = Zotero.Prefs.get(
-			"extensions.zotero.momento7.robustLinkServices",
-			"internetarchive,archivetoday"
-		)
+		// Get enabled services from preferences (with fallback)
+		const robustServicesRaw = Zotero.Prefs.get("extensions.zotero.momento7.robustLinkServices");
+		const robustServices = (robustServicesRaw || "internetarchive,archivetoday")
 			.split(",")
 			.filter(s => s);
 

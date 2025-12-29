@@ -92,6 +92,8 @@ export interface Preferences {
 	iaTimeout: number;
 	iaMaxRetries: number;
 	iaRetryDelay: number;
+	iaAccessKey?: string;
+	iaSecretKey?: string;
 	robustLinkServices: string[];
 	fallbackOrder: string[];
 	permaccApiKey?: string;

@@ -17,13 +17,20 @@ echo -e "${YELLOW}Building zotero-moment-o7 plugin...${NC}"
 # Change to project directory
 cd "$PROJECT_DIR"
 
-# Create build directory if it doesn't exist
+# Clean and create build directory
+rm -rf build
 mkdir -p build
 
 # Copy non-TypeScript files to build directory
 echo "Copying static files to build directory..."
 cp -r locale build/
-cp -r cloudflare-worker build/
+
+# Copy only the cloudflare-worker source file, not node_modules
+mkdir -p build/cloudflare-worker
+cp cloudflare-worker/archive-proxy.js build/cloudflare-worker/
+cp cloudflare-worker/wrangler.toml build/cloudflare-worker/ 2>/dev/null || true
+cp cloudflare-worker/README.md build/cloudflare-worker/ 2>/dev/null || true
+
 cp manifest.json build/
 cp bootstrap.js build/
 cp update.json build/
