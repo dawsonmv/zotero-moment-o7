@@ -1,15 +1,22 @@
 # Zotero Moment-o7
 
+[![Release](https://img.shields.io/github/v/release/dawsonmv/zotero-moment-o7?include_prereleases&label=release)](https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.3-alpha)
+[![Zotero 7](https://img.shields.io/badge/Zotero-7.0+-green.svg)](https://www.zotero.org/)
+
 A modern rewrite of the classic Zotero Memento plugin, now compatible with Zotero 7.
 
-> **Beta Release**: This plugin is currently in public beta. We welcome testing and feedback from the community!
+> **Alpha Release v0.0.3**: This plugin is currently in alpha testing. We welcome testing and feedback from the community!
 
-## Beta Testing
+## Download
 
-### How to Test
-1. Download the latest `.xpi` from [Releases](https://github.com/dawsonmv/zotero-moment-o7/releases)
+**[Download v0.0.3-alpha](https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.3-alpha)** - Latest alpha release
+
+## Alpha Testing
+
+### How to Install
+1. Download `zotero-moment-o7.xpi` from [Releases](https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.3-alpha)
 2. Install in Zotero 7 (Tools → Add-ons → gear icon → Install Add-on From File)
-3. Test the archive services on various websites
+3. Restart Zotero
 4. Report issues on [GitHub Issues](https://github.com/dawsonmv/zotero-moment-o7/issues)
 
 ### What to Test
@@ -103,7 +110,8 @@ Access preferences by right-clicking any item and selecting "Archive this Resour
   - Configure the order in which services are tried when one fails
   
 - **Service API Keys**
-  - Add your Perma.cc API key
+  - Internet Archive S3 API keys (for authenticated archiving)
+  - Perma.cc API key
 
 ### Export Translators
 
@@ -141,6 +149,12 @@ To install translators:
 - Modern async/await patterns throughout
 
 ## Service-Specific Notes
+
+### Internet Archive
+- Free and unlimited archiving
+- Optional API keys for authenticated access (recommended)
+- Get your API keys at https://archive.org/account/s3.php
+- Authenticated requests have higher priority and better rate limits
 
 ### Perma.cc
 - Requires free API key from https://perma.cc/settings/tools
