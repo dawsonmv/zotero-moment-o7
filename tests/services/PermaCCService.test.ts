@@ -8,11 +8,15 @@ import { PermaCCService } from '../../src/services/PermaCCService';
 jest.mock('../../src/preferences/PreferencesManager', () => ({
 	PreferencesManager: {
 		getTimeout: jest.fn().mockReturnValue(60000),
+		getPermaCCApiKey: jest.fn().mockResolvedValue(null),
 		getInstance: jest.fn().mockReturnValue({
 			getPref: jest.fn(),
+			getCredential: jest.fn().mockResolvedValue(null),
 		}),
 	},
 }));
+
+import { PreferencesManager } from '../../src/preferences/PreferencesManager';
 
 describe('PermaCCService', () => {
 	let service: PermaCCService;
@@ -66,15 +70,13 @@ describe('PermaCCService', () => {
 
 	describe('isAvailable', () => {
 		it('should return false when no API key', async () => {
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue(null);
 			const result = await service.isAvailable();
 			expect(result).toBe(false);
 		});
 
 		it('should return true when API key is configured', async () => {
-			(Zotero.Prefs.get as jest.Mock).mockImplementation((key: string) => {
-				if (key === 'extensions.momento7.permaccApiKey') return 'test-api-key';
-				return null;
-			});
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue('test-api-key');
 
 			// Recreate service to load credentials
 			const serviceWithKey = new PermaCCService();
@@ -86,6 +88,7 @@ describe('PermaCCService', () => {
 
 	describe('archive without API key', () => {
 		it('should fail with helpful error message', async () => {
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue(null);
 			const results = await service.archive([mockItem]);
 
 			expect(results).toHaveLength(1);
@@ -96,8 +99,8 @@ describe('PermaCCService', () => {
 
 	describe('archive with API key', () => {
 		beforeEach(() => {
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue('test-api-key');
 			(Zotero.Prefs.get as jest.Mock).mockImplementation((key: string) => {
-				if (key === 'extensions.momento7.permaccApiKey') return 'test-api-key';
 				if (key === 'extensions.momento7.permaccFolder') return null;
 				return undefined;
 			});
@@ -220,16 +223,14 @@ describe('PermaCCService', () => {
 
 	describe('checkAvailability', () => {
 		it('should return unavailable without API key', async () => {
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue(null);
 			const result = await service.checkAvailability('https://example.com');
 
 			expect(result.available).toBe(false);
 		});
 
 		it('should check user endpoint when API key configured', async () => {
-			(Zotero.Prefs.get as jest.Mock).mockImplementation((key: string) => {
-				if (key === 'extensions.momento7.permaccApiKey') return 'test-api-key';
-				return null;
-			});
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue('test-api-key');
 
 			const serviceWithKey = new PermaCCService();
 
@@ -249,10 +250,7 @@ describe('PermaCCService', () => {
 		});
 
 		it('should return unavailable on API error', async () => {
-			(Zotero.Prefs.get as jest.Mock).mockImplementation((key: string) => {
-				if (key === 'extensions.momento7.permaccApiKey') return 'test-api-key';
-				return null;
-			});
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue('test-api-key');
 
 			const serviceWithKey = new PermaCCService();
 
@@ -266,16 +264,14 @@ describe('PermaCCService', () => {
 
 	describe('getFolders', () => {
 		it('should return empty array without API key', async () => {
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue(null);
 			const folders = await service.getFolders();
 
 			expect(folders).toEqual([]);
 		});
 
 		it('should fetch folders with API key', async () => {
-			(Zotero.Prefs.get as jest.Mock).mockImplementation((key: string) => {
-				if (key === 'extensions.momento7.permaccApiKey') return 'test-api-key';
-				return null;
-			});
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue('test-api-key');
 
 			const serviceWithKey = new PermaCCService();
 
@@ -296,10 +292,7 @@ describe('PermaCCService', () => {
 		});
 
 		it('should handle folder fetch errors', async () => {
-			(Zotero.Prefs.get as jest.Mock).mockImplementation((key: string) => {
-				if (key === 'extensions.momento7.permaccApiKey') return 'test-api-key';
-				return null;
-			});
+			(PreferencesManager.getPermaCCApiKey as jest.Mock).mockResolvedValue('test-api-key');
 
 			const serviceWithKey = new PermaCCService();
 

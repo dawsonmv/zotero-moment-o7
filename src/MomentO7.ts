@@ -179,7 +179,7 @@ export class MomentO7 {
 
 		// Create menu items
 		menuConfigs.forEach(config => {
-			const menuItem = this.createMenuItem(doc, config);
+			const menuItem = this.createMenuItem(doc, config, window);
 			menupopup.appendChild(menuItem);
 		});
 
@@ -188,11 +188,15 @@ export class MomentO7 {
 		menupopup.appendChild(menuSeparator);
 
 		// Add robust link item
-		const robustItem = this.createMenuItem(doc, {
-			id: 'robust-link',
-			label: 'Create Robust Link (All Archives)',
-			handler: async () => this.createRobustLinks(),
-		});
+		const robustItem = this.createMenuItem(
+			doc,
+			{
+				id: 'robust-link',
+				label: 'Create Robust Link (All Archives)',
+				handler: async () => this.createRobustLinks(),
+			},
+			window
+		);
 		menupopup.appendChild(robustItem);
 
 		// Add preferences separator
@@ -200,11 +204,15 @@ export class MomentO7 {
 		menupopup.appendChild(prefsSeparator);
 
 		// Add preferences item
-		const prefsItem = this.createMenuItem(doc, {
-			id: 'preferences',
-			label: 'Moment-o7 Preferences...',
-			handler: async () => this.openPreferences(),
-		});
+		const prefsItem = this.createMenuItem(
+			doc,
+			{
+				id: 'preferences',
+				label: 'Moment-o7 Preferences...',
+				handler: async () => this.openPreferences(),
+			},
+			window
+		);
 		menupopup.appendChild(prefsItem);
 
 		// Assemble menu
@@ -220,21 +228,34 @@ export class MomentO7 {
 	}
 
 	/**
-	 * Create a menu item
+	 * Create a menu item and track its event listener for cleanup
 	 */
-	private createMenuItem(doc: Document, config: MenuItemConfig): XULElement {
+	private createMenuItem(doc: Document, config: MenuItemConfig, window: Window): XULElement {
 		const menuItem = doc.createXULElement('menuitem');
 		menuItem.id = `zotero-moment-o7-${config.id}`;
 		menuItem.setAttribute('label', config.label);
 
-		menuItem.addEventListener('command', async () => {
+		// Create handler function so we can remove it later
+		const handler = async () => {
 			try {
 				await config.handler();
 			} catch (error) {
 				this.log(`Error in menu handler ${config.id}: ${error}`);
 				this.showError(error instanceof Error ? error.message : String(error));
 			}
-		});
+		};
+
+		menuItem.addEventListener('command', handler);
+
+		// Track listener for cleanup
+		const windowData = this.windows.get(window);
+		if (windowData) {
+			windowData.listeners.push({
+				element: menuItem,
+				event: 'command',
+				handler: handler as EventListener,
+			});
+		}
 
 		return menuItem;
 	}
@@ -349,14 +370,20 @@ export class MomentO7 {
 			return;
 		}
 
-		// const doc = window.document;
 		const windowData = this.windows.get(window);
 
 		if (windowData) {
-			// Remove menu items
+			// Remove event listeners to prevent memory leaks
+			windowData.listeners.forEach(({ element, event, handler }) => {
+				element.removeEventListener(event, handler);
+			});
+			windowData.listeners = [];
+
+			// Remove menu items from DOM
 			windowData.menuItems.forEach(item => {
 				item.remove();
 			});
+			windowData.menuItems = [];
 		}
 
 		this.windows.delete(window);

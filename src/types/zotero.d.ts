@@ -154,6 +154,9 @@ declare namespace Zotero {
 		dir: string;
 	};
 
+	// Plugin instance
+	let MomentO7: any;
+
 	function getMainWindows(): Window[];
 	function getActiveZoteroPane(): ZoteroPane;
 

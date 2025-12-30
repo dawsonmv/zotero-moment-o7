@@ -38,6 +38,8 @@ export class CircuitBreaker {
 	private lastFailureTime?: number;
 	private totalCalls = 0;
 	private halfOpenCalls = 0;
+	private halfOpenPending = 0; // Track in-flight HALF_OPEN calls
+	private stateChangeLock = false; // Prevent concurrent state transitions
 
 	private readonly options: Required<CircuitBreakerOptions>;
 
@@ -65,25 +67,30 @@ export class CircuitBreaker {
 			throw new Error('Circuit breaker is OPEN - service unavailable');
 		}
 
-		if (this.state === CircuitState.HALF_OPEN) {
-			this.halfOpenCalls++;
-			if (this.halfOpenCalls > this.options.successThreshold) {
-				// Too many half-open calls, wait for results
+		// Track if this call is a HALF_OPEN test call
+		const isHalfOpenTest = this.state === CircuitState.HALF_OPEN;
+
+		if (isHalfOpenTest) {
+			// Atomically check and increment pending count
+			// Only allow successThreshold concurrent test calls
+			if (this.halfOpenPending >= this.options.successThreshold) {
 				if (fallback) {
 					return fallback();
 				}
 				throw new Error('Circuit breaker is testing - service may be unavailable');
 			}
+			this.halfOpenPending++;
+			this.halfOpenCalls++;
 		}
 
 		this.totalCalls++;
 
 		try {
 			const result = await operation();
-			this.onSuccess();
+			this.onSuccess(isHalfOpenTest);
 			return result;
 		} catch (error) {
-			this.onFailure(error as Error);
+			this.onFailure(error as Error, isHalfOpenTest);
 			throw error;
 		}
 	}
@@ -113,6 +120,8 @@ export class CircuitBreaker {
 		this.lastFailureTime = undefined;
 		this.totalCalls = 0;
 		this.halfOpenCalls = 0;
+		this.halfOpenPending = 0;
+		this.stateChangeLock = false;
 	}
 
 	/**
@@ -139,26 +148,39 @@ export class CircuitBreaker {
 
 	/**
 	 * Handle successful operation
+	 * @param wasHalfOpenTest - Whether this was a HALF_OPEN test call
 	 */
-	private onSuccess(): void {
+	private onSuccess(wasHalfOpenTest: boolean = false): void {
 		this.successes++;
 		this.consecutiveSuccesses++;
 
-		if (this.state === CircuitState.HALF_OPEN) {
+		if (wasHalfOpenTest) {
+			this.halfOpenPending--;
+		}
+
+		// Only transition state if not already changed by another call
+		if (this.state === CircuitState.HALF_OPEN && !this.stateChangeLock) {
 			if (this.consecutiveSuccesses >= this.options.successThreshold) {
+				this.stateChangeLock = true;
 				this.state = CircuitState.CLOSED;
 				this.failures = 0;
 				this.halfOpenCalls = 0;
+				this.halfOpenPending = 0;
+				this.stateChangeLock = false;
 			}
 		}
 	}
 
 	/**
 	 * Handle failed operation
+	 * @param wasHalfOpenTest - Whether this was a HALF_OPEN test call
 	 */
-	private onFailure(error: Error): void {
+	private onFailure(error: Error, wasHalfOpenTest: boolean = false): void {
 		// Check if this error should count as a failure
 		if (!this.options.errorFilter(error)) {
+			if (wasHalfOpenTest) {
+				this.halfOpenPending--;
+			}
 			return;
 		}
 
@@ -166,9 +188,17 @@ export class CircuitBreaker {
 		this.consecutiveSuccesses = 0;
 		this.lastFailureTime = Date.now();
 
-		if (this.state === CircuitState.HALF_OPEN) {
+		if (wasHalfOpenTest) {
+			this.halfOpenPending--;
+		}
+
+		// Transition back to OPEN on any failure during HALF_OPEN
+		if (this.state === CircuitState.HALF_OPEN && !this.stateChangeLock) {
+			this.stateChangeLock = true;
 			this.state = CircuitState.OPEN;
 			this.halfOpenCalls = 0;
+			this.halfOpenPending = 0;
+			this.stateChangeLock = false;
 		} else if (
 			this.state === CircuitState.CLOSED &&
 			this.totalCalls >= this.options.volumeThreshold &&

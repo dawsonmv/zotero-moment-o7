@@ -29,8 +29,8 @@ jest.mock('../../src/preferences/PreferencesManager', () => {
 
 	return {
 		PreferencesManager: {
-			hasIACredentials: jest.fn(),
-			getIACredentials: jest.fn(),
+			hasIACredentials: jest.fn().mockResolvedValue(false),
+			getIACredentials: jest.fn().mockResolvedValue({ accessKey: undefined, secretKey: undefined }),
 			getInstance: jest.fn().mockReturnValue(mockInstance),
 			getTimeout: jest.fn().mockReturnValue(120000),
 		},
@@ -46,7 +46,11 @@ describe('InternetArchiveService', () => {
 		jest.clearAllMocks();
 
 		// Default: no credentials
-		(PreferencesManager.hasIACredentials as jest.Mock).mockReturnValue(false);
+		(PreferencesManager.hasIACredentials as jest.Mock).mockResolvedValue(false);
+		(PreferencesManager.getIACredentials as jest.Mock).mockResolvedValue({
+			accessKey: undefined,
+			secretKey: undefined,
+		});
 
 		// Create mock item
 		mockItem = {
@@ -81,7 +85,7 @@ describe('InternetArchiveService', () => {
 
 	describe('archive without credentials (public API)', () => {
 		beforeEach(() => {
-			(PreferencesManager.hasIACredentials as jest.Mock).mockReturnValue(false);
+			(PreferencesManager.hasIACredentials as jest.Mock).mockResolvedValue(false);
 		});
 
 		// Note: Full archive integration tests are in integration tests
@@ -126,8 +130,8 @@ describe('InternetArchiveService', () => {
 
 	describe('archive with credentials (SPN2 API)', () => {
 		beforeEach(() => {
-			(PreferencesManager.hasIACredentials as jest.Mock).mockReturnValue(true);
-			(PreferencesManager.getIACredentials as jest.Mock).mockReturnValue({
+			(PreferencesManager.hasIACredentials as jest.Mock).mockResolvedValue(true);
+			(PreferencesManager.getIACredentials as jest.Mock).mockResolvedValue({
 				accessKey: 'test-access-key',
 				secretKey: 'test-secret-key',
 			});
