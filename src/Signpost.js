@@ -71,7 +71,12 @@ Zotero.Signpost = {
 	setRequestProperties: function (req) {
 		req.setRequestHeader("X-Requested-With", "XMLHttpRequest");
 		req.setRequestHeader("Accept", "application/vnd.orcid+xml");
-		req.setRequestHeader("Authorization", "Bearer f5af9f51-07e6-4332-8f1a-c0c11c1e3728");
+
+		// Get ORCID API key from preferences (user must configure this)
+		const orcidApiKey = Zotero.Prefs.get("extensions.momento7.orcidApiKey");
+		if (orcidApiKey) {
+			req.setRequestHeader("Authorization", "Bearer " + orcidApiKey);
+		}
 	},
 
 	/*

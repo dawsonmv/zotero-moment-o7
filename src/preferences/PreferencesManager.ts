@@ -55,6 +55,7 @@ export class PreferencesManager {
 			robustLinkServices: this.getPref('robustLinkServices'),
 			fallbackOrder: this.getPref('fallbackOrder'),
 			permaccApiKey: this.getStringPref('permaccApiKey'),
+			orcidApiKey: this.getStringPref('orcidApiKey'),
 		};
 	}
 
@@ -161,6 +162,9 @@ export class PreferencesManager {
 		}
 		if (params.permaccApiKey) {
 			this.setPref('permaccApiKey' as any, params.permaccApiKey);
+		}
+		if (params.orcidApiKey) {
+			this.setPref('orcidApiKey' as any, params.orcidApiKey);
 		}
 	}
 

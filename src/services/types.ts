@@ -97,6 +97,7 @@ export interface Preferences {
 	robustLinkServices: string[];
 	fallbackOrder: string[];
 	permaccApiKey?: string;
+	orcidApiKey?: string;
 }
 
 // Menu item configuration

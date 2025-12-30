@@ -1,9 +1,25 @@
 /**
  * HTML utility functions
  * Separates HTML processing concerns from business logic
+ *
+ * Security notes:
+ * - Uses isolated documents (via createHTMLDocument) for parsing untrusted HTML
+ * - Scripts never execute in isolated documents
+ * - All parsing happens in sandboxed context
  */
 
 export class HtmlUtils {
+	/**
+	 * Create an isolated document for safe HTML parsing.
+	 * The returned document is sandboxed - scripts won't execute.
+	 */
+	private static createIsolatedDocument(html: string): Document {
+		// Create sandboxed document - scripts won't execute in this context
+		const doc = document.implementation.createHTMLDocument('sandbox');
+		doc.body.innerHTML = html;
+		return doc;
+	}
+
 	/**
 	 * Escape HTML special characters to prevent XSS
 	 */
@@ -23,25 +39,28 @@ export class HtmlUtils {
 	}
 
 	/**
-	 * Unescape HTML entities
+	 * Unescape HTML entities safely.
+	 * Uses isolated document for decoding - scripts won't execute.
 	 */
 	static unescape(text: string): string {
 		if (!text) return '';
 
-		const textarea = document.createElement('textarea');
+		// Use isolated textarea for safe entity decoding
+		// Textarea doesn't render HTML, just decodes entities
+		const doc = document.implementation.createHTMLDocument('sandbox');
+		const textarea = doc.createElement('textarea');
 		textarea.innerHTML = text;
 		return textarea.value;
 	}
 
 	/**
-	 * Strip HTML tags from text
+	 * Strip HTML tags from text safely using isolated document.
 	 */
 	static stripTags(html: string): string {
 		if (!html) return '';
 
-		const div = document.createElement('div');
-		div.innerHTML = html;
-		return div.textContent || div.innerText || '';
+		const doc = this.createIsolatedDocument(html);
+		return doc.body.textContent || doc.body.innerText || '';
 	}
 
 	/**
@@ -76,13 +95,12 @@ export class HtmlUtils {
 	}
 
 	/**
-	 * Parse attributes from an HTML string
+	 * Parse attributes from an HTML string safely using isolated document.
 	 */
 	static parseAttributes(html: string): Record<string, string> {
-		const div = document.createElement('div');
-		div.innerHTML = html;
+		const doc = this.createIsolatedDocument(html);
 
-		const element = div.firstElementChild;
+		const element = doc.body.firstElementChild;
 		if (!element) return {};
 
 		const attributes: Record<string, string> = {};
@@ -94,16 +112,15 @@ export class HtmlUtils {
 	}
 
 	/**
-	 * Extract URLs from HTML content
+	 * Extract URLs from HTML content safely using isolated document.
 	 */
 	static extractUrls(html: string): string[] {
-		const div = document.createElement('div');
-		div.innerHTML = html;
+		const doc = this.createIsolatedDocument(html);
 
 		const urls = new Set<string>();
 
 		// Extract from href attributes
-		div.querySelectorAll('[href]').forEach(element => {
+		doc.body.querySelectorAll('[href]').forEach(element => {
 			const href = element.getAttribute('href');
 			if (href && href.startsWith('http')) {
 				urls.add(href);
@@ -111,7 +128,7 @@ export class HtmlUtils {
 		});
 
 		// Extract from src attributes
-		div.querySelectorAll('[src]').forEach(element => {
+		doc.body.querySelectorAll('[src]').forEach(element => {
 			const src = element.getAttribute('src');
 			if (src && src.startsWith('http')) {
 				urls.add(src);
@@ -122,15 +139,16 @@ export class HtmlUtils {
 	}
 
 	/**
-	 * Sanitize HTML to remove potentially dangerous elements
+	 * Sanitize HTML to remove potentially dangerous elements.
+	 * Uses isolated document for safe parsing - scripts won't execute.
 	 */
 	static sanitize(html: string, allowedTags: string[] = ['p', 'a', 'span', 'div', 'pre']): string {
-		const div = document.createElement('div');
-		div.innerHTML = html;
+		const doc = this.createIsolatedDocument(html);
+		const body = doc.body;
 
 		// Remove script tags and event handlers
-		div.querySelectorAll('script, style').forEach(el => el.remove());
-		div.querySelectorAll('*').forEach(el => {
+		body.querySelectorAll('script, style').forEach(el => el.remove());
+		body.querySelectorAll('*').forEach(el => {
 			// Remove event handlers
 			Array.from(el.attributes).forEach(attr => {
 				if (attr.name.startsWith('on')) {
@@ -144,6 +162,6 @@ export class HtmlUtils {
 			}
 		});
 
-		return div.innerHTML;
+		return body.innerHTML;
 	}
 }
