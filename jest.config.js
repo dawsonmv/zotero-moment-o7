@@ -3,15 +3,15 @@ module.exports = {
 	preset: "ts-jest",
 	testEnvironment: "jsdom",
 	roots: ["<rootDir>/src", "<rootDir>/tests"],
-	testMatch: [
-		"**/__tests__/**/*.+(ts|tsx|js)",
-		"**/?(*.)+(spec|test).+(ts|tsx|js)"
-	],
+	testMatch: ["**/__tests__/**/*.+(ts|tsx|js)", "**/?(*.)+(spec|test).+(ts|tsx|js)"],
 	testPathIgnorePatterns: ["/node_modules/", "/build/", "/e2e/"],
 	transform: {
-		"^.+\\.(ts|tsx)$": ["ts-jest", {
-			tsconfig: "tsconfig.test.json"
-		}]
+		"^.+\\.(ts|tsx)$": [
+			"ts-jest",
+			{
+				tsconfig: "tsconfig.test.json"
+			}
+		]
 	},
 	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/src/$1",
@@ -22,6 +22,7 @@ module.exports = {
 		"^@monitoring/(.*)$": "<rootDir>/src/monitoring/$1"
 	},
 	modulePathIgnorePatterns: ["<rootDir>/build/"],
+	moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 	setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
 	collectCoverageFrom: [
 		"src/**/*.{ts,tsx}",
