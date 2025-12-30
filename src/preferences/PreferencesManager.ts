@@ -3,6 +3,7 @@
  */
 
 import { Preferences } from '../services/types';
+import { CredentialManager } from '../utils/CredentialManager';
 
 export class PreferencesManager {
 	private static instance: PreferencesManager;
@@ -34,7 +35,7 @@ export class PreferencesManager {
 	/**
 	 * Initialize preferences with defaults
 	 */
-	init(): void {
+	async init(): Promise<void> {
 		// Set defaults for any missing preferences
 		for (const [key, value] of Object.entries(this.defaults)) {
 			const prefKey = `extensions.momento7.${key}`;
@@ -42,10 +43,16 @@ export class PreferencesManager {
 				this.setPref(key as keyof Preferences, value);
 			}
 		}
+
+		// Initialize credential manager and migrate plaintext credentials
+		const credManager = CredentialManager.getInstance();
+		await credManager.init();
+		await credManager.migrateIfNeeded();
 	}
 
 	/**
-	 * Get all preferences
+	 * Get all preferences (sync version - credentials may not be decrypted)
+	 * For credentials, use getCredential() instead
 	 */
 	getAll(): Preferences {
 		return {
@@ -54,17 +61,52 @@ export class PreferencesManager {
 			iaTimeout: this.getPref('iaTimeout'),
 			iaMaxRetries: this.getPref('iaMaxRetries'),
 			iaRetryDelay: this.getPref('iaRetryDelay'),
-			iaAccessKey: this.getStringPref('iaAccessKey'),
-			iaSecretKey: this.getStringPref('iaSecretKey'),
+			iaAccessKey: undefined, // Use getCredential() for secure access
+			iaSecretKey: undefined, // Use getCredential() for secure access
 			robustLinkServices: this.getPref('robustLinkServices'),
 			fallbackOrder: this.getPref('fallbackOrder'),
-			permaccApiKey: this.getStringPref('permaccApiKey'),
-			orcidApiKey: this.getStringPref('orcidApiKey'),
+			permaccApiKey: undefined, // Use getCredential() for secure access
+			orcidApiKey: undefined, // Use getCredential() for secure access
 			// Memento pre-check preferences
 			checkBeforeArchive: this.getPref('checkBeforeArchive'),
 			archiveAgeThresholdHours: this.getPref('archiveAgeThresholdHours'),
 			skipExistingMementos: this.getPref('skipExistingMementos'),
 		};
+	}
+
+	/**
+	 * Get all preferences with credentials (async)
+	 */
+	async getAllWithCredentials(): Promise<Preferences> {
+		const credManager = CredentialManager.getInstance();
+		return {
+			...this.getAll(),
+			iaAccessKey: await credManager.getCredential('iaAccessKey'),
+			iaSecretKey: await credManager.getCredential('iaSecretKey'),
+			permaccApiKey: await credManager.getCredential('permaccApiKey'),
+			orcidApiKey: await credManager.getCredential('orcidApiKey'),
+		};
+	}
+
+	/**
+	 * Get a credential securely
+	 */
+	async getCredential(
+		key: 'iaAccessKey' | 'iaSecretKey' | 'permaccApiKey' | 'orcidApiKey'
+	): Promise<string | undefined> {
+		const credManager = CredentialManager.getInstance();
+		return credManager.getCredential(key);
+	}
+
+	/**
+	 * Store a credential securely
+	 */
+	async setCredential(
+		key: 'iaAccessKey' | 'iaSecretKey' | 'permaccApiKey' | 'orcidApiKey',
+		value: string
+	): Promise<void> {
+		const credManager = CredentialManager.getInstance();
+		await credManager.storeCredential(key, value);
 	}
 
 	/**
@@ -89,14 +131,6 @@ export class PreferencesManager {
 			}
 		}
 		return Zotero.Prefs.get(prefKey) as Preferences[K];
-	}
-
-	/**
-	 * Get string preference (may be undefined)
-	 */
-	private getStringPref(key: string): string | undefined {
-		const value = Zotero.Prefs.get(`extensions.momento7.${key}`);
-		return value || undefined;
 	}
 
 	/**
@@ -200,17 +234,22 @@ export class PreferencesManager {
 		return PreferencesManager.getInstance().getPref('fallbackOrder');
 	}
 
-	static getIACredentials(): { accessKey?: string; secretKey?: string } {
+	static async getIACredentials(): Promise<{ accessKey?: string; secretKey?: string }> {
 		const instance = PreferencesManager.getInstance();
 		return {
-			accessKey: instance.getAll().iaAccessKey,
-			secretKey: instance.getAll().iaSecretKey,
+			accessKey: await instance.getCredential('iaAccessKey'),
+			secretKey: await instance.getCredential('iaSecretKey'),
 		};
 	}
 
-	static hasIACredentials(): boolean {
-		const creds = PreferencesManager.getIACredentials();
+	static async hasIACredentials(): Promise<boolean> {
+		const creds = await PreferencesManager.getIACredentials();
 		return !!(creds.accessKey && creds.secretKey);
+	}
+
+	static async getPermaCCApiKey(): Promise<string | undefined> {
+		const instance = PreferencesManager.getInstance();
+		return instance.getCredential('permaccApiKey');
 	}
 
 	static shouldCheckBeforeArchive(): boolean {

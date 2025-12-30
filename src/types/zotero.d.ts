@@ -145,6 +145,15 @@ declare namespace Zotero {
 	const version: string;
 	const platformMajorVersion: number;
 
+	// Profile and data directory
+	const Profile: {
+		dir: string;
+	};
+
+	const DataDirectory: {
+		dir: string;
+	};
+
 	function getMainWindows(): Window[];
 	function getActiveZoteroPane(): ZoteroPane;
 

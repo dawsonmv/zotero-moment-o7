@@ -18,7 +18,6 @@ interface PermaCCError {
 
 export class PermaCCService extends BaseArchiveService {
 	private static readonly API_BASE = 'https://api.perma.cc/v1';
-	private apiKey: string | null = null;
 	private defaultFolder: string | null = null;
 
 	constructor() {
@@ -36,23 +35,29 @@ export class PermaCCService extends BaseArchiveService {
 			},
 		});
 
-		this.loadCredentials();
+		// Load non-sensitive settings
+		this.defaultFolder = (Zotero.Prefs.get('extensions.momento7.permaccFolder') as string) || null;
 	}
 
 	async isAvailable(): Promise<boolean> {
-		return this.apiKey !== null;
+		const apiKey = await PreferencesManager.getPermaCCApiKey();
+		return apiKey !== undefined && apiKey !== null;
 	}
 
-	private loadCredentials(): void {
-		this.apiKey = (Zotero.Prefs.get('extensions.momento7.permaccApiKey') as string) || null;
-		this.defaultFolder = (Zotero.Prefs.get('extensions.momento7.permaccFolder') as string) || null;
+	/**
+	 * Get API key securely
+	 */
+	private async getApiKey(): Promise<string | null> {
+		const apiKey = await PreferencesManager.getPermaCCApiKey();
+		return apiKey || null;
 	}
 
 	protected async archiveUrl(
 		url: string,
 		progress?: ArchiveProgress
 	): Promise<SingleArchiveResult> {
-		if (!this.apiKey) {
+		const apiKey = await this.getApiKey();
+		if (!apiKey) {
 			return {
 				success: false,
 				error: 'Perma.cc API key not configured. Please add your API key in preferences.',
@@ -73,7 +78,7 @@ export class PermaCCService extends BaseArchiveService {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: `ApiKey ${this.apiKey}`,
+					Authorization: `ApiKey ${apiKey}`,
 				},
 				body: JSON.stringify(body),
 				timeout,
@@ -138,7 +143,8 @@ export class PermaCCService extends BaseArchiveService {
 	}
 
 	async checkAvailability(_url: string): Promise<{ available: boolean; existingUrl?: string }> {
-		if (!this.apiKey) {
+		const apiKey = await this.getApiKey();
+		if (!apiKey) {
 			return { available: false };
 		}
 
@@ -147,7 +153,7 @@ export class PermaCCService extends BaseArchiveService {
 			const response = await this.makeHttpRequest(`${PermaCCService.API_BASE}/user/`, {
 				method: 'GET',
 				headers: {
-					Authorization: `ApiKey ${this.apiKey}`,
+					Authorization: `ApiKey ${apiKey}`,
 				},
 				timeout: 30000,
 			});
@@ -164,7 +170,8 @@ export class PermaCCService extends BaseArchiveService {
 	}
 
 	async getFolders(): Promise<Array<{ id: string; name: string }>> {
-		if (!this.apiKey) {
+		const apiKey = await this.getApiKey();
+		if (!apiKey) {
 			return [];
 		}
 
@@ -172,7 +179,7 @@ export class PermaCCService extends BaseArchiveService {
 			const response = await this.makeHttpRequest(`${PermaCCService.API_BASE}/folders/`, {
 				method: 'GET',
 				headers: {
-					Authorization: `ApiKey ${this.apiKey}`,
+					Authorization: `ApiKey ${apiKey}`,
 				},
 				timeout: 30000,
 			});

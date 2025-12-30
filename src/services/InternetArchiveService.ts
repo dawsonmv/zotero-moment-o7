@@ -39,8 +39,8 @@ export class InternetArchiveService extends BaseArchiveService {
 		// Reload settings in case they changed
 		this.reloadSettings();
 
-		// Check if we have API credentials
-		const hasCredentials = PreferencesManager.hasIACredentials();
+		// Check if we have API credentials (async for secure credential access)
+		const hasCredentials = await PreferencesManager.hasIACredentials();
 
 		if (hasCredentials) {
 			return this.archiveWithSPN2(url, progress);
@@ -56,7 +56,7 @@ export class InternetArchiveService extends BaseArchiveService {
 		url: string,
 		progress?: ArchiveProgress
 	): Promise<SingleArchiveResult> {
-		const credentials = PreferencesManager.getIACredentials();
+		const credentials = await PreferencesManager.getIACredentials();
 
 		let lastError: Error = new Error('Unknown error');
 		let attempt = 0;
