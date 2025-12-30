@@ -98,6 +98,10 @@ export interface Preferences {
 	fallbackOrder: string[];
 	permaccApiKey?: string;
 	orcidApiKey?: string;
+	// Memento pre-check preferences
+	checkBeforeArchive: boolean;
+	archiveAgeThresholdHours: number;
+	skipExistingMementos: boolean;
 }
 
 // Menu item configuration

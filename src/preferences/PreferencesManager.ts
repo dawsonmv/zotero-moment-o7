@@ -16,6 +16,10 @@ export class PreferencesManager {
 		iaRetryDelay: 5000, // 5 seconds
 		robustLinkServices: ['internetarchive', 'archivetoday'],
 		fallbackOrder: ['internetarchive', 'archivetoday', 'arquivopt', 'permacc', 'ukwebarchive'],
+		// Memento pre-check defaults
+		checkBeforeArchive: true,
+		archiveAgeThresholdHours: 24, // Skip archiving if memento is < 24 hours old
+		skipExistingMementos: false, // Ask user instead of auto-skipping
 	};
 
 	private constructor() {}
@@ -56,6 +60,10 @@ export class PreferencesManager {
 			fallbackOrder: this.getPref('fallbackOrder'),
 			permaccApiKey: this.getStringPref('permaccApiKey'),
 			orcidApiKey: this.getStringPref('orcidApiKey'),
+			// Memento pre-check preferences
+			checkBeforeArchive: this.getPref('checkBeforeArchive'),
+			archiveAgeThresholdHours: this.getPref('archiveAgeThresholdHours'),
+			skipExistingMementos: this.getPref('skipExistingMementos'),
 		};
 	}
 
@@ -153,6 +161,10 @@ export class PreferencesManager {
 		this.setPref('iaRetryDelay', params.iaRetryDelay);
 		this.setPref('robustLinkServices', params.robustLinkServices);
 		this.setPref('fallbackOrder', params.fallbackOrder);
+		// Memento pre-check preferences
+		this.setPref('checkBeforeArchive', params.checkBeforeArchive);
+		this.setPref('archiveAgeThresholdHours', params.archiveAgeThresholdHours);
+		this.setPref('skipExistingMementos', params.skipExistingMementos);
 
 		if (params.iaAccessKey) {
 			this.setPref('iaAccessKey' as any, params.iaAccessKey);
@@ -199,6 +211,19 @@ export class PreferencesManager {
 	static hasIACredentials(): boolean {
 		const creds = PreferencesManager.getIACredentials();
 		return !!(creds.accessKey && creds.secretKey);
+	}
+
+	static shouldCheckBeforeArchive(): boolean {
+		return PreferencesManager.getInstance().getPref('checkBeforeArchive');
+	}
+
+	static getArchiveAgeThresholdMs(): number {
+		const hours = PreferencesManager.getInstance().getPref('archiveAgeThresholdHours');
+		return hours * 60 * 60 * 1000; // Convert hours to milliseconds
+	}
+
+	static shouldSkipExistingMementos(): boolean {
+		return PreferencesManager.getInstance().getPref('skipExistingMementos');
 	}
 
 	/**

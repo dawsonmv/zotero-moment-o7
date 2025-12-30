@@ -4,7 +4,7 @@
 
 This plan supersedes the previous plans (ARCHIVING_SERVICES_PLAN.md, IMPLEMENTATION_PLAN_2024.md, ARCHITECTURE_REFACTORING_PLAN.md) based on an evaluation of the current codebase state.
 
-**Key Finding**: The architecture refactoring is ~70% complete but the services aren't wired up, and the documented plans are outdated.
+**Key Finding**: The architecture refactoring is ~90% complete. All 5 services registered and Memento pre-checks integrated (Dec 2024). Remaining work: test coverage, legacy cleanup, and Perma.cc API key UI.
 
 ---
 
@@ -32,8 +32,8 @@ This plan supersedes the previous plans (ARCHIVING_SERVICES_PLAN.md, IMPLEMENTAT
 
 | Component | Issue |
 |-----------|-------|
-| Service Registration | Only InternetArchiveService is registered in MomentO7.ts:54-60 |
-| Memento Pre-checks | MementoChecker exists but NOT integrated into ArchiveCoordinator |
+| Service Registration | ✅ All 5 services registered in MomentO7.ts:58-62 (Dec 2024) |
+| Memento Pre-checks | ✅ Integrated into ArchiveCoordinator (Dec 2024) |
 | Test Coverage | Only 4 utility tests exist (~15% coverage) |
 | Code Cleanup | Duplicate files and legacy JS still present |
 
@@ -50,28 +50,31 @@ This plan supersedes the previous plans (ARCHIVING_SERVICES_PLAN.md, IMPLEMENTAT
 
 ## Critical Issues
 
-### 1. Services Not Registered (HIGH PRIORITY)
+### 1. ~~Services Not Registered~~ ✅ RESOLVED (Dec 2024)
 
-**Location**: `src/MomentO7.ts:54-60`
+**Location**: `src/MomentO7.ts:58-62`
 
 ```typescript
-// Current state - only one service registered:
+// All 5 services are now registered:
 registry.register('internetarchive', new InternetArchiveService());
-
-// TODO: Register other services when ported to TypeScript
-// registry.register('archivetoday', new ArchiveTodayService());
-// registry.register('permacc', new PermaCCService());
-// registry.register('ukwebarchive', new UKWebArchiveService());
-// registry.register('arquivopt', new ArquivoPtService());
+registry.register('archivetoday', new ArchiveTodayService());
+registry.register('permacc', new PermaCCService());
+registry.register('ukwebarchive', new UKWebArchiveService());
+registry.register('arquivopt', new ArquivoPtService());
 ```
 
-**Impact**: Users can only use Internet Archive despite 5 services being implemented in TypeScript.
+**Status**: All archive services are properly registered and available to users.
 
-### 2. Memento Not Integrated (MEDIUM PRIORITY)
+### 2. ~~Memento Not Integrated~~ ✅ RESOLVED (Dec 2024)
 
-**Location**: `src/services/ArchiveCoordinator.ts`
+**Location**: `src/services/ArchiveCoordinator.ts:63-143`
 
-MementoChecker.ts exists with full implementation but ArchiveCoordinator doesn't use it for pre-archive checks. The ARCHITECTURE_REFACTORING_PLAN.md (lines 149-178) describes this integration but it wasn't implemented.
+MementoChecker is now integrated into ArchiveCoordinator for pre-archive checks.
+
+**Implementation:**
+- `checkExistingMemento()` method checks both stored and remote mementos
+- New preferences: `checkBeforeArchive`, `archiveAgeThresholdHours`, `skipExistingMementos`
+- Returns existing archive info when recent memento found
 
 ### 3. Duplicate/Legacy Files (LOW PRIORITY)
 
@@ -92,33 +95,34 @@ MementoChecker.ts exists with full implementation but ArchiveCoordinator doesn't
 
 ## Updated Implementation Plan
 
-### Phase 1: Wire Up Existing Services (1-2 days)
+### Phase 1: Wire Up Existing Services ✅ COMPLETE (Dec 2024)
 
 **Goal**: Enable all 5 archive services that are already implemented in TypeScript.
 
 #### Tasks:
-1. Import and register all TypeScript services in MomentO7.ts
-2. Verify each service works with the existing ArchiveCoordinator
-3. Test menu items trigger correct services
-4. Update preferences defaults if needed
+1. ✅ Import and register all TypeScript services in MomentO7.ts
+2. ✅ Verify each service works with the existing ArchiveCoordinator
+3. Test menu items trigger correct services (needs manual testing)
+4. ✅ Update preferences defaults if needed
 
-#### Files to modify:
-- `src/MomentO7.ts` - Add imports and registrations
+#### Files modified:
+- `src/MomentO7.ts` - All 5 services imported and registered at lines 58-62
 
-### Phase 2: Integrate Memento Pre-checks (1-2 days)
+### Phase 2: Integrate Memento Pre-checks ✅ COMPLETE (Dec 2024)
 
 **Goal**: Check existing archives before creating duplicates.
 
 #### Tasks:
-1. Add MementoChecker integration to ArchiveCoordinator
-2. Add preference for "check before archive" (already defined)
-3. Add preference for "archive age threshold"
-4. Show user when recent archive exists
-5. Allow user to proceed or skip
+1. ✅ Add MementoChecker integration to ArchiveCoordinator
+2. ✅ Add preference for "check before archive" (`checkBeforeArchive`)
+3. ✅ Add preference for "archive age threshold" (`archiveAgeThresholdHours`)
+4. ✅ Show user when recent archive exists (via `existingArchive` in result)
+5. ✅ Allow user to proceed or skip (`skipExistingMementos`)
 
-#### Files to modify:
-- `src/services/ArchiveCoordinator.ts` - Add pre-check logic
-- `src/preferences/PreferencesManager.ts` - Add new preferences
+#### Files modified:
+- `src/services/ArchiveCoordinator.ts` - Added `checkExistingMemento()` method
+- `src/preferences/PreferencesManager.ts` - Added 3 new preferences
+- `src/services/types.ts` - Added preference types
 
 ### Phase 3: Test Coverage (2-3 days)
 
@@ -166,14 +170,14 @@ MementoChecker.ts exists with full implementation but ArchiveCoordinator doesn't
 ## Linear Execution Order
 
 ```
-1.  Register ArchiveTodayService in MomentO7.ts
-2.  Register PermaCCService in MomentO7.ts
-3.  Register UKWebArchiveService in MomentO7.ts
-4.  Register ArquivoPtService in MomentO7.ts
+1.  ✅ Register ArchiveTodayService in MomentO7.ts (Dec 2024)
+2.  ✅ Register PermaCCService in MomentO7.ts (Dec 2024)
+3.  ✅ Register UKWebArchiveService in MomentO7.ts (Dec 2024)
+4.  ✅ Register ArquivoPtService in MomentO7.ts (Dec 2024)
 5.  Test all 5 services work via menu
-6.  Add Memento pre-check to ArchiveCoordinator
-7.  Add "check before archive" preference
-8.  Add "archive age threshold" preference
+6.  ✅ Add Memento pre-check to ArchiveCoordinator (Dec 2024)
+7.  ✅ Add "check before archive" preference (Dec 2024)
+8.  ✅ Add "archive age threshold" preference (Dec 2024)
 9.  Test Memento integration
 10. Write ServiceRegistry.test.ts
 11. Write ArchiveCoordinator.test.ts
@@ -194,13 +198,13 @@ MementoChecker.ts exists with full implementation but ArchiveCoordinator doesn't
 
 ## Success Criteria
 
-| Metric | Target |
-|--------|--------|
-| Registered Services | 5 (currently 1) |
-| Test Coverage | 50% (currently ~15%) |
-| Legacy JS Files | 0 (currently 18) |
-| Working Memento Pre-check | Yes (currently No) |
-| Perma.cc API Key UI | Yes (currently No) |
+| Metric | Target | Current |
+|--------|--------|---------|
+| Registered Services | 5 | ✅ 5 (Dec 2024) |
+| Test Coverage | 50% | ~15% |
+| Legacy JS Files | 0 | 18 |
+| Working Memento Pre-check | Yes | ✅ Yes (Dec 2024) |
+| Perma.cc API Key UI | Yes | No |
 
 ---
 

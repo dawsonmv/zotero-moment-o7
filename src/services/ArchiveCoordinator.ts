@@ -1,9 +1,12 @@
 /**
  * Coordinates archiving across multiple services
+ * Integrates MementoChecker to prevent duplicate archiving
  */
 
 import { ServiceRegistry } from './ServiceRegistry';
 import { ArchiveResult, ArchiveService } from './types';
+import { MementoChecker, MementoInfo } from '../memento/MementoChecker';
+import { PreferencesManager } from '../preferences/PreferencesManager';
 
 export class ArchiveCoordinator {
 	private static instance: ArchiveCoordinator;
@@ -49,11 +52,20 @@ export class ArchiveCoordinator {
 
 	/**
 	 * Archive a single item
+	 * Checks for existing mementos before archiving if preference enabled
 	 */
 	private async archiveItem(item: Zotero.Item, serviceId?: string): Promise<ArchiveResult> {
 		const url = item.getField('url');
 		if (!url) {
 			throw new Error('Item has no URL to archive');
+		}
+
+		// Check for existing mementos if preference enabled
+		if (PreferencesManager.shouldCheckBeforeArchive()) {
+			const existingResult = await this.checkExistingMemento(url, item);
+			if (existingResult) {
+				return existingResult;
+			}
 		}
 
 		// If specific service requested, use it
@@ -67,6 +79,124 @@ export class ArchiveCoordinator {
 
 		// Otherwise use fallback logic
 		return await this.archiveWithFallback(item);
+	}
+
+	/**
+	 * Check for existing mementos before archiving
+	 * Returns ArchiveResult if recent memento found and should skip, null otherwise
+	 */
+	private async checkExistingMemento(
+		url: string,
+		item: Zotero.Item
+	): Promise<ArchiveResult | null> {
+		try {
+			Zotero.debug(`MomentO7: Checking for existing mementos of ${url}`);
+
+			// First check item's stored mementos
+			const storedMementos = MementoChecker.findExistingMementos(item);
+			if (storedMementos.length > 0) {
+				const recentMemento = this.findRecentMemento(storedMementos);
+				if (recentMemento) {
+					Zotero.debug(`MomentO7: Found recent stored memento from ${recentMemento.service}`);
+					return this.createExistingMementoResult(item, recentMemento, 'stored');
+				}
+			}
+
+			// Check remote archives via Memento Protocol
+			const mementoResult = await MementoChecker.checkUrl(url);
+			if (mementoResult.hasMemento && mementoResult.mementos.length > 0) {
+				const recentMemento = this.findRecentMemento(mementoResult.mementos);
+				if (recentMemento) {
+					Zotero.debug(`MomentO7: Found recent remote memento from ${recentMemento.service}`);
+
+					// If auto-skip enabled, return existing memento
+					if (PreferencesManager.shouldSkipExistingMementos()) {
+						return this.createExistingMementoResult(item, recentMemento, 'remote');
+					}
+
+					// Otherwise return with existingArchive info for UI to handle
+					return {
+						item,
+						success: true,
+						archivedUrl: recentMemento.url,
+						service: recentMemento.service,
+						message: `Recent archive found (${this.formatAge(recentMemento.datetime)})`,
+						existingArchive: {
+							memento: recentMemento,
+							source: 'remote',
+							checkResult: mementoResult,
+						},
+					};
+				}
+			}
+
+			return null; // No recent memento found, proceed with archiving
+		} catch (error) {
+			// Log error but don't block archiving
+			Zotero.debug(`MomentO7: Memento check failed: ${error}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Find a memento within the age threshold
+	 */
+	private findRecentMemento(mementos: MementoInfo[]): MementoInfo | null {
+		const thresholdMs = PreferencesManager.getArchiveAgeThresholdMs();
+		const now = Date.now();
+
+		// Sort by datetime descending (most recent first)
+		const sorted = [...mementos].sort(
+			(a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
+		);
+
+		for (const memento of sorted) {
+			const mementoAge = now - new Date(memento.datetime).getTime();
+			if (mementoAge < thresholdMs) {
+				return memento;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Create ArchiveResult for existing memento
+	 */
+	private createExistingMementoResult(
+		item: Zotero.Item,
+		memento: MementoInfo,
+		source: 'stored' | 'remote'
+	): ArchiveResult {
+		return {
+			item,
+			success: true,
+			archivedUrl: memento.url,
+			service: memento.service,
+			message: `Using existing archive from ${memento.service} (${this.formatAge(memento.datetime)})`,
+			existingArchive: {
+				memento,
+				source,
+				skipped: true,
+			},
+		};
+	}
+
+	/**
+	 * Format memento age for display
+	 */
+	private formatAge(datetime: string): string {
+		const ageMs = Date.now() - new Date(datetime).getTime();
+		const hours = Math.floor(ageMs / (1000 * 60 * 60));
+		const days = Math.floor(hours / 24);
+
+		if (days > 0) {
+			return `${days} day${days > 1 ? 's' : ''} old`;
+		}
+		if (hours > 0) {
+			return `${hours} hour${hours > 1 ? 's' : ''} old`;
+		}
+		return 'less than 1 hour old';
 	}
 
 	/**

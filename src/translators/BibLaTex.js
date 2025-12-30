@@ -293,31 +293,10 @@ function mapEscape(character) {
 // escaping, but we do want to preserve the base characters
 
 function tidyAccents(s) {
-	var r = s.toLowerCase();
-
-	// XXX Remove conditional when we drop Zotero 2.1.x support
-	// This is supported in Zotero 3.0 and higher
-	if (ZU.removeDiacritics !== undefined)
-		r = ZU.removeDiacritics(r, true);
-	else {
-		// We fall back on the replacement list we used previously
-		r = r.replace(new RegExp("[ä]", 'g'), "ae");
-		r = r.replace(new RegExp("[ö]", 'g'), "oe");
-		r = r.replace(new RegExp("[ü]", 'g'), "ue");
-		r = r.replace(new RegExp("[àáâãå]", 'g'), "a");
-		r = r.replace(new RegExp("æ", 'g'), "ae");
-		r = r.replace(new RegExp("ç", 'g'), "c");
-		r = r.replace(new RegExp("[èéêë]", 'g'), "e");
-		r = r.replace(new RegExp("[ìíîï]", 'g'), "i");
-		r = r.replace(new RegExp("ñ", 'g'), "n");
-		r = r.replace(new RegExp("[òóôõ]", 'g'), "o");
-		r = r.replace(new RegExp("œ", 'g'), "oe");
-		r = r.replace(new RegExp("[ùúû]", 'g'), "u");
-		r = r.replace(new RegExp("[ýÿ]", 'g'), "y");
-	}
-
-	return r;
-};
+	// Convert to lowercase and remove diacritics for BibTeX key generation
+	// ZU.removeDiacritics available since Zotero 3.0 (plugin requires Zotero 7+)
+	return ZU.removeDiacritics(s.toLowerCase(), true);
+}
 
 var numberRe = /^[0-9]+/;
 // Below is a list of words that should not appear as part of the citation key
