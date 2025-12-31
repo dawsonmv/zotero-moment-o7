@@ -17,6 +17,7 @@ export interface Preferences {
   checkBeforeArchive: boolean;
   archiveAgeThresholdHours: number;
   skipExistingMementos: boolean;
+  archiveTodayProxyUrl: string;
 }
 
 export class PreferencesManager {
@@ -41,6 +42,9 @@ export class PreferencesManager {
     checkBeforeArchive: true,
     archiveAgeThresholdHours: 24,
     skipExistingMementos: false,
+    // Empty string means use direct submission (no proxy)
+    // Users can configure their own Cloudflare Worker proxy URL
+    archiveTodayProxyUrl: "",
   };
 
   private constructor() {}
@@ -85,6 +89,7 @@ export class PreferencesManager {
       checkBeforeArchive: this.getPref("checkBeforeArchive"),
       archiveAgeThresholdHours: this.getPref("archiveAgeThresholdHours"),
       skipExistingMementos: this.getPref("skipExistingMementos"),
+      archiveTodayProxyUrl: this.getPref("archiveTodayProxyUrl"),
     };
   }
 
@@ -207,5 +212,13 @@ export class PreferencesManager {
 
   static isAutoArchiveEnabled(): boolean {
     return PreferencesManager.getInstance().getPref("autoArchive");
+  }
+
+  /**
+   * Get the Archive.today proxy URL
+   * Returns empty string if no proxy configured (use direct submission)
+   */
+  static getArchiveTodayProxyUrl(): string {
+    return PreferencesManager.getInstance().getPref("archiveTodayProxyUrl");
   }
 }

@@ -4,15 +4,23 @@
 
 import { ArchiveTodayService } from "../../src/modules/archive/ArchiveTodayService";
 
-// Mock PreferencesManager
+// Mock PreferencesManager with configurable proxy URL
+let mockProxyUrl = "";
+
 jest.mock("../../src/modules/preferences/PreferencesManager", () => ({
   PreferencesManager: {
     getTimeout: jest.fn().mockReturnValue(60000),
+    getArchiveTodayProxyUrl: jest.fn().mockImplementation(() => mockProxyUrl),
     getInstance: jest.fn().mockReturnValue({
       getPref: jest.fn(),
     }),
   },
 }));
+
+// Helper to set mock proxy URL
+const setMockProxyUrl = (url: string) => {
+  mockProxyUrl = url;
+};
 
 describe("ArchiveTodayService", function () {
   let service: ArchiveTodayService;
@@ -55,8 +63,20 @@ describe("ArchiveTodayService", function () {
     });
   });
 
-  describe("archive via worker", function () {
-    it("should archive successfully via worker proxy", async function () {
+  describe("archive via proxy", function () {
+    const testProxyUrl = "https://my-archive-proxy.workers.dev/";
+
+    beforeEach(function () {
+      // Configure a proxy URL for these tests
+      setMockProxyUrl(testProxyUrl);
+    });
+
+    afterEach(function () {
+      // Reset to no proxy
+      setMockProxyUrl("");
+    });
+
+    it("should archive successfully via configured proxy", async function () {
       const archivedUrl = "https://archive.today/abc123";
 
       (Zotero.HTTP.request as jest.Mock).mockResolvedValue({
@@ -70,19 +90,19 @@ describe("ArchiveTodayService", function () {
       expect(results[0].success).toBe(true);
       expect(results[0].archivedUrl).toBe(archivedUrl);
 
-      // Should have used the worker URL
+      // Should have used the configured proxy URL
       expect(Zotero.HTTP.request).toHaveBeenCalledWith(
-        expect.stringContaining("workers.dev"),
+        testProxyUrl,
         expect.objectContaining({
           method: "POST",
         }),
       );
     });
 
-    it("should handle worker errors", async function () {
+    it("should handle proxy errors", async function () {
       (Zotero.HTTP.request as jest.Mock).mockResolvedValue({
         status: 200,
-        responseText: JSON.stringify({ error: "Worker busy" }),
+        responseText: JSON.stringify({ error: "Proxy busy" }),
       });
 
       const results = await service.archive([mockItem]);
@@ -91,7 +111,7 @@ describe("ArchiveTodayService", function () {
       expect(results[0].success).toBe(false);
     });
 
-    it("should handle worker returning no URL", async function () {
+    it("should handle proxy returning no URL", async function () {
       (Zotero.HTTP.request as jest.Mock).mockResolvedValue({
         status: 200,
         responseText: JSON.stringify({}),
@@ -104,15 +124,43 @@ describe("ArchiveTodayService", function () {
     });
   });
 
-  describe("archive directly (fallback)", function () {
-    // Note: Testing fallback behavior is complex due to the service's internal state
-    // (workerAvailable flag). These tests focus on error scenarios.
+  describe("archive directly (no proxy configured)", function () {
+    beforeEach(function () {
+      // Ensure no proxy is configured
+      setMockProxyUrl("");
+    });
 
-    it("should handle complete failure gracefully", async function () {
-      // Both worker and direct fail
-      (Zotero.HTTP.request as jest.Mock)
-        .mockRejectedValueOnce(new Error("Worker down"))
-        .mockRejectedValueOnce(new Error("Direct also down"));
+    it("should archive directly when no proxy configured", async function () {
+      const archivedUrl = "https://archive.today/xyz789";
+
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        status: 200,
+        responseText: `<input id="SHARE_LONGLINK" value="${archivedUrl}">`,
+      });
+
+      const results = await service.archive([mockItem]);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+
+      // Should have called Archive.today directly
+      expect(Zotero.HTTP.request).toHaveBeenCalledWith(
+        expect.stringContaining("archive.today/submit"),
+        expect.objectContaining({
+          method: "POST",
+        }),
+      );
+    });
+  });
+
+  describe("archive fallback behavior", function () {
+    it("should handle direct submission failure gracefully", async function () {
+      // No proxy configured, direct fails
+      setMockProxyUrl("");
+
+      (Zotero.HTTP.request as jest.Mock).mockRejectedValue(
+        new Error("Service unavailable"),
+      );
 
       const results = await service.archive([mockItem]);
 

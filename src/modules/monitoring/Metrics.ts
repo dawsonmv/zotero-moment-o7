@@ -11,6 +11,8 @@ export interface MetricsConfig {
   maxEntries: number;
   aggregationIntervals: number[]; // in ms
   enablePersistence: boolean;
+  maxErrorCounters: number; // Maximum number of unique error counters
+  counterHistoryLimit: number; // Maximum history entries per counter
 }
 
 const DEFAULT_CONFIG: MetricsConfig = {
@@ -21,6 +23,8 @@ const DEFAULT_CONFIG: MetricsConfig = {
     7 * 24 * 60 * 60 * 1000, // 1 week
   ],
   enablePersistence: true,
+  maxErrorCounters: 100, // Limit unique error type counters
+  counterHistoryLimit: 500, // Reduced from 1000 for memory efficiency
 };
 
 /**
@@ -29,20 +33,30 @@ const DEFAULT_CONFIG: MetricsConfig = {
 export class Counter {
   private value = 0;
   private history: Array<{ timestamp: number; value: number }> = [];
+  private lastAccess: number = Date.now();
+  private historyLimit: number;
 
   constructor(
     public readonly name: string,
     public readonly labels: Record<string, string> = {},
-  ) {}
+    historyLimit: number = 500,
+  ) {
+    this.historyLimit = historyLimit;
+  }
 
   inc(delta = 1): void {
     this.value += delta;
+    this.lastAccess = Date.now();
     this.history.push({ timestamp: Date.now(), value: this.value });
 
-    // Keep last 1000 entries
-    if (this.history.length > 1000) {
-      this.history = this.history.slice(-1000);
+    // Keep entries within limit
+    if (this.history.length > this.historyLimit) {
+      this.history = this.history.slice(-this.historyLimit);
     }
+  }
+
+  getLastAccess(): number {
+    return this.lastAccess;
   }
 
   get(): number {
@@ -105,6 +119,7 @@ export class Histogram {
   private buckets: Map<number, number> = new Map();
   private sum = 0;
   private count = 0;
+  private readonly maxValues: number;
 
   constructor(
     public readonly name: string,
@@ -112,7 +127,9 @@ export class Histogram {
       10, 50, 100, 250, 500, 1000, 2500, 5000, 10000,
     ],
     public readonly labels: Record<string, string> = {},
+    maxValues: number = 5000, // Reduced from 10000 for memory efficiency
   ) {
+    this.maxValues = maxValues;
     // Initialize buckets
     for (const boundary of bucketBoundaries) {
       this.buckets.set(boundary, 0);
@@ -132,9 +149,9 @@ export class Histogram {
       }
     }
 
-    // Keep last 10000 values for percentile calculations
-    if (this.values.length > 10000) {
-      this.values = this.values.slice(-10000);
+    // Keep values within limit for percentile calculations
+    if (this.values.length > this.maxValues) {
+      this.values = this.values.slice(-this.maxValues);
     }
   }
 
@@ -290,12 +307,26 @@ export class MetricsRegistry {
     } else {
       this.archiveFailures.inc();
 
-      // Track error by type
+      // Track error by type with bounded counter map
       const errorKey = `${metrics.serviceId}:${metrics.errorType || "unknown"}`;
       if (!this.serviceErrors.has(errorKey)) {
-        this.serviceErrors.set(errorKey, new Counter(`errors_${errorKey}`));
+        // Enforce maximum error counters limit
+        if (this.serviceErrors.size >= this.config.maxErrorCounters) {
+          this.cleanupStaleErrorCounters();
+        }
+        // Only add if still under limit after cleanup
+        if (this.serviceErrors.size < this.config.maxErrorCounters) {
+          this.serviceErrors.set(
+            errorKey,
+            new Counter(
+              `errors_${errorKey}`,
+              {},
+              this.config.counterHistoryLimit,
+            ),
+          );
+        }
       }
-      this.serviceErrors.get(errorKey)!.inc();
+      this.serviceErrors.get(errorKey)?.inc();
     }
 
     // Record duration
@@ -305,6 +336,31 @@ export class MetricsRegistry {
     this.archiveHistory.push(metrics);
     if (this.archiveHistory.length > this.config.maxEntries) {
       this.archiveHistory = this.archiveHistory.slice(-this.config.maxEntries);
+    }
+  }
+
+  /**
+   * Remove stale error counters that haven't been accessed recently
+   * Keeps the most recently used counters up to half the limit
+   */
+  private cleanupStaleErrorCounters(): void {
+    const maxToKeep = Math.floor(this.config.maxErrorCounters / 2);
+    const countersWithAccess: Array<{ key: string; lastAccess: number }> = [];
+
+    for (const [key, counter] of this.serviceErrors) {
+      countersWithAccess.push({ key, lastAccess: counter.getLastAccess() });
+    }
+
+    // Sort by last access time (oldest first)
+    countersWithAccess.sort((a, b) => a.lastAccess - b.lastAccess);
+
+    // Remove oldest counters, keeping only the most recent half
+    const toRemove = countersWithAccess.slice(
+      0,
+      countersWithAccess.length - maxToKeep,
+    );
+    for (const { key } of toRemove) {
+      this.serviceErrors.delete(key);
     }
   }
 

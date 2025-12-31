@@ -3,9 +3,8 @@ import { SingleArchiveResult, ArchiveProgress } from "./types";
 import { PreferencesManager } from "../preferences/PreferencesManager";
 
 export class ArchiveTodayService extends BaseArchiveService {
-  private static readonly WORKER_URL =
-    "https://archive-proxy.dawsonvaldes.workers.dev/";
-  private workerAvailable: boolean = true;
+  // Proxy availability is tracked per-session
+  private proxyAvailable: boolean = true;
 
   constructor() {
     super({
@@ -29,57 +28,59 @@ export class ArchiveTodayService extends BaseArchiveService {
     url: string,
     progress?: ArchiveProgress,
   ): Promise<SingleArchiveResult> {
-    // const startTime = Date.now();
-
     try {
-      // Try Worker first
-      if (this.workerAvailable) {
+      // Check if a proxy URL is configured
+      const proxyUrl = PreferencesManager.getArchiveTodayProxyUrl();
+
+      // Try proxy first if configured and available
+      if (proxyUrl && this.proxyAvailable) {
         try {
-          const result = await this.archiveViaWorker(url, progress);
+          const result = await this.archiveViaProxy(url, proxyUrl, progress);
           if (result.success) {
             return result;
           }
         } catch (error) {
-          console.warn(
-            "Archive.today Worker failed, falling back to direct method:",
-            error,
+          Zotero.debug(
+            `Moment-o7: Archive.today proxy failed, falling back to direct: ${error}`,
           );
-          this.workerAvailable = false;
+          this.proxyAvailable = false;
         }
       }
 
-      // Fallback to direct submission
+      // Direct submission (may fail due to CORS in some contexts)
       return await this.archiveDirectly(url, progress);
     } catch (error) {
       return {
         success: false,
         error:
           error instanceof Error ? error.message : "Unknown error occurred",
-      } as SingleArchiveResult;
+      };
     }
   }
 
-  private async archiveViaWorker(
+  /**
+   * Archive via a configured proxy (e.g., Cloudflare Worker)
+   * Users can deploy their own proxy to handle CORS issues
+   */
+  private async archiveViaProxy(
     url: string,
+    proxyUrl: string,
     progress?: ArchiveProgress,
   ): Promise<SingleArchiveResult> {
     progress?.onStatusUpdate(`Submitting ${url} to Archive.today via proxy...`);
 
     const timeout = PreferencesManager.getTimeout();
-    const response = await this.makeHttpRequest(
-      ArchiveTodayService.WORKER_URL,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-        timeout,
+    const response = await this.makeHttpRequest(proxyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ url }),
+      timeout,
+    });
 
     if (!response.success) {
-      throw new Error(response.error || "Worker request failed");
+      throw new Error(response.error || "Proxy request failed");
     }
 
     const data = JSON.parse(response.data);
@@ -89,7 +90,7 @@ export class ArchiveTodayService extends BaseArchiveService {
     }
 
     if (!data.archivedUrl) {
-      throw new Error("No archived URL returned from worker");
+      throw new Error("No archived URL returned from proxy");
     }
 
     return {
