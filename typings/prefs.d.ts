@@ -7,8 +7,22 @@
 declare namespace _ZoteroTypes {
   interface Prefs {
     PluginPrefsMap: {
-      "enable": boolean;
-      "input": string;
+      "autoArchive": boolean;
+      "defaultService": string;
+      "iaTimeout": number;
+      "iaMaxRetries": number;
+      "iaRetryDelay": number;
+      "robustLinkServices": string;
+      "fallbackOrder": string;
+      "checkBeforeArchive": boolean;
+      "archiveAgeThresholdHours": number;
+      "skipExistingMementos": boolean;
+      "enableInternetArchive": boolean;
+      "enableArchiveToday": boolean;
+      "enableArquivoPt": boolean;
+      "enablePermaCC": boolean;
+      "enableUKWebArchive": boolean;
+      "preferDOI": boolean;
     };
   }
 }

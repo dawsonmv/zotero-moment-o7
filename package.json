@@ -1,32 +1,35 @@
 {
-  "name": "zotero-plugin-template",
+  "name": "zotero-moment-o7",
   "type": "module",
-  "version": "3.1.0",
-  "description": "Zotero Plugin Template",
+  "version": "1.0.0",
+  "description": "Archive web resources to prevent link rot - Zotero 7 plugin for automated web archiving",
   "config": {
-    "addonName": "Zotero Plugin Template",
-    "addonID": "addontemplate@euclpts.com",
-    "addonRef": "addontemplate",
-    "addonInstance": "AddonTemplate",
-    "prefsPrefix": "extensions.zotero.addontemplate"
+    "addonName": "Moment-o7",
+    "addonID": "momento7@zotero.org",
+    "addonRef": "momento7",
+    "addonInstance": "MomentO7",
+    "prefsPrefix": "extensions.momento7"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/windingwind/zotero-plugin-template.git"
+    "url": "git+https://github.com/dawsonmv/zotero-moment-o7.git"
   },
-  "author": "windingwind",
+  "author": "Harding Center for Risk Literacy",
   "bugs": {
-    "url": "https://github.com/windingwind/zotero-plugin-template/issues"
+    "url": "https://github.com/dawsonmv/zotero-moment-o7/issues"
   },
-  "homepage": "https://github.com/windingwind/zotero-plugin-template#readme",
-  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/dawsonmv/zotero-moment-o7#readme",
+  "license": "GPL-3.0",
   "scripts": {
     "start": "zotero-plugin serve",
     "build": "zotero-plugin build && tsc --noEmit",
     "lint:check": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
     "release": "zotero-plugin release",
-    "test": "zotero-plugin test",
+    "test": "jest",
+    "test:mocha": "zotero-plugin test",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "update-deps": "npm update --save"
   },
   "dependencies": {
@@ -34,13 +37,17 @@
   },
   "devDependencies": {
     "@types/chai": "^5.2.3",
+    "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.10.0",
     "@zotero-plugin/eslint-config": "^0.6.7",
     "chai": "^6.2.1",
     "eslint": "^9.39.2",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
     "mocha": "^11.7.5",
     "prettier": "^3.7.4",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.9.3",
     "zotero-plugin-scaffold": "^0.8.2",
     "zotero-types": "^4.1.0-beta.4"

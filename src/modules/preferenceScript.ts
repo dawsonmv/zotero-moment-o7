@@ -1,131 +1,289 @@
 import { config } from "../../package.json";
-import { getString } from "../utils/locale";
+import { CredentialManager } from "../utils/CredentialManager";
 
-export async function registerPrefsScripts(_window: Window) {
-  // This function is called when the prefs window is opened
-  // See addon/content/preferences.xhtml onpaneload
+/**
+ * Register preference window scripts
+ * Called when the preferences window is opened
+ */
+export async function registerPrefsScripts(_window: Window): Promise<void> {
   if (!addon.data.prefs) {
     addon.data.prefs = {
       window: _window,
-      columns: [
-        {
-          dataKey: "title",
-          label: getString("prefs-table-title"),
-          fixedWidth: true,
-          width: 100,
-        },
-        {
-          dataKey: "detail",
-          label: getString("prefs-table-detail"),
-        },
-      ],
-      rows: [
-        {
-          title: "Orange",
-          detail: "It's juicy",
-        },
-        {
-          title: "Banana",
-          detail: "It's sweet",
-        },
-        {
-          title: "Apple",
-          detail: "I mean the fruit APPLE",
-        },
-      ],
+      columns: [],
+      rows: [],
     };
   } else {
     addon.data.prefs.window = _window;
   }
-  updatePrefsUI();
-  bindPrefEvents();
+
+  // Initialize preference UI elements
+  await initPrefsUI(_window);
+  bindPrefEvents(_window);
 }
 
-async function updatePrefsUI() {
-  // You can initialize some UI elements on prefs window
-  // with addon.data.prefs.window.document
-  // Or bind some events to the elements
-  const renderLock = ztoolkit.getGlobal("Zotero").Promise.defer();
-  if (addon.data.prefs?.window == undefined) return;
-  const tableHelper = new ztoolkit.VirtualizedTable(addon.data.prefs?.window)
-    .setContainerId(`${config.addonRef}-table-container`)
-    .setProp({
-      id: `${config.addonRef}-prefs-table`,
-      // Do not use setLocale, as it modifies the Zotero.Intl.strings
-      // Set locales directly to columns
-      columns: addon.data.prefs?.columns,
-      showHeader: true,
-      multiSelect: true,
-      staticColumns: true,
-      disableFontSizeScaling: true,
-    })
-    .setProp("getRowCount", () => addon.data.prefs?.rows.length || 0)
-    .setProp(
-      "getRowData",
-      (index) =>
-        addon.data.prefs?.rows[index] || {
-          title: "no data",
-          detail: "no data",
-        },
-    )
-    // Show a progress window when selection changes
-    .setProp("onSelectionChange", (selection) => {
-      new ztoolkit.ProgressWindow(config.addonName)
-        .createLine({
-          text: `Selected line: ${addon.data.prefs?.rows
-            .filter((v, i) => selection.isSelected(i))
-            .map((row) => row.title)
-            .join(",")}`,
-          progress: 100,
-        })
-        .show();
-    })
-    // When pressing delete, delete selected line and refresh table.
-    // Returning false to prevent default event.
-    .setProp("onKeyDown", (event: KeyboardEvent) => {
-      if (event.key == "Delete" || (Zotero.isMac && event.key == "Backspace")) {
-        addon.data.prefs!.rows =
-          addon.data.prefs?.rows.filter(
-            (v, i) => !tableHelper.treeInstance.selection.isSelected(i),
-          ) || [];
-        tableHelper.render();
-        return false;
-      }
-      return true;
-    })
-    // For find-as-you-type
-    .setProp(
-      "getRowString",
-      (index) => addon.data.prefs?.rows[index].title || "",
-    )
-    // Render the table.
-    .render(-1, () => {
-      renderLock.resolve();
-    });
-  await renderLock.promise;
-  ztoolkit.log("Preference table rendered!");
+/**
+ * Initialize preference UI elements
+ */
+async function initPrefsUI(_window: Window): Promise<void> {
+  const doc = _window.document;
+  if (!doc) return;
+
+  // Load existing credentials (masked)
+  const credManager = CredentialManager.getInstance();
+  await credManager.init();
+
+  // Check if IA credentials exist and show masked indicator
+  const hasIACredentials = await credManager.hasCredential("iaAccessKey");
+  if (hasIACredentials) {
+    const accessKeyInput = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-ia-access-key`,
+    ) as HTMLInputElement;
+    const secretKeyInput = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-ia-secret-key`,
+    ) as HTMLInputElement;
+    if (accessKeyInput) accessKeyInput.placeholder = "••••••••";
+    if (secretKeyInput) secretKeyInput.placeholder = "••••••••";
+  }
+
+  // Check if Perma.cc key exists
+  const hasPermaCCKey = await credManager.hasCredential("permaCCApiKey");
+  if (hasPermaCCKey) {
+    const permaCCInput = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-permacc-key`,
+    ) as HTMLInputElement;
+    if (permaCCInput) permaCCInput.placeholder = "••••••••";
+  }
+
+  ztoolkit.log("Moment-o7 preferences UI initialized");
 }
 
-function bindPrefEvents() {
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-enable`,
-    )
-    ?.addEventListener("command", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as XUL.Checkbox).checked}!`,
-      );
-    });
+/**
+ * Bind event handlers to preference elements
+ */
+function bindPrefEvents(_window: Window): void {
+  const doc = _window.document;
+  if (!doc) return;
 
-  addon.data
-    .prefs!.window.document?.querySelector(
-      `#zotero-prefpane-${config.addonRef}-input`,
-    )
-    ?.addEventListener("change", (e: Event) => {
-      ztoolkit.log(e);
-      addon.data.prefs!.window.alert(
-        `Successfully changed to ${(e.target as HTMLInputElement).value}!`,
-      );
-    });
+  // Auto-archive checkbox
+  const autoArchiveCheckbox = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-auto-archive`,
+  );
+  autoArchiveCheckbox?.addEventListener("command", (e: Event) => {
+    const checked = (e.target as XUL.Checkbox).checked;
+    ztoolkit.log(`Auto-archive set to: ${checked}`);
+  });
+
+  // Default service select
+  const serviceSelect = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-default-service`,
+  );
+  serviceSelect?.addEventListener("command", (e: Event) => {
+    const value = (e.target as XUL.MenuList).value;
+    ztoolkit.log(`Default service set to: ${value}`);
+  });
+
+  // Internet Archive credential buttons
+  const iaSaveBtn = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-ia-save`,
+  );
+  iaSaveBtn?.addEventListener("click", () => saveIACredentials(doc));
+
+  const iaClearBtn = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-ia-clear`,
+  );
+  iaClearBtn?.addEventListener("click", () => clearIACredentials(doc));
+
+  // Perma.cc credential buttons
+  const permaCCSaveBtn = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-permacc-save`,
+  );
+  permaCCSaveBtn?.addEventListener("click", () => savePermaCCCredentials(doc));
+
+  const permaCCClearBtn = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-permacc-clear`,
+  );
+  permaCCClearBtn?.addEventListener("click", () =>
+    clearPermaCCCredentials(doc),
+  );
+}
+
+/**
+ * Save Internet Archive credentials
+ */
+async function saveIACredentials(doc: Document): Promise<void> {
+  const accessKeyInput = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-ia-access-key`,
+  ) as HTMLInputElement;
+  const secretKeyInput = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-ia-secret-key`,
+  ) as HTMLInputElement;
+
+  const accessKey = accessKeyInput?.value?.trim();
+  const secretKey = secretKeyInput?.value?.trim();
+
+  if (!accessKey || !secretKey) {
+    showCredentialStatus(
+      doc,
+      "ia",
+      "Please enter both access key and secret key",
+      "error",
+    );
+    return;
+  }
+
+  try {
+    const credManager = CredentialManager.getInstance();
+    await credManager.storeCredential("iaAccessKey", accessKey);
+    await credManager.storeCredential("iaSecretKey", secretKey);
+
+    // Clear inputs and show success
+    accessKeyInput.value = "";
+    secretKeyInput.value = "";
+    accessKeyInput.placeholder = "••••••••";
+    secretKeyInput.placeholder = "••••••••";
+
+    showCredentialStatus(
+      doc,
+      "ia",
+      "Credentials saved successfully",
+      "success",
+    );
+    ztoolkit.log("Internet Archive credentials saved");
+  } catch (error) {
+    showCredentialStatus(
+      doc,
+      "ia",
+      `Error saving credentials: ${error}`,
+      "error",
+    );
+    ztoolkit.log(`Error saving IA credentials: ${error}`);
+  }
+}
+
+/**
+ * Clear Internet Archive credentials
+ */
+async function clearIACredentials(doc: Document): Promise<void> {
+  try {
+    const credManager = CredentialManager.getInstance();
+    await credManager.storeCredential("iaAccessKey", "");
+    await credManager.storeCredential("iaSecretKey", "");
+
+    const accessKeyInput = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-ia-access-key`,
+    ) as HTMLInputElement;
+    const secretKeyInput = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-ia-secret-key`,
+    ) as HTMLInputElement;
+
+    if (accessKeyInput) {
+      accessKeyInput.value = "";
+      accessKeyInput.placeholder = "";
+    }
+    if (secretKeyInput) {
+      secretKeyInput.value = "";
+      secretKeyInput.placeholder = "";
+    }
+
+    showCredentialStatus(doc, "ia", "Credentials cleared", "success");
+    ztoolkit.log("Internet Archive credentials cleared");
+  } catch (error) {
+    showCredentialStatus(
+      doc,
+      "ia",
+      `Error clearing credentials: ${error}`,
+      "error",
+    );
+  }
+}
+
+/**
+ * Save Perma.cc credentials
+ */
+async function savePermaCCCredentials(doc: Document): Promise<void> {
+  const apiKeyInput = doc.querySelector(
+    `#zotero-prefpane-${config.addonRef}-permacc-key`,
+  ) as HTMLInputElement;
+
+  const apiKey = apiKeyInput?.value?.trim();
+
+  if (!apiKey) {
+    showCredentialStatus(doc, "permacc", "Please enter an API key", "error");
+    return;
+  }
+
+  try {
+    const credManager = CredentialManager.getInstance();
+    await credManager.storeCredential("permaCCApiKey", apiKey);
+
+    // Clear input and show success
+    apiKeyInput.value = "";
+    apiKeyInput.placeholder = "••••••••";
+
+    showCredentialStatus(
+      doc,
+      "permacc",
+      "API key saved successfully",
+      "success",
+    );
+    ztoolkit.log("Perma.cc API key saved");
+  } catch (error) {
+    showCredentialStatus(
+      doc,
+      "permacc",
+      `Error saving API key: ${error}`,
+      "error",
+    );
+    ztoolkit.log(`Error saving Perma.cc API key: ${error}`);
+  }
+}
+
+/**
+ * Clear Perma.cc credentials
+ */
+async function clearPermaCCCredentials(doc: Document): Promise<void> {
+  try {
+    const credManager = CredentialManager.getInstance();
+    await credManager.storeCredential("permaCCApiKey", "");
+
+    const apiKeyInput = doc.querySelector(
+      `#zotero-prefpane-${config.addonRef}-permacc-key`,
+    ) as HTMLInputElement;
+
+    if (apiKeyInput) {
+      apiKeyInput.value = "";
+      apiKeyInput.placeholder = "";
+    }
+
+    showCredentialStatus(doc, "permacc", "API key cleared", "success");
+    ztoolkit.log("Perma.cc API key cleared");
+  } catch (error) {
+    showCredentialStatus(
+      doc,
+      "permacc",
+      `Error clearing API key: ${error}`,
+      "error",
+    );
+  }
+}
+
+/**
+ * Show credential status message
+ */
+function showCredentialStatus(
+  doc: Document,
+  section: "ia" | "permacc",
+  message: string,
+  type: "success" | "error",
+): void {
+  // Use a simple progress window notification
+  const progressWin = new ztoolkit.ProgressWindow(config.addonName, {
+    closeOnClick: true,
+    closeTime: 3000,
+  });
+  progressWin.createLine({
+    text: message,
+    type: type === "success" ? "success" : "fail",
+  });
+  progressWin.show();
 }
