@@ -10,6 +10,7 @@
 import { PreferencesManager } from "../PreferencesManager";
 import { HealthChecker } from "../../monitoring/HealthChecker";
 import { ServiceRegistry } from "../../archive/ServiceRegistry";
+import { CredentialManager } from "../../../utils/CredentialManager";
 import type { ArchiveService } from "../../archive/types";
 
 declare const document: Document | undefined;
@@ -30,6 +31,9 @@ export class PreferencesPanel {
   private credentialsSection: CredentialsSection | null = null;
   private preferencesSection: PreferencesSection | null = null;
   private healthChecker: HealthChecker;
+  private isDirty: boolean = false;
+  private saveButton: HTMLButtonElement | null = null;
+  private listeners: Array<{ section: any; event: string; handler: Function }> = [];
 
   constructor() {
     this.healthChecker = HealthChecker.getInstance();
@@ -88,17 +92,18 @@ export class PreferencesPanel {
     const buttonGroup = document!.createElement("div");
     buttonGroup.className = "momento7-action-buttons";
 
-    const saveBtn = document!.createElement("button");
-    saveBtn.textContent = "Save";
-    saveBtn.className = "momento7-btn momento7-btn-primary";
-    saveBtn.addEventListener("click", () => this.onSave());
+    this.saveButton = document!.createElement("button");
+    this.saveButton.textContent = "Save";
+    this.saveButton.className = "momento7-btn momento7-btn-primary";
+    this.saveButton.disabled = !this.isDirty;
+    this.saveButton.addEventListener("click", () => this.onSave());
 
     const cancelBtn = document!.createElement("button");
     cancelBtn.textContent = "Cancel";
     cancelBtn.className = "momento7-btn momento7-btn-secondary";
     cancelBtn.addEventListener("click", () => this.onCancel());
 
-    buttonGroup.appendChild(saveBtn);
+    buttonGroup.appendChild(this.saveButton);
     buttonGroup.appendChild(cancelBtn);
     this.container.appendChild(buttonGroup);
   }
@@ -112,26 +117,58 @@ export class PreferencesPanel {
     }
 
     // Service section events
-    this.serviceSection.on("serviceToggle", (serviceId: string, enabled: boolean) => {
+    const onServiceToggle = (serviceId: string, enabled: boolean) => {
       this.onServiceToggle(serviceId, enabled);
-    });
+      this.markDirty();
+    };
+    this.serviceSection.on("serviceToggle", onServiceToggle);
+    this.listeners.push({ section: this.serviceSection, event: "serviceToggle", handler: onServiceToggle });
 
-    this.serviceSection.on("serviceReorder", (order: string[]) => {
+    const onServiceReorder = (order: string[]) => {
       this.onServiceReorder(order);
-    });
+      this.markDirty();
+    };
+    this.serviceSection.on("serviceReorder", onServiceReorder);
+    this.listeners.push({ section: this.serviceSection, event: "serviceReorder", handler: onServiceReorder });
 
-    this.serviceSection.on("testConnection", (serviceId: string) => {
+    const onTestConnection = (serviceId: string) => {
       this.onTestConnection(serviceId);
-    });
+    };
+    this.serviceSection.on("testConnection", onTestConnection);
+    this.listeners.push({ section: this.serviceSection, event: "testConnection", handler: onTestConnection });
 
     // Credential section events
-    this.credentialsSection.on("credentialUpdate", (serviceId: string, credentials: any) => {
+    const onCredentialUpdate = (serviceId: string, credentials: any) => {
       this.onCredentialUpdate(serviceId, credentials);
-    });
+      this.markDirty();
+    };
+    this.credentialsSection.on("credentialUpdate", onCredentialUpdate);
+    this.listeners.push({ section: this.credentialsSection, event: "credentialUpdate", handler: onCredentialUpdate });
 
-    this.credentialsSection.on("credentialTest", (serviceId: string) => {
+    const onTestCredentials = (serviceId: string) => {
       this.onTestCredentials(serviceId);
-    });
+    };
+    this.credentialsSection.on("credentialTest", onTestCredentials);
+    this.listeners.push({ section: this.credentialsSection, event: "credentialTest", handler: onTestCredentials });
+
+    // Preference section events
+    const onPreferenceUpdate = () => {
+      this.markDirty();
+    };
+    this.preferencesSection.on("preferenceUpdate", onPreferenceUpdate);
+    this.listeners.push({ section: this.preferencesSection, event: "preferenceUpdate", handler: onPreferenceUpdate });
+  }
+
+  /**
+   * Mark preferences as having unsaved changes
+   */
+  private markDirty(): void {
+    if (!this.isDirty) {
+      this.isDirty = true;
+      if (this.saveButton) {
+        this.saveButton.disabled = false;
+      }
+    }
   }
 
   /**
@@ -147,6 +184,7 @@ export class PreferencesPanel {
       enabledServices.splice(index, 1);
     }
 
+    Zotero.debug(`Momento7: Service ${serviceId} toggled to ${enabled}`);
     // Note: Actual persistence happens in onSave()
   }
 
@@ -154,6 +192,7 @@ export class PreferencesPanel {
    * Handle service priority reordering
    */
   private onServiceReorder(order: string[]): void {
+    Zotero.debug(`Momento7: Service order changed: ${order.join(", ")}`);
     // Note: Actual persistence happens in onSave()
   }
 
@@ -184,6 +223,7 @@ export class PreferencesPanel {
    * Handle credential update
    */
   private onCredentialUpdate(serviceId: string, credentials: any): void {
+    Zotero.debug(`Momento7: Credentials updated for service ${serviceId}`);
     // Note: Actual persistence happens in onSave()
   }
 
@@ -276,12 +316,23 @@ export class PreferencesPanel {
   }
 
   /**
-   * Close preferences panel
+   * Close preferences panel and clean up listeners
    */
   close(): void {
+    // Remove all event listeners to prevent memory leaks
+    for (const listener of this.listeners) {
+      listener.section.unlisten?.(listener.event, listener.handler);
+    }
+    this.listeners = [];
+
+    // Clear UI
     if (this.container) {
       this.container.innerHTML = "";
     }
+
+    // Reset state
+    this.isDirty = false;
+    this.saveButton = null;
   }
 }
 
@@ -601,6 +652,16 @@ export class ServiceConfigSection {
     }
     this.eventHandlers.get(event)?.push(handler);
   }
+
+  unlisten(event: string, handler: Function): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      const index = handlers.indexOf(handler);
+      if (index !== -1) {
+        handlers.splice(index, 1);
+      }
+    }
+  }
 }
 
 /**
@@ -611,6 +672,16 @@ export class ServiceConfigSection {
 export class CredentialsSection {
   private container: HTMLElement | null = null;
   private eventHandlers: Map<string, Function[]> = new Map();
+  private credentialManager: CredentialManager;
+  private iaAccessKeyInput: HTMLInputElement | null = null;
+  private iaSecretKeyInput: HTMLInputElement | null = null;
+  private permaCCApiKeyInput: HTMLInputElement | null = null;
+  private archiveTodayProxyInput: HTMLInputElement | null = null;
+  private testingServices: Set<string> = new Set();
+
+  constructor() {
+    this.credentialManager = CredentialManager.getInstance();
+  }
 
   async render(parent: HTMLElement): Promise<void> {
     this.container = document!.createElement("div");
@@ -618,20 +689,404 @@ export class CredentialsSection {
     this.container.innerHTML = `
       <h3>🔐 Credentials</h3>
       <p class="momento7-section-description">
-        Configure credentials for archive services that require authentication.
+        Configure credentials for archive services that require authentication. Credentials are encrypted at rest.
       </p>
       <div class="momento7-credentials-form"></div>
     `;
 
     parent.appendChild(this.container);
+
+    // Render credential forms
+    await this.renderCredentialForms();
+  }
+
+  private async renderCredentialForms(): Promise<void> {
+    const formContainer = this.container?.querySelector(".momento7-credentials-form") as HTMLElement;
+    if (!formContainer) return;
+
+    // Internet Archive credentials
+    await this.renderInternetArchiveForm(formContainer);
+
+    // Perma.cc credentials
+    await this.renderPermaCCForm(formContainer);
+
+    // Archive.today proxy
+    await this.renderArchiveTodayForm(formContainer);
+  }
+
+  private async renderInternetArchiveForm(container: HTMLElement): Promise<void> {
+    const group = document!.createElement("div");
+    group.className = "momento7-credential-group";
+
+    const title = document!.createElement("div");
+    title.className = "momento7-credential-group-title";
+    title.textContent = "Internet Archive";
+    group.appendChild(title);
+
+    const fields = document!.createElement("div");
+    fields.className = "momento7-credential-fields";
+
+    // Access Key
+    const accessKeyField = document!.createElement("div");
+    accessKeyField.className = "momento7-credential-field";
+
+    const accessKeyLabel = document!.createElement("label");
+    accessKeyLabel.className = "momento7-credential-label";
+    accessKeyLabel.textContent = "Access Key";
+    accessKeyField.appendChild(accessKeyLabel);
+
+    this.iaAccessKeyInput = document!.createElement("input");
+    this.iaAccessKeyInput.type = "password";
+    this.iaAccessKeyInput.className = "momento7-credential-input";
+    this.iaAccessKeyInput.placeholder = "••••••••";
+    this.iaAccessKeyInput.setAttribute("aria-label", "Internet Archive access key");
+    this.iaAccessKeyInput.addEventListener("change", () => {
+      this.emit("credentialUpdate", "internetarchive", { accessKey: this.iaAccessKeyInput?.value });
+    });
+    accessKeyField.appendChild(this.iaAccessKeyInput);
+
+    fields.appendChild(accessKeyField);
+
+    // Secret Key
+    const secretKeyField = document!.createElement("div");
+    secretKeyField.className = "momento7-credential-field";
+
+    const secretKeyLabel = document!.createElement("label");
+    secretKeyLabel.className = "momento7-credential-label";
+    secretKeyLabel.textContent = "Secret Key";
+    secretKeyField.appendChild(secretKeyLabel);
+
+    this.iaSecretKeyInput = document!.createElement("input");
+    this.iaSecretKeyInput.type = "password";
+    this.iaSecretKeyInput.className = "momento7-credential-input";
+    this.iaSecretKeyInput.placeholder = "••••••••";
+    this.iaSecretKeyInput.setAttribute("aria-label", "Internet Archive secret key");
+    this.iaSecretKeyInput.addEventListener("change", () => {
+      this.emit("credentialUpdate", "internetarchive", { secretKey: this.iaSecretKeyInput?.value });
+    });
+    secretKeyField.appendChild(this.iaSecretKeyInput);
+
+    fields.appendChild(secretKeyField);
+
+    group.appendChild(fields);
+
+    // Check if credentials exist
+    const hasAccessKey = await this.credentialManager.hasCredential("iaAccessKey");
+    const hasSecretKey = await this.credentialManager.hasCredential("iaSecretKey");
+
+    const status = document!.createElement("div");
+    status.className = "momento7-credential-status";
+    if (hasAccessKey && hasSecretKey) {
+      status.classList.add("momento7-credential-status--configured");
+      status.innerHTML = "✓ Configured";
+    } else {
+      status.classList.add("momento7-credential-status--empty");
+      status.innerHTML = "○ Not configured";
+    }
+    group.appendChild(status);
+
+    // Action buttons
+    const actions = document!.createElement("div");
+    actions.className = "momento7-credential-actions";
+
+    const testBtn = document!.createElement("button");
+    testBtn.className = "momento7-btn momento7-btn-small";
+    testBtn.textContent = "Test";
+    testBtn.setAttribute("aria-label", "Test Internet Archive credentials");
+    testBtn.addEventListener("click", () => this.handleTestCredentials("internetarchive", status));
+    actions.appendChild(testBtn);
+
+    const clearBtn = document!.createElement("button");
+    clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
+    clearBtn.textContent = "Clear";
+    clearBtn.setAttribute("aria-label", "Clear Internet Archive credentials");
+    clearBtn.addEventListener("click", () => this.handleClearCredentials("iaAccessKey", "iaSecretKey", status, this.iaAccessKeyInput, this.iaSecretKeyInput));
+    actions.appendChild(clearBtn);
+
+    group.appendChild(actions);
+    container.appendChild(group);
+
+    // Load existing credentials if present
+    if (hasAccessKey) {
+      const accessKey = await this.credentialManager.getCredential("iaAccessKey");
+      if (accessKey) this.iaAccessKeyInput.value = accessKey;
+    }
+    if (hasSecretKey) {
+      const secretKey = await this.credentialManager.getCredential("iaSecretKey");
+      if (secretKey) this.iaSecretKeyInput.value = secretKey;
+    }
+  }
+
+  private async renderPermaCCForm(container: HTMLElement): Promise<void> {
+    const group = document!.createElement("div");
+    group.className = "momento7-credential-group";
+
+    const title = document!.createElement("div");
+    title.className = "momento7-credential-group-title";
+    title.textContent = "Perma.cc";
+    group.appendChild(title);
+
+    const fields = document!.createElement("div");
+    fields.className = "momento7-credential-fields";
+
+    const apiKeyField = document!.createElement("div");
+    apiKeyField.className = "momento7-credential-field";
+
+    const apiKeyLabel = document!.createElement("label");
+    apiKeyLabel.className = "momento7-credential-label";
+    apiKeyLabel.textContent = "API Key";
+    apiKeyField.appendChild(apiKeyLabel);
+
+    this.permaCCApiKeyInput = document!.createElement("input");
+    this.permaCCApiKeyInput.type = "password";
+    this.permaCCApiKeyInput.className = "momento7-credential-input";
+    this.permaCCApiKeyInput.placeholder = "••••••••";
+    this.permaCCApiKeyInput.setAttribute("aria-label", "Perma.cc API key");
+    this.permaCCApiKeyInput.addEventListener("change", () => {
+      this.emit("credentialUpdate", "permacc", { apiKey: this.permaCCApiKeyInput?.value });
+    });
+    apiKeyField.appendChild(this.permaCCApiKeyInput);
+
+    fields.appendChild(apiKeyField);
+    group.appendChild(fields);
+
+    // Check if credentials exist
+    const hasApiKey = await this.credentialManager.hasCredential("permaCCApiKey");
+
+    const status = document!.createElement("div");
+    status.className = "momento7-credential-status";
+    if (hasApiKey) {
+      status.classList.add("momento7-credential-status--configured");
+      status.innerHTML = "✓ Configured";
+    } else {
+      status.classList.add("momento7-credential-status--empty");
+      status.innerHTML = "○ Not configured";
+    }
+    group.appendChild(status);
+
+    // Action buttons
+    const actions = document!.createElement("div");
+    actions.className = "momento7-credential-actions";
+
+    const testBtn = document!.createElement("button");
+    testBtn.className = "momento7-btn momento7-btn-small";
+    testBtn.textContent = "Test";
+    testBtn.setAttribute("aria-label", "Test Perma.cc credentials");
+    testBtn.addEventListener("click", () => this.handleTestCredentials("permacc", status));
+    actions.appendChild(testBtn);
+
+    const clearBtn = document!.createElement("button");
+    clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
+    clearBtn.textContent = "Clear";
+    clearBtn.setAttribute("aria-label", "Clear Perma.cc credentials");
+    clearBtn.addEventListener("click", () => this.handleClearCredentials("permaCCApiKey", undefined, status, this.permaCCApiKeyInput));
+    actions.appendChild(clearBtn);
+
+    group.appendChild(actions);
+    container.appendChild(group);
+
+    // Load existing credentials if present
+    if (hasApiKey) {
+      const apiKey = await this.credentialManager.getCredential("permaCCApiKey");
+      if (apiKey) this.permaCCApiKeyInput.value = apiKey;
+    }
+  }
+
+  private async renderArchiveTodayForm(container: HTMLElement): Promise<void> {
+    const group = document!.createElement("div");
+    group.className = "momento7-credential-group";
+
+    const title = document!.createElement("div");
+    title.className = "momento7-credential-group-title";
+    title.textContent = "Archive.today Proxy (Optional)";
+    group.appendChild(title);
+
+    const fields = document!.createElement("div");
+    fields.className = "momento7-credential-fields";
+
+    const proxyField = document!.createElement("div");
+    proxyField.className = "momento7-credential-field";
+
+    const proxyLabel = document!.createElement("label");
+    proxyLabel.className = "momento7-credential-label";
+    proxyLabel.textContent = "Proxy URL";
+    proxyField.appendChild(proxyLabel);
+
+    this.archiveTodayProxyInput = document!.createElement("input");
+    this.archiveTodayProxyInput.type = "text";
+    this.archiveTodayProxyInput.className = "momento7-credential-input";
+    this.archiveTodayProxyInput.placeholder = "https://proxy.example.com";
+    this.archiveTodayProxyInput.setAttribute("aria-label", "Archive.today proxy URL");
+    this.archiveTodayProxyInput.addEventListener("change", () => {
+      this.emit("credentialUpdate", "archivetoday", { proxyUrl: this.archiveTodayProxyInput?.value });
+    });
+    proxyField.appendChild(this.archiveTodayProxyInput);
+
+    const help = document!.createElement("p");
+    help.className = "momento7-preference-help";
+    help.textContent = "Optional proxy URL for accessing archive.today if direct access is blocked.";
+    proxyField.appendChild(help);
+
+    fields.appendChild(proxyField);
+    group.appendChild(fields);
+
+    // Check if proxy URL exists
+    const hasProxy = await this.credentialManager.hasCredential("archiveTodayProxyUrl");
+
+    const status = document!.createElement("div");
+    status.className = "momento7-credential-status";
+    if (hasProxy) {
+      status.classList.add("momento7-credential-status--configured");
+      status.innerHTML = "✓ Configured";
+    } else {
+      status.classList.add("momento7-credential-status--empty");
+      status.innerHTML = "○ Not configured";
+    }
+    group.appendChild(status);
+
+    // Action buttons
+    const actions = document!.createElement("div");
+    actions.className = "momento7-credential-actions";
+
+    const testBtn = document!.createElement("button");
+    testBtn.className = "momento7-btn momento7-btn-small";
+    testBtn.textContent = "Test";
+    testBtn.setAttribute("aria-label", "Test Archive.today proxy");
+    testBtn.addEventListener("click", () => this.handleTestCredentials("archivetoday", status));
+    actions.appendChild(testBtn);
+
+    const clearBtn = document!.createElement("button");
+    clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
+    clearBtn.textContent = "Clear";
+    clearBtn.setAttribute("aria-label", "Clear Archive.today proxy");
+    clearBtn.addEventListener("click", () => this.handleClearCredentials("archiveTodayProxyUrl", undefined, status, this.archiveTodayProxyInput));
+    actions.appendChild(clearBtn);
+
+    group.appendChild(actions);
+    container.appendChild(group);
+
+    // Load existing proxy URL if present
+    if (hasProxy) {
+      const proxyUrl = await this.credentialManager.getCredential("archiveTodayProxyUrl");
+      if (proxyUrl) this.archiveTodayProxyInput.value = proxyUrl;
+    }
+  }
+
+  private async handleClearCredentials(
+    key1: string,
+    key2: string | undefined,
+    statusEl: HTMLElement,
+    input1: HTMLInputElement | null,
+    input2?: HTMLInputElement | null,
+  ): Promise<void> {
+    // Ask for confirmation using Zotero's standard dialog if available
+    const shouldClear = Zotero.confirmationPrompt
+      ? Zotero.confirmationPrompt("Clear these credentials? This action cannot be undone.")
+      : true; // Default to clearing if no dialog available
+
+    if (!shouldClear) {
+      return;
+    }
+
+    try {
+      // Clear from preferences
+      Zotero.Prefs.clear(`extensions.momento7.${key1}`);
+      if (key2) {
+        Zotero.Prefs.clear(`extensions.momento7.${key2}`);
+      }
+
+      // Update UI
+      if (input1) input1.value = "";
+      if (input2) input2.value = "";
+
+      statusEl.className = "momento7-credential-status momento7-credential-status--empty";
+      statusEl.innerHTML = "○ Not configured";
+    } catch (error) {
+      Zotero.debug(`Momento7: Failed to clear credentials: ${error}`);
+    }
+  }
+
+  private async handleTestCredentials(serviceId: string, statusEl: HTMLElement): Promise<void> {
+    this.testingServices.add(serviceId);
+
+    // Show loading state
+    statusEl.className = "momento7-credential-status momento7-credential-status--testing";
+    statusEl.innerHTML = '<span class="momento7-spinner"></span> Testing...';
+
+    try {
+      // Emit event for parent panel to handle credential testing
+      this.emit("credentialTest", serviceId);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      statusEl.className = "momento7-credential-status momento7-credential-status--error";
+      statusEl.innerHTML = `✗ Test failed: ${msg}`;
+    } finally {
+      this.testingServices.delete(serviceId);
+    }
   }
 
   setTestLoading(serviceId: string, loading: boolean): void {
-    // Placeholder
+    // Loading state is handled in handleTestCredentials
   }
 
   setTestResult(serviceId: string, success: boolean, error?: string): void {
-    // Placeholder
+    // Find the status element for this service and update it
+    const groups = this.container?.querySelectorAll(".momento7-credential-group") || [];
+    let statusEl: HTMLElement | null = null;
+
+    if (serviceId === "internetarchive") {
+      statusEl = groups[0]?.querySelector(".momento7-credential-status") as HTMLElement;
+    } else if (serviceId === "permacc") {
+      statusEl = groups[1]?.querySelector(".momento7-credential-status") as HTMLElement;
+    } else if (serviceId === "archivetoday") {
+      statusEl = groups[2]?.querySelector(".momento7-credential-status") as HTMLElement;
+    }
+
+    if (!statusEl) return;
+
+    if (success) {
+      statusEl.className = "momento7-credential-status momento7-credential-status--configured";
+      statusEl.innerHTML = "✓ Valid";
+    } else {
+      statusEl.className = "momento7-credential-status momento7-credential-status--error";
+      statusEl.innerHTML = `✗ Invalid${error ? `: ${error}` : ""}`;
+    }
+  }
+
+  async getCredentials(): Promise<Record<string, string>> {
+    const credentials: Record<string, string> = {};
+
+    // Collect credential values
+    if (this.iaAccessKeyInput?.value) {
+      await this.credentialManager.storeCredential("iaAccessKey", this.iaAccessKeyInput.value);
+      credentials.iaAccessKey = this.iaAccessKeyInput.value;
+    }
+
+    if (this.iaSecretKeyInput?.value) {
+      await this.credentialManager.storeCredential("iaSecretKey", this.iaSecretKeyInput.value);
+      credentials.iaSecretKey = this.iaSecretKeyInput.value;
+    }
+
+    if (this.permaCCApiKeyInput?.value) {
+      await this.credentialManager.storeCredential("permaCCApiKey", this.permaCCApiKeyInput.value);
+      credentials.permaCCApiKey = this.permaCCApiKeyInput.value;
+    }
+
+    if (this.archiveTodayProxyInput?.value) {
+      await this.credentialManager.storeCredential("archiveTodayProxyUrl", this.archiveTodayProxyInput.value);
+      credentials.archiveTodayProxyUrl = this.archiveTodayProxyInput.value;
+    }
+
+    return credentials;
+  }
+
+  private emit(event: string, ...args: any[]): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      for (const handler of handlers) {
+        handler(...args);
+      }
+    }
   }
 
   on(event: string, handler: Function): void {
@@ -639,6 +1094,16 @@ export class CredentialsSection {
       this.eventHandlers.set(event, []);
     }
     this.eventHandlers.get(event)?.push(handler);
+  }
+
+  unlisten(event: string, handler: Function): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      const index = handlers.indexOf(handler);
+      if (index !== -1) {
+        handlers.splice(index, 1);
+      }
+    }
   }
 }
 
@@ -714,6 +1179,7 @@ export class PreferencesSection {
     this.timeoutInput.addEventListener("change", () => {
       this.timeout = Math.max(1000, Math.min(600000, parseInt(this.timeoutInput!.value, 10)));
       this.timeoutInput!.value = String(this.timeout);
+      this.emit("preferenceUpdate");
     });
 
     const timeoutUnit = document!.createElement("span");
@@ -744,6 +1210,7 @@ export class PreferencesSection {
     this.checkBeforeArchiveCheckbox.setAttribute("aria-label", "Check for existing archives before archiving");
     this.checkBeforeArchiveCheckbox.addEventListener("change", () => {
       this.checkBeforeArchive = this.checkBeforeArchiveCheckbox!.checked;
+      this.emit("preferenceUpdate");
     });
 
     const checkLabel = document!.createElement("label");
@@ -784,6 +1251,7 @@ export class PreferencesSection {
     this.ageThresholdInput.addEventListener("change", () => {
       this.archiveAgeThreshold = Math.max(1, parseInt(this.ageThresholdInput!.value, 10));
       this.ageThresholdInput!.value = String(this.archiveAgeThreshold);
+      this.emit("preferenceUpdate");
     });
 
     const ageUnit = document!.createElement("span");
@@ -819,6 +1287,7 @@ export class PreferencesSection {
     this.autoArchiveCheckbox.setAttribute("aria-label", "Automatically archive new items");
     this.autoArchiveCheckbox.addEventListener("change", () => {
       this.autoArchive = this.autoArchiveCheckbox!.checked;
+      this.emit("preferenceUpdate");
     });
 
     const autoLabel = document!.createElement("label");
@@ -860,6 +1329,9 @@ export class PreferencesSection {
     if (this.checkBeforeArchiveCheckbox) this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
     if (this.ageThresholdInput) this.ageThresholdInput.value = String(this.archiveAgeThreshold);
     if (this.autoArchiveCheckbox) this.autoArchiveCheckbox.checked = this.autoArchive;
+
+    // Emit event to mark preferences as changed
+    this.emit("preferenceUpdate");
   }
 
   getTimeout(): number {
@@ -893,5 +1365,15 @@ export class PreferencesSection {
       this.eventHandlers.set(event, []);
     }
     this.eventHandlers.get(event)?.push(handler);
+  }
+
+  unlisten(event: string, handler: Function): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      const index = handlers.indexOf(handler);
+      if (index !== -1) {
+        handlers.splice(index, 1);
+      }
+    }
   }
 }

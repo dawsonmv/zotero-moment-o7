@@ -29,7 +29,9 @@ describe("PreferencesPanel", function () {
   });
 
   afterEach(function () {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   });
 
   describe("initialization", function () {
@@ -39,7 +41,9 @@ describe("PreferencesPanel", function () {
     });
 
     it("should throw error if container not found", async function () {
-      document.body.removeChild(container);
+      if (document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
 
       await expect(panel.initialize()).rejects.toThrow("Preferences container not found");
     });
@@ -108,7 +112,9 @@ describe("ServiceConfigSection", function () {
   });
 
   afterEach(function () {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   });
 
   describe("rendering", function () {
@@ -122,7 +128,7 @@ describe("ServiceConfigSection", function () {
       await section.render(container);
 
       const title = container.querySelector(".momento7-services-section h3");
-      expect(title?.textContent).toBe("Archive Services");
+      expect(title?.textContent).toBe("📋 Archive Services");
     });
   });
 
@@ -174,7 +180,9 @@ describe("CredentialsSection", function () {
   });
 
   afterEach(function () {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   });
 
   describe("rendering", function () {
@@ -221,7 +229,9 @@ describe("PreferencesSection", function () {
   });
 
   afterEach(function () {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   });
 
   describe("rendering", function () {
