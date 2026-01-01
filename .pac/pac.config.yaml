@@ -1,0 +1,55 @@
+apiVersion: productascode.org/v0.1.0
+kind: Configuration
+metadata:
+  project: "Zotero Moment-o7"
+  owner: "Dawson Valdes"
+  organization: "Harding Center for Risk Literacy"
+  created: "2026-01-01T00:00:00Z"
+  repository: "https://github.com/dawsonmv/zotero-moment-o7"
+  description: "Archive web resources to prevent link rot - Zotero 7 plugin for automated web archiving"
+
+spec:
+  defaults:
+    assignee: "Dawson Valdes"
+    epic_prefix: "EPIC-"
+    ticket_prefix: "TICKET-"
+    priority: "medium"
+    status: "backlog"
+
+  validation:
+    enforce_unique_ids: true
+    require_acceptance_criteria: true
+    require_description: true
+    max_title_length: 120
+
+  epic_defaults:
+    status: "planned"
+    priority: "medium"
+
+  ticket_types:
+    - feature
+    - bug
+    - enhancement
+    - refactor
+    - docs
+    - test
+
+  ticket_statuses:
+    - backlog
+    - ready
+    - in_progress
+    - review
+    - testing
+    - done
+    - blocked
+
+  priorities:
+    - critical
+    - high
+    - medium
+    - low
+
+  naming_conventions:
+    epic: "epic-{slug}"
+    ticket: "ticket-{slug}"
+    slug_pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"

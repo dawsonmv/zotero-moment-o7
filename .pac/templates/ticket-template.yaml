@@ -1,0 +1,88 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-{name}"
+  name: "[Ticket Name]"
+  epic_id: "[EPIC-parent-epic]"
+  created: "[YYYY-MM-DDTHH:mm:ssZ]"
+  updated: "[YYYY-MM-DDTHH:mm:ssZ]"
+  assignee: "Dawson Valdes"
+  type: "feature"  # feature|bug|enhancement|refactor|docs|test
+  status: "backlog"  # backlog|ready|in_progress|review|testing|done|blocked
+  priority: "medium"  # critical|high|medium|low
+
+spec:
+  description: |
+    [Provide a clear description of the ticket.
+     What needs to be done? Why?
+     Include any relevant context or background information.]
+
+  problem_statement: |
+    [If a bug: describe the issue and its impact]
+    [If a feature: describe the user need]
+
+  acceptance_criteria:
+    - "[ ] Criterion 1"
+    - "[ ] Criterion 2"
+    - "[ ] Criterion 3"
+    - "[ ] Code reviewed and approved"
+    - "[ ] Tests pass locally and in CI"
+    - "[ ] No new warnings or errors"
+
+  implementation_details:
+    approach: |
+      [How will this be implemented?
+       What is the technical approach?]
+
+    affected_files:
+      - src/module/service.ts
+      - tests/module/service.test.ts
+
+    dependencies:
+      - library: "[Library Name]"
+        version: "[Version or constraint]"
+        reason: "[Why is this needed?]"
+
+  testing_strategy: |
+    [How will this be tested?
+     What test scenarios need coverage?
+     Integration or unit tests?]
+
+  tasks:
+    - "[ ] Task 1"
+    - "[ ] Task 2"
+    - "[ ] Task 3"
+
+  blockers: []
+    # List blocking issues: TICKET-xyz
+
+  related_tickets: []
+    # List related tickets: TICKET-abc
+
+  estimated_effort: "[e.g., 3 story points, 4 hours]"
+
+  labels:
+    - "[label]"
+
+  performance_considerations: |
+    [Any performance concerns or optimizations needed?]
+
+  security_considerations: |
+    [Any security concerns or mitigations?]
+
+  documentation_required:
+    - "[ ] Code comments for complex logic"
+    - "[ ] README updates"
+    - "[ ] API documentation"
+    - "[ ] CHANGELOG entry"
+
+  notes: |
+    [Any additional context, decision rationale, or implementation notes]
+
+  checklist:
+    - "[ ] Implementation complete"
+    - "[ ] Unit tests written"
+    - "[ ] Integration tests pass"
+    - "[ ] Code review completed"
+    - "[ ] Documentation updated"
+    - "[ ] Ready for merge"

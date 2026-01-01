@@ -17,3 +17,8 @@ logs
 
 # Test coverage
 coverage
+
+# PAC (Product as Code)
+.pac/tmp/
+.pac/cache/
+*.pac.lock

@@ -1,0 +1,56 @@
+apiVersion: productascode.org/v0.1.0
+kind: Epic
+metadata:
+  id: "EPIC-{name}"
+  name: "[Epic Name]"
+  created: "[YYYY-MM-DDTHH:mm:ssZ]"
+  updated: "[YYYY-MM-DDTHH:mm:ssZ]"
+  owner: "Dawson Valdes"
+  status: "planned"
+
+spec:
+  description: |
+    [Provide a clear, comprehensive description of the epic.
+     What problem does it solve? What value does it deliver?]
+
+  goals: |
+    [Define the strategic goals this epic achieves]
+
+  scope: |
+    [What is included in this epic?
+     What is explicitly NOT included?
+     Define clear boundaries.]
+
+  success_criteria:
+    - "[Criterion 1]"
+    - "[Criterion 2]"
+    - "[Criterion 3]"
+
+  metrics:
+    - name: "[Metric Name]"
+      description: "[How will success be measured?]"
+      target: "[Target value or threshold]"
+
+  timeline:
+    start_date: "[YYYY-MM-DD]"
+    target_completion: "[YYYY-MM-DD]"
+    estimated_effort: "[e.g., 8 weeks, 40 story points]"
+
+  dependencies:
+    - epic_id: "[If dependent on another epic]"
+      type: "blocks|blocked_by|related_to"
+      description: "[Relationship description]"
+
+  tickets: []
+    # Tickets linked to this epic will be listed here
+    # Format: ticket_id: "TICKET-{ticket-name}"
+
+  acceptance_criteria:
+    - "[ ] All tickets marked as done"
+    - "[ ] Code review completed"
+    - "[ ] Testing passed"
+    - "[ ] Documentation updated"
+    - "[ ] Changelog entries created"
+
+  notes: |
+    [Any additional context, assumptions, or risks]

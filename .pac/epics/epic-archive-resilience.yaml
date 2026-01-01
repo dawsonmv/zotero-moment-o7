@@ -1,0 +1,99 @@
+apiVersion: productascode.org/v0.1.0
+kind: Epic
+metadata:
+  id: "EPIC-archive-resilience"
+  name: "Archive Service Resilience and Observability"
+  created: "2026-01-01T00:00:00Z"
+  updated: "2026-01-01T00:00:00Z"
+  owner: "Dawson Valdes"
+  status: "planned"
+
+spec:
+  description: |
+    Implement circuit breaker patterns and comprehensive monitoring to improve
+    the reliability of Zotero Moment-o7's archive service calls. This epic
+    addresses cascading failures when archive services become unavailable or
+    rate-limited, and provides visibility into plugin health.
+
+  goals: |
+    - Prevent cascading failures when individual archive services are down
+    - Reduce user frustration by gracefully degrading to alternative archives
+    - Provide real-time visibility into archive service health
+    - Enable proactive monitoring and alerting for service failures
+    - Improve plugin stability and user retention
+
+  scope: |
+    In scope:
+    - Implement circuit breaker pattern for archive service calls
+    - Add health check endpoints for all 6+ archive services
+    - Create fallback logic to automatically try alternate archives
+    - Build monitoring dashboard showing service health
+    - Add alerting for repeated failures
+    - Update user-facing documentation
+
+    Out of scope:
+    - Changes to archive service APIs or interfaces
+    - Manual service recovery or administration tools
+    - User-facing status page (future epic)
+    - Archive service vendor negotiations
+
+  success_criteria:
+    - "Circuit breaker prevents cascading failures to healthy services"
+    - "Health checks automatically detect unavailable services within 30 seconds"
+    - "Fallback to alternate archive service works automatically"
+    - "Monitoring dashboard reflects real-time service health"
+    - "Alert system notifies of repeated failures"
+    - "User documentation explains resilience features"
+    - "No regressions in existing archiving success rates"
+    - "90%+ uptime maintained despite service outages"
+
+  metrics:
+    - name: "Archiving Success Rate"
+      description: "Percentage of items successfully archived per attempt"
+      target: "95%+"
+    - name: "Mean Time to Failover"
+      description: "Time from service failure detection to successful failover"
+      target: "< 2 minutes"
+    - name: "Service Availability"
+      description: "Percentage of time plugin remains functional despite outages"
+      target: "99.5%"
+    - name: "User Reports of Failures"
+      description: "Reduction in GitHub issues related to archive failures"
+      target: "50% reduction"
+
+  timeline:
+    start_date: "2026-02-01"
+    target_completion: "2026-05-15"
+    estimated_effort: "12 weeks"
+
+  dependencies: []
+
+  tickets:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-add-health-checks"
+    - "TICKET-fallback-strategy"
+    - "TICKET-monitoring-dashboard"
+    - "TICKET-alerting-system"
+    - "TICKET-update-documentation"
+
+  acceptance_criteria:
+    - "[ ] All 6 tickets completed and merged"
+    - "[ ] Architecture review approved"
+    - "[ ] End-to-end testing validates failover scenarios"
+    - "[ ] Performance testing shows no degradation"
+    - "[ ] User documentation updated and reviewed"
+    - "[ ] Release notes prepared"
+
+  notes: |
+    This epic builds on existing monitoring infrastructure (Logger, Metrics, Tracer)
+    and should integrate with the Dashboard component. Consider reusing patterns
+    from CircuitBreakerManager if it exists. Archive services to monitor:
+    1. Internet Archive (archive.org)
+    2. Archive.today
+    3. Perma.cc
+    4. UK Web Archive
+    5. Arquivo.pt
+    6. Archive service plugins
+
+    Risk: Archive.today uses Cloudflare Worker, may need special handling.
+    Consider adding caching for service status to reduce health check overhead.
