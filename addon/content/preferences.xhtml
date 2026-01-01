@@ -1,216 +1,25 @@
-<linkset>
+<!--
+  Moment-o7 Preferences Panel
+
+  Modern HTML-based preferences following Zotero 7 standards.
+  Uses DOM-based rendering instead of deprecated XUL overlays.
+
+  Reference: https://www.zotero.org/support/dev/zotero_7_for_developers
+-->
+
+<html:linkset>
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
   <html:link rel="stylesheet" href="__addonRef__-preferences.css" />
-</linkset>
+</html:linkset>
 
-<!-- Moment-o7 Preferences Panel Container -->
+<!--
+  Preferences Panel Container
+
+  This div is populated by PreferencesPanel class which renders:
+  - Service configuration section
+  - Preferences section
+  - Credentials management section
+
+  All UI is generated dynamically using DOM APIs, not static XUL overlays.
+-->
 <html:div id="momento7-preferences-panel-container"></html:div>
-
-<!-- Legacy XUL elements (fallback) - hidden by default -->
-<vbox id="momento7-legacy-preferences" style="display: none;">
-
-<!-- General Settings -->
-<groupbox
-  id="momento7-general-settings"
-  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
->
-  <label><html:h2 data-l10n-id="pref-title"></html:h2></label>
-
-  <checkbox
-    id="zotero-prefpane-__addonRef__-auto-archive"
-    preference="autoArchive"
-    data-l10n-id="pref-auto-archive"
-  />
-
-  <checkbox
-    id="zotero-prefpane-__addonRef__-check-before"
-    preference="checkBeforeArchive"
-    data-l10n-id="pref-check-before-archive"
-  />
-
-  <hbox align="center">
-    <html:label
-      for="zotero-prefpane-__addonRef__-default-service"
-      data-l10n-id="pref-default-service"
-    ></html:label>
-    <menulist
-      id="zotero-prefpane-__addonRef__-default-service"
-      preference="defaultService"
-    >
-      <menupopup>
-        <menuitem label="Internet Archive" value="internetarchive" />
-        <menuitem label="Archive.today" value="archivetoday" />
-        <menuitem label="Arquivo.pt" value="arquivopt" />
-        <menuitem label="Perma.cc" value="permacc" />
-        <menuitem label="UK Web Archive" value="ukwebarchive" />
-      </menupopup>
-    </menulist>
-  </hbox>
-
-  <hbox align="center">
-    <html:label
-      for="zotero-prefpane-__addonRef__-age-threshold"
-      data-l10n-id="pref-archive-age-threshold"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-age-threshold"
-      type="number"
-      min="1"
-      max="720"
-      preference="archiveAgeThresholdHours"
-      style="width: 60px"
-    />
-  </hbox>
-</groupbox>
-
-<!-- Internet Archive API Credentials -->
-<groupbox id="momento7-ia-credentials">
-  <label><html:h2 data-l10n-id="pref-ia-credentials"></html:h2></label>
-
-  <html:p
-    data-l10n-id="pref-ia-credentials-help"
-    style="margin-bottom: 10px; color: #666"
-  ></html:p>
-
-  <hbox align="center">
-    <html:label
-      for="zotero-prefpane-__addonRef__-ia-access-key"
-      data-l10n-id="pref-ia-access-key"
-      style="width: 100px"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-ia-access-key"
-      type="password"
-      style="flex: 1"
-    />
-  </hbox>
-
-  <hbox align="center" style="margin-top: 5px">
-    <html:label
-      for="zotero-prefpane-__addonRef__-ia-secret-key"
-      data-l10n-id="pref-ia-secret-key"
-      style="width: 100px"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-ia-secret-key"
-      type="password"
-      style="flex: 1"
-    />
-  </hbox>
-
-  <hbox pack="end" style="margin-top: 10px">
-    <html:button
-      id="zotero-prefpane-__addonRef__-ia-save"
-      data-l10n-id="pref-save-credentials"
-    ></html:button>
-    <html:button
-      id="zotero-prefpane-__addonRef__-ia-clear"
-      data-l10n-id="pref-clear-credentials"
-      style="margin-left: 5px"
-    ></html:button>
-  </hbox>
-</groupbox>
-
-<!-- Perma.cc API Key -->
-<groupbox id="momento7-permacc-credentials">
-  <label><html:h2 data-l10n-id="pref-permacc-credentials"></html:h2></label>
-
-  <html:p
-    data-l10n-id="pref-permacc-credentials-help"
-    style="margin-bottom: 10px; color: #666"
-  ></html:p>
-
-  <hbox align="center">
-    <html:label
-      for="zotero-prefpane-__addonRef__-permacc-key"
-      data-l10n-id="pref-permacc-api-key"
-      style="width: 100px"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-permacc-key"
-      type="password"
-      style="flex: 1"
-    />
-  </hbox>
-
-  <hbox pack="end" style="margin-top: 10px">
-    <html:button
-      id="zotero-prefpane-__addonRef__-permacc-save"
-      data-l10n-id="pref-save-credentials"
-    ></html:button>
-    <html:button
-      id="zotero-prefpane-__addonRef__-permacc-clear"
-      data-l10n-id="pref-clear-credentials"
-      style="margin-left: 5px"
-    ></html:button>
-  </hbox>
-</groupbox>
-
-<!-- Advanced Settings -->
-<groupbox id="momento7-advanced-settings">
-  <label><html:h2 data-l10n-id="pref-advanced"></html:h2></label>
-
-  <hbox align="center">
-    <html:label
-      for="zotero-prefpane-__addonRef__-timeout"
-      data-l10n-id="pref-timeout"
-      style="width: 150px"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-timeout"
-      type="number"
-      min="10000"
-      max="600000"
-      step="1000"
-      preference="iaTimeout"
-      style="width: 80px"
-    />
-    <html:span style="margin-left: 5px">ms</html:span>
-  </hbox>
-
-  <hbox align="center" style="margin-top: 5px">
-    <html:label
-      for="zotero-prefpane-__addonRef__-retries"
-      data-l10n-id="pref-max-retries"
-      style="width: 150px"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-retries"
-      type="number"
-      min="0"
-      max="10"
-      preference="iaMaxRetries"
-      style="width: 80px"
-    />
-  </hbox>
-
-  <hbox align="center" style="margin-top: 5px">
-    <html:label
-      for="zotero-prefpane-__addonRef__-retry-delay"
-      data-l10n-id="pref-retry-delay"
-      style="width: 150px"
-    ></html:label>
-    <html:input
-      id="zotero-prefpane-__addonRef__-retry-delay"
-      type="number"
-      min="1000"
-      max="60000"
-      step="1000"
-      preference="iaRetryDelay"
-      style="width: 80px"
-    />
-    <html:span style="margin-left: 5px">ms</html:span>
-  </hbox>
-</groupbox>
-
-<!-- Build info -->
-<vbox style="margin-top: 10px">
-  <html:label
-    data-l10n-id="pref-help"
-    data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
-    style="font-size: 11px; color: #888"
-  ></html:label>
-</vbox>
-
-<!-- End of legacy XUL preferences -->
-</vbox>
