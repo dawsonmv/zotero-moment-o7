@@ -2,6 +2,7 @@ import { config } from "../package.json";
 import { ColumnOptions, DialogHelper } from "zotero-plugin-toolkit";
 import hooks from "./hooks";
 import { createZToolkit } from "./utils/ztoolkit";
+import type { PreferencesPanel } from "./modules/preferences/ui/PreferencesPanel";
 
 /**
  * Moment-o7 Addon class
@@ -21,6 +22,7 @@ class Addon {
       window: Window;
       columns: Array<ColumnOptions>;
       rows: Array<{ [dataKey: string]: string }>;
+      preferencesPanel?: InstanceType<typeof PreferencesPanel> | null;
     };
     dialog?: DialogHelper;
     // Moment-o7 specific data

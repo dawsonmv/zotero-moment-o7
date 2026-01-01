@@ -1,6 +1,13 @@
 <linkset>
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
+  <html:link rel="stylesheet" href="__addonRef__-preferences.css" />
 </linkset>
+
+<!-- Moment-o7 Preferences Panel Container -->
+<html:div id="momento7-preferences-panel-container"></html:div>
+
+<!-- Legacy XUL elements (fallback) - hidden by default -->
+<vbox id="momento7-legacy-preferences" style="display: none;">
 
 <!-- General Settings -->
 <groupbox
@@ -203,4 +210,7 @@
     data-l10n-args='{"time": "__buildTime__","name": "__addonName__","version":"__buildVersion__"}'
     style="font-size: 11px; color: #888"
   ></html:label>
+</vbox>
+
+<!-- End of legacy XUL preferences -->
 </vbox>

@@ -1,5 +1,12 @@
 import { config } from "../../package.json";
 import { CredentialManager } from "../utils/CredentialManager";
+import { PreferencesPanel } from "./preferences/ui/PreferencesPanel";
+import { PreferencesManager } from "./preferences/PreferencesManager";
+
+/**
+ * Preference panel instance
+ */
+let preferencesPanel: PreferencesPanel | null = null;
 
 /**
  * Register preference window scripts
@@ -11,18 +18,130 @@ export async function registerPrefsScripts(_window: Window): Promise<void> {
       window: _window,
       columns: [],
       rows: [],
+      preferencesPanel: null,
     };
   } else {
     addon.data.prefs.window = _window;
   }
 
-  // Initialize preference UI elements
-  await initPrefsUI(_window);
-  bindPrefEvents(_window);
+  // Try to initialize the modern PreferencesPanel
+  try {
+    await initPreferencesPanelUI(_window);
+  } catch (error) {
+    ztoolkit.log(`Failed to initialize PreferencesPanel: ${error}`);
+    // Fall back to legacy XUL-based preferences
+    await initPrefsUI(_window);
+    bindPrefEvents(_window);
+  }
+
+  // Register cleanup handler for window unload
+  _window.addEventListener("unload", () => {
+    if (preferencesPanel) {
+      preferencesPanel.close();
+      preferencesPanel = null;
+    }
+    if (addon.data.prefs) {
+      addon.data.prefs.preferencesPanel = null;
+    }
+  });
 }
 
 /**
- * Initialize preference UI elements
+ * Initialize modern PreferencesPanel UI
+ */
+async function initPreferencesPanelUI(_window: Window): Promise<void> {
+  const doc = _window.document;
+  if (!doc) {
+    throw new Error("Document not available");
+  }
+
+  // Find the container element
+  const container = doc.querySelector("#momento7-preferences-panel-container");
+  if (!container) {
+    throw new Error("Preferences panel container not found");
+  }
+
+  // Initialize preferences manager if not already done
+  const prefsManager = PreferencesManager.getInstance();
+  await prefsManager.init();
+
+  // Create and initialize the PreferencesPanel
+  preferencesPanel = new PreferencesPanel({
+    container: container as HTMLElement,
+    window: _window,
+    onSave: async (changes: Record<string, unknown>) => {
+      await onPreferencesSave(changes);
+    },
+    onClose: () => {
+      onPreferencesClose();
+    },
+  });
+
+  // Initialize the panel (loads preferences)
+  await preferencesPanel.initialize();
+
+  // Store reference in addon data
+  if (addon.data.prefs) {
+    addon.data.prefs.preferencesPanel = preferencesPanel;
+  }
+
+  ztoolkit.log("Modern PreferencesPanel initialized successfully");
+}
+
+/**
+ * Handle preferences save
+ */
+async function onPreferencesSave(changes: Record<string, unknown>): Promise<void> {
+  try {
+    const prefsManager = PreferencesManager.getInstance();
+
+    // Map preference keys to manager keys
+    const keyMapping: Record<string, string> = {
+      enabledServices: "robustLinkServices",
+      fallbackOrder: "fallbackOrder",
+      timeout: "iaTimeout",
+      checkBeforeArchive: "checkBeforeArchive",
+      archiveAgeThreshold: "archiveAgeThresholdHours",
+      autoArchive: "autoArchive",
+    };
+
+    // Save each preference change
+    for (const [key, value] of Object.entries(changes)) {
+      const prefKey = keyMapping[key] || key;
+
+      // Skip credentials - they're handled separately by CredentialManager
+      if (key === "credentials") {
+        continue;
+      }
+
+      // Only save if key exists in preferences
+      if (prefKey in keyMapping || key.match(/^[a-zA-Z]/)) {
+        try {
+          // Use setPref with type casting for known preference keys
+          (prefsManager as any).setPref(prefKey, value);
+        } catch {
+          ztoolkit.log(`Warning: Could not save preference ${prefKey}`);
+        }
+      }
+    }
+
+    ztoolkit.log("Preferences saved successfully");
+  } catch (error) {
+    ztoolkit.log(`Error saving preferences: ${error}`);
+    throw error;
+  }
+}
+
+/**
+ * Handle preferences panel close
+ */
+function onPreferencesClose(): void {
+  ztoolkit.log("Preferences panel closed");
+  // Any cleanup needed when panel closes
+}
+
+/**
+ * Initialize preference UI elements (legacy XUL-based)
  */
 async function initPrefsUI(_window: Window): Promise<void> {
   const doc = _window.document;

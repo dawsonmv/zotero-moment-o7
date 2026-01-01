@@ -17,6 +17,16 @@ declare const document: Document | undefined;
 declare const Zotero: any;
 
 /**
+ * Configuration options for PreferencesPanel
+ */
+export interface PreferencesPanelOptions {
+  container?: HTMLElement;
+  window?: Window;
+  onSave?: (changes: Record<string, unknown>) => Promise<void>;
+  onClose?: () => void;
+}
+
+/**
  * Main preferences panel controller
  *
  * Responsibilities:
@@ -27,6 +37,7 @@ declare const Zotero: any;
  */
 export class PreferencesPanel {
   private container: HTMLElement | null = null;
+  private window: Window | null = null;
   private serviceSection: ServiceConfigSection | null = null;
   private credentialsSection: CredentialsSection | null = null;
   private preferencesSection: PreferencesSection | null = null;
@@ -34,9 +45,23 @@ export class PreferencesPanel {
   private isDirty: boolean = false;
   private saveButton: HTMLButtonElement | null = null;
   private listeners: Array<{ section: any; event: string; handler: Function }> = [];
+  private onSaveCallback: ((changes: Record<string, unknown>) => Promise<void>) | null = null;
+  private onCloseCallback: (() => void) | null = null;
+  private isInitialized: boolean = false;
 
-  constructor() {
+  constructor(options?: PreferencesPanelOptions) {
     this.healthChecker = HealthChecker.getInstance();
+    this.container = options?.container || null;
+    this.window = options?.window || null;
+    this.onSaveCallback = options?.onSave || null;
+    this.onCloseCallback = options?.onClose || null;
+  }
+
+  /**
+   * Check if panel is initialized
+   */
+  public getIsInitialized(): boolean {
+    return this.isInitialized;
   }
 
   /**
@@ -49,7 +74,15 @@ export class PreferencesPanel {
     if (!document) {
       throw new Error("Document object not available in this environment");
     }
-    this.container = document.getElementById("momento7-preferences") as HTMLElement | null;
+
+    // Use provided container or try to find one
+    if (!this.container) {
+      this.container = document.getElementById("momento7-preferences-panel-container") as HTMLElement | null;
+      if (!this.container) {
+        this.container = document.getElementById("momento7-preferences") as HTMLElement | null;
+      }
+    }
+
     if (!this.container) {
       throw new Error("Preferences container not found");
     }
@@ -59,6 +92,9 @@ export class PreferencesPanel {
 
     // Bind event handlers
     this.bindEventHandlers();
+
+    // Mark as initialized
+    this.isInitialized = true;
   }
 
   /**
@@ -276,8 +312,13 @@ export class PreferencesPanel {
         autoArchive: this.preferencesSection?.getAutoArchive() || true,
       };
 
-      // Persist preferences
-      await this.persistPreferences(preferences);
+      // Call external save callback if provided (for Zotero integration)
+      if (this.onSaveCallback) {
+        await this.onSaveCallback(preferences);
+      } else {
+        // Persist preferences locally if no callback
+        await this.persistPreferences(preferences);
+      }
 
       // Close preferences panel
       this.close();
@@ -333,6 +374,12 @@ export class PreferencesPanel {
     // Reset state
     this.isDirty = false;
     this.saveButton = null;
+    this.isInitialized = false;
+
+    // Call close callback if provided
+    if (this.onCloseCallback) {
+      this.onCloseCallback();
+    }
   }
 }
 
