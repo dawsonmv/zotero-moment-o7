@@ -9,6 +9,7 @@
 
 import { PreferencesManager } from "../PreferencesManager";
 import { HealthChecker } from "../../monitoring/HealthChecker";
+import { HealthStatus } from "../../monitoring/types";
 import { ServiceRegistry } from "../../archive/ServiceRegistry";
 import { CredentialManager } from "../../../utils/CredentialManager";
 import type { ArchiveService } from "../../archive/types";
@@ -92,6 +93,15 @@ export class PreferencesPanel {
 
     // Bind event handlers
     this.bindEventHandlers();
+
+    // Refresh health status for all services (auto-refresh on panel open)
+    if (this.serviceSection) {
+      try {
+        await this.serviceSection.refreshHealthStatus();
+      } catch (error) {
+        Zotero.debug(`Momento7: Failed to refresh health status on panel open: ${error}`);
+      }
+    }
 
     // Mark as initialized
     this.isInitialized = true;
@@ -475,6 +485,7 @@ export class ServiceConfigSection {
   private createServiceElement(service: ArchiveService): HTMLElement {
     const status = this.serviceStatus.get(service.id);
     const isEnabled = this.enabledServices.has(service.id);
+    const health = this.healthChecker.getServiceHealth(service.id);
 
     const item = document!.createElement("div");
     item.className = "momento7-service-item";
@@ -504,12 +515,30 @@ export class ServiceConfigSection {
 
     info.appendChild(name);
 
+    // Health details if available
+    if (health && health.status !== HealthStatus.UNKNOWN) {
+      const details = document!.createElement("div");
+      details.className = "momento7-service-health-details";
+      const lastCheckTime = health.lastCheck ? new Date(health.lastCheck).toLocaleTimeString() : "Never";
+      const successPercent = (health.successRate * 100).toFixed(1);
+      details.innerHTML = `
+        <span class="momento7-health-metric">📊 ${successPercent}%</span>
+        <span class="momento7-health-metric">⏱ ${health.avgLatency.toFixed(0)}ms</span>
+        <span class="momento7-health-timestamp">✓ ${lastCheckTime}</span>
+      `;
+      info.appendChild(details);
+    }
+
     // Status indicator
     const statusEl = document!.createElement("div");
     statusEl.className = "momento7-service-status";
     if (status?.checked) {
       statusEl.classList.add(status.available ? "momento7-service-status--online" : "momento7-service-status--offline");
       statusEl.innerHTML = status.available ? "✓ Online" : "⚠ Offline";
+    } else if (health) {
+      // Use health checker status if available
+      statusEl.classList.add(`momento7-service-status--${health.status.toLowerCase()}`);
+      statusEl.textContent = health.status;
     } else {
       statusEl.classList.add("momento7-service-status--unknown");
       statusEl.textContent = "? Checking...";
@@ -690,6 +719,52 @@ export class ServiceConfigSection {
       for (const handler of handlers) {
         handler(...args);
       }
+    }
+  }
+
+  /**
+   * Refresh health status for all services
+   * Called when preferences panel opens to get latest health data
+   */
+  async refreshHealthStatus(): Promise<void> {
+    try {
+      // Update health status from HealthChecker
+      const allHealth = this.healthChecker.getAllHealth();
+
+      for (const health of allHealth) {
+        // Update service status map
+        this.serviceStatus.set(health.serviceId, {
+          available: health.status === HealthStatus.HEALTHY || health.status === HealthStatus.DEGRADED,
+          checked: true,
+          error: health.message,
+        });
+
+        // Update UI for this service
+        const item = this.services.get(health.serviceId);
+        if (item) {
+          const statusEl = (item as any).statusElement;
+          if (statusEl) {
+            statusEl.className = `momento7-service-status momento7-service-status--${health.status.toLowerCase()}`;
+            statusEl.textContent = health.status;
+
+            // Update health details if available
+            const infoEl = item.querySelector(".momento7-service-info");
+            const detailsEl = infoEl?.querySelector(".momento7-service-health-details");
+
+            if (detailsEl) {
+              const lastCheckTime = health.lastCheck ? new Date(health.lastCheck).toLocaleTimeString() : "Never";
+              const successPercent = (health.successRate * 100).toFixed(1);
+              detailsEl.innerHTML = `
+                <span class="momento7-health-metric">📊 ${successPercent}%</span>
+                <span class="momento7-health-metric">⏱ ${health.avgLatency.toFixed(0)}ms</span>
+                <span class="momento7-health-timestamp">✓ ${lastCheckTime}</span>
+              `;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      Zotero.debug(`Momento7: Failed to refresh health status: ${error}`);
     }
   }
 
