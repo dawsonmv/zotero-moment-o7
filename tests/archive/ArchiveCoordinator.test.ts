@@ -4,6 +4,8 @@
 
 import { ArchiveCoordinator } from "../../src/modules/archive/ArchiveCoordinator";
 import { ServiceRegistry } from "../../src/modules/archive/ServiceRegistry";
+import { MementoChecker } from "../../src/modules/memento/MementoChecker";
+import { PreferencesManager } from "../../src/modules/preferences/PreferencesManager";
 
 describe("ArchiveCoordinator", function () {
   let coordinator: ArchiveCoordinator;
@@ -27,6 +29,18 @@ describe("ArchiveCoordinator", function () {
     } as unknown as jest.Mocked<ServiceRegistry>;
 
     jest.spyOn(ServiceRegistry, "getInstance").mockReturnValue(mockRegistry);
+
+    // Mock MementoChecker
+    jest.spyOn(MementoChecker, "findExistingMementos").mockReturnValue([]);
+    jest.spyOn(MementoChecker, "checkUrl").mockResolvedValue({
+      hasMemento: false,
+      mementos: [],
+    });
+
+    // Mock PreferencesManager
+    jest.spyOn(PreferencesManager, "shouldCheckBeforeArchive").mockReturnValue(false);
+    jest.spyOn(PreferencesManager, "shouldSkipExistingMementos").mockReturnValue(true);
+    jest.spyOn(PreferencesManager, "getArchiveAgeThresholdMs").mockReturnValue(30 * 24 * 60 * 60 * 1000); // 30 days
 
     coordinator = ArchiveCoordinator.getInstance();
 
@@ -418,6 +432,225 @@ describe("ArchiveCoordinator", function () {
 
       // Should be called in fallback order: ia, archivetoday, permacc
       expect(callOrder).toEqual(["ia", "at"]);
+    });
+  });
+
+  describe("memento checking", function () {
+    it("should check for existing stored mementos", async function () {
+      const mockService = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockResolvedValue([
+          {
+            item: mockItem,
+            success: true,
+            archivedUrl: "https://web.archive.org/web/example.com",
+          },
+        ]),
+      };
+
+      mockRegistry.get.mockReturnValue(mockService as any);
+
+      // Enable memento checking
+      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
+
+      // Mock stored mementos found
+      const mockMemento = {
+        url: "https://web.archive.org/web/2024/example.com",
+        service: "internetarchive",
+        datetime: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
+      };
+      (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([mockMemento]);
+
+      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+
+      // Should return existing memento result, not archive
+      expect(results[0].success).toBe(true);
+      expect(results[0].archivedUrl).toContain("web.archive.org");
+      expect(mockService.archive).not.toHaveBeenCalled(); // Archive service not called
+    });
+
+    it("should return remote mementos when auto-skip is enabled", async function () {
+      const mockService = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockResolvedValue([
+          {
+            item: mockItem,
+            success: true,
+            archivedUrl: "https://web.archive.org/web/example.com",
+          },
+        ]),
+      };
+
+      mockRegistry.get.mockReturnValue(mockService as any);
+
+      // Enable memento checking and auto-skip
+      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
+      (PreferencesManager.shouldSkipExistingMementos as jest.Mock).mockReturnValue(true);
+
+      // Mock no stored mementos but remote mementos found
+      (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([]);
+      const mockRemoteMemento = {
+        url: "https://archive.today/abc123",
+        service: "archivetoday",
+        datetime: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+      };
+      (MementoChecker.checkUrl as jest.Mock).mockResolvedValue({
+        hasMemento: true,
+        mementos: [mockRemoteMemento],
+      });
+
+      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+
+      // Should use remote memento
+      expect(results[0].success).toBe(true);
+      expect(results[0].archivedUrl).toBe(mockRemoteMemento.url);
+      expect(mockService.archive).not.toHaveBeenCalled();
+    });
+
+    it("should return info about existing memento when auto-skip is disabled", async function () {
+      const mockService = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockResolvedValue([
+          {
+            item: mockItem,
+            success: true,
+            archivedUrl: "https://web.archive.org/web/example.com",
+          },
+        ]),
+      };
+
+      mockRegistry.get.mockReturnValue(mockService as any);
+
+      // Enable memento checking but disable auto-skip
+      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
+      (PreferencesManager.shouldSkipExistingMementos as jest.Mock).mockReturnValue(false);
+
+      // Mock remote mementos found
+      (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([]);
+      const mockRemoteMemento = {
+        url: "https://archive.today/abc123",
+        service: "archivetoday",
+        datetime: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+      };
+      (MementoChecker.checkUrl as jest.Mock).mockResolvedValue({
+        hasMemento: true,
+        mementos: [mockRemoteMemento],
+      });
+
+      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+
+      // Should return existing archive info with message
+      expect(results[0].success).toBe(true);
+      expect(results[0].message).toContain("Recent archive found");
+      expect(results[0].existingArchive).toBeDefined();
+      expect(mockService.archive).not.toHaveBeenCalled();
+    });
+
+    it("should handle memento check errors gracefully", async function () {
+      const mockService = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockResolvedValue([
+          {
+            item: mockItem,
+            success: true,
+            archivedUrl: "https://web.archive.org/web/example.com",
+          },
+        ]),
+      };
+
+      mockRegistry.get.mockReturnValue(mockService as any);
+
+      // Enable memento checking
+      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
+
+      // Mock memento check to fail
+      (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([]);
+      (MementoChecker.checkUrl as jest.Mock).mockRejectedValue(
+        new Error("Network error checking mementos"),
+      );
+
+      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+
+      // Should proceed with archiving despite memento check failure
+      expect(results[0].success).toBe(true);
+      expect(mockService.archive).toHaveBeenCalled(); // Should have tried to archive
+    });
+  });
+
+  describe("error handling branches", function () {
+    it("should handle service returning no result", async function () {
+      const mockService = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockResolvedValue([]), // No result
+      };
+
+      mockRegistry.get.mockReturnValue(mockService as any);
+
+      const results = await coordinator.archiveItems(
+        [mockItem],
+        "internetarchive",
+      );
+
+      // Should return error when service returns no result
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toContain("No result returned");
+    });
+
+    it("should handle service throwing errors", async function () {
+      const mockService1 = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockRejectedValue(new Error("Service threw")),
+      };
+
+      const mockService2 = {
+        name: "Archive.today",
+        id: "archivetoday",
+        archive: jest.fn().mockResolvedValue([
+          { item: mockItem, success: true, archivedUrl: "https://archive.today/abc" },
+        ]),
+      };
+
+      mockRegistry.getAvailable.mockResolvedValue([
+        { id: "internetarchive", service: mockService1 },
+        { id: "archivetoday", service: mockService2 },
+      ] as any);
+
+      const results = await coordinator.archiveItems([mockItem]);
+
+      // Should try next service even when first throws
+      expect(results[0].success).toBe(true);
+      expect(mockService2.archive).toHaveBeenCalled();
+    });
+
+    it("should collect errors from all failed services", async function () {
+      const mockService1 = {
+        name: "Internet Archive",
+        id: "internetarchive",
+        archive: jest.fn().mockRejectedValue(new Error("IA threw")),
+      };
+
+      const mockService2 = {
+        name: "Archive.today",
+        id: "archivetoday",
+        archive: jest.fn().mockRejectedValue(new Error("AT threw")),
+      };
+
+      mockRegistry.getAvailable.mockResolvedValue([
+        { id: "internetarchive", service: mockService1 },
+        { id: "archivetoday", service: mockService2 },
+      ] as any);
+
+      const results = await coordinator.archiveItems([mockItem]);
+
+      // Should collect errors and include both in message
+      expect(results[0].success).toBe(false);
+      expect(results[0].error).toContain("All archive services failed");
     });
   });
 });
