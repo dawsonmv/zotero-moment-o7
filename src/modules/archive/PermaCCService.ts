@@ -232,4 +232,72 @@ export class PermaCCService extends BaseArchiveService {
       return false;
     }
   }
+
+  /**
+   * Test Perma.cc credentials by validating API key
+   * Makes a GET request to /user/ endpoint which requires valid auth
+   * @static
+   */
+  static async testCredentials(credentials: {
+    apiKey?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      // Validate input
+      if (!credentials.apiKey || credentials.apiKey.length === 0) {
+        return {
+          success: false,
+          message: "API key is required",
+        };
+      }
+
+      const timeout = 10000; // 10 second timeout for test
+
+      // Make a test request to the user endpoint
+      const response = await Zotero.HTTP.request(
+        `${PermaCCService.API_BASE}/user/`,
+        {
+          method: "GET",
+          timeout,
+          headers: {
+            Authorization: `ApiKey ${credentials.apiKey}`,
+          },
+        },
+      );
+
+      // Check for auth errors
+      if (response.status === 401 || response.status === 403) {
+        return {
+          success: false,
+          message: "Invalid API key - Authentication failed",
+        };
+      }
+
+      // Success if we got a 200 response
+      if (response.status === 200) {
+        return {
+          success: true,
+          message: "API key valid",
+        };
+      }
+
+      // Other non-200 responses
+      if (response.status >= 400) {
+        return {
+          success: false,
+          message: `HTTP ${response.status} error`,
+        };
+      }
+
+      return {
+        success: true,
+        message: "API key valid",
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        message: `Connection error: ${message}`,
+      };
+    }
+  }
 }

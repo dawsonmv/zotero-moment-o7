@@ -190,4 +190,68 @@ export class ArchiveTodayService extends BaseArchiveService {
       return { available: false };
     }
   }
+
+  /**
+   * Test Archive.today proxy URL connection
+   * Validates that a configured proxy URL is accessible and working
+   * @static
+   */
+  static async testCredentials(credentials: {
+    proxyUrl?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      // Proxy URL is optional for Archive.today
+      if (!credentials.proxyUrl || credentials.proxyUrl.length === 0) {
+        return {
+          success: true,
+          message: "No proxy configured (using direct submission)",
+        };
+      }
+
+      // Validate URL format
+      try {
+        new URL(credentials.proxyUrl);
+      } catch {
+        return {
+          success: false,
+          message: "Invalid proxy URL format",
+        };
+      }
+
+      const timeout = 10000; // 10 second timeout for test
+
+      // Make a test request to the proxy URL
+      const response = await Zotero.HTTP.request(
+        credentials.proxyUrl,
+        {
+          method: "POST",
+          timeout,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url: "https://example.com" }),
+        },
+      );
+
+      // Check for connectivity errors
+      if (response.status >= 400) {
+        return {
+          success: false,
+          message: `Proxy returned HTTP ${response.status}`,
+        };
+      }
+
+      // Success if proxy is reachable and responding
+      return {
+        success: true,
+        message: "Proxy URL is accessible",
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        message: `Connection error: ${message}`,
+      };
+    }
+  }
 }

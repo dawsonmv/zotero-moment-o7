@@ -407,4 +407,95 @@ describe("PermaCCService", function () {
       expect(results[0].error).toBeDefined();
     });
   });
+
+  describe("testCredentials", function () {
+    it("should fail with empty API key", async function () {
+      const result = await PermaCCService.testCredentials({
+        apiKey: "",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("API key");
+    });
+
+    it("should fail with no API key", async function () {
+      const result = await PermaCCService.testCredentials({
+        apiKey: undefined,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("API key");
+    });
+
+    it("should test valid API key with successful response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 200,
+        responseText: JSON.stringify({
+          uuid: "test-user",
+          email: "test@example.com",
+        }),
+      });
+
+      const result = await PermaCCService.testCredentials({
+        apiKey: "valid-api-key",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("valid");
+      expect(Zotero.HTTP.request).toHaveBeenCalledWith(
+        "https://api.perma.cc/v1/user/",
+        expect.objectContaining({
+          method: "GET",
+          headers: {
+            Authorization: "ApiKey valid-api-key",
+          },
+        })
+      );
+    });
+
+    it("should fail with 401 unauthorized response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 401,
+        responseText: JSON.stringify({
+          error: "Unauthorized",
+        }),
+      });
+
+      const result = await PermaCCService.testCredentials({
+        apiKey: "invalid-api-key",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Authentication failed");
+    });
+
+    it("should fail with 403 forbidden response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 403,
+        responseText: JSON.stringify({
+          error: "Forbidden",
+        }),
+      });
+
+      const result = await PermaCCService.testCredentials({
+        apiKey: "forbidden-api-key",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("failed");
+    });
+
+    it("should handle connection errors", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockRejectedValueOnce(
+        new Error("Network timeout")
+      );
+
+      const result = await PermaCCService.testCredentials({
+        apiKey: "test-api-key",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Connection error");
+    });
+  });
 });

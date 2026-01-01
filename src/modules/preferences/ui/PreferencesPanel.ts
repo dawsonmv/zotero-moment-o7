@@ -11,6 +11,9 @@ import { PreferencesManager } from "../PreferencesManager";
 import { HealthChecker } from "../../monitoring/HealthChecker";
 import { HealthStatus } from "../../monitoring/types";
 import { ServiceRegistry } from "../../archive/ServiceRegistry";
+import { InternetArchiveService } from "../../archive/InternetArchiveService";
+import { PermaCCService } from "../../archive/PermaCCService";
+import { ArchiveTodayService } from "../../archive/ArchiveTodayService";
 import { CredentialManager } from "../../../utils/CredentialManager";
 import type { ArchiveService } from "../../archive/types";
 
@@ -299,12 +302,44 @@ export class PreferencesPanel {
   }
 
   /**
-   * Test service credentials
+   * Test service credentials by calling the service's test method
    */
   private async testServiceCredentials(serviceId: string): Promise<boolean> {
-    // This will be implemented to test actual credentials with each service
-    // For now, just return true
-    return true;
+    if (!this.credentialsSection) {
+      throw new Error("Credentials section not initialized");
+    }
+
+    // Get credentials from input fields
+    const credentials = this.credentialsSection.getInputCredentials(serviceId);
+
+    if (serviceId === "internetarchive") {
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: credentials.accessKey as string | undefined,
+        secretKey: credentials.secretKey as string | undefined,
+      });
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      return true;
+    } else if (serviceId === "permacc") {
+      const result = await PermaCCService.testCredentials({
+        apiKey: credentials.apiKey as string | undefined,
+      });
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      return true;
+    } else if (serviceId === "archivetoday") {
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: credentials.proxyUrl as string | undefined,
+      });
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+      return true;
+    }
+
+    throw new Error(`Unknown service: ${serviceId}`);
   }
 
   /**
@@ -1200,6 +1235,27 @@ export class CredentialsSection {
     }
 
     return credentials;
+  }
+
+  /**
+   * Get current credential values from inputs (for testing)
+   */
+  getInputCredentials(serviceId: string): Record<string, string | undefined> {
+    if (serviceId === "internetarchive") {
+      return {
+        accessKey: this.iaAccessKeyInput?.value || "",
+        secretKey: this.iaSecretKeyInput?.value || "",
+      };
+    } else if (serviceId === "permacc") {
+      return {
+        apiKey: this.permaCCApiKeyInput?.value || "",
+      };
+    } else if (serviceId === "archivetoday") {
+      return {
+        proxyUrl: this.archiveTodayProxyInput?.value || "",
+      };
+    }
+    return {};
   }
 
   private emit(event: string, ...args: any[]): void {

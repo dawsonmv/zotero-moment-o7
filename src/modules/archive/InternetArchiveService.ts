@@ -366,4 +366,95 @@ export class InternetArchiveService extends BaseArchiveService {
     this.retryDelay =
       (Zotero.Prefs.get("extensions.momento7.iaRetryDelay") as number) || 5000;
   }
+
+  /**
+   * Test Internet Archive credentials with a simple API call
+   * Uses the API endpoint that checks credential validity
+   * @static
+   */
+  static async testCredentials(credentials: {
+    accessKey?: string;
+    secretKey?: string;
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      // Validate credential format
+      if (
+        !isValidCredential(credentials.accessKey) ||
+        !isValidCredential(credentials.secretKey)
+      ) {
+        return {
+          success: false,
+          message: "Invalid credential format (alphanumeric, dashes, underscores only)",
+        };
+      }
+
+      const timeout = 10000; // 10 second timeout for test
+
+      // Make a test request to the API endpoint
+      // We use a simple HEAD request or minimal POST to test auth
+      const response = await Zotero.HTTP.request(
+        "https://web.archive.org/save",
+        {
+          method: "POST",
+          timeout,
+          headers: {
+            Accept: "application/json",
+            Authorization: `LOW ${credentials.accessKey}:${credentials.secretKey}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          // Test with a simple test URL
+          body: "url=https://example.com",
+        },
+      );
+
+      // Parse response
+      try {
+        const result = JSON.parse(response.responseText || "{}");
+
+        // Check for auth errors
+        if (response.status === 401 || response.status === 403) {
+          return {
+            success: false,
+            message: "Invalid credentials - Authentication failed",
+          };
+        }
+
+        // Success if we got a response (even if archiving fails)
+        // The fact that the API accepted our auth is what matters
+        if (result.url || result.job_id || result.success) {
+          return {
+            success: true,
+            message: "Credentials valid",
+          };
+        }
+
+        // If we got here, auth was accepted but there may be an issue
+        if (result.message && result.message.includes("is not a valid")) {
+          return {
+            success: false,
+            message: `API error: ${result.message}`,
+          };
+        }
+
+        return {
+          success: true,
+          message: "Credentials valid",
+        };
+      } catch {
+        // If we can't parse as JSON but got a response, credentials are likely valid
+        return response.status < 400
+          ? { success: true, message: "Credentials valid" }
+          : {
+              success: false,
+              message: `HTTP ${response.status} error`,
+            };
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        message: `Connection error: ${message}`,
+      };
+    }
+  }
 }

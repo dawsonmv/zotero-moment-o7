@@ -252,4 +252,99 @@ describe("ArchiveTodayService", function () {
       expect(results[0].success).toBe(false);
     });
   });
+
+  describe("testCredentials", function () {
+    it("should succeed with no proxy configured", async function () {
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: undefined,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("direct submission");
+    });
+
+    it("should succeed with empty proxy URL", async function () {
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: "",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("direct submission");
+    });
+
+    it("should fail with invalid proxy URL format", async function () {
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: "not-a-valid-url",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("URL format");
+    });
+
+    it("should test valid proxy URL with successful response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 200,
+        responseText: JSON.stringify({
+          archivedUrl: "https://archive.today/20231215T120000Z/https://example.com",
+        }),
+      });
+
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: "https://proxy.example.com/archive",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("accessible");
+      expect(Zotero.HTTP.request).toHaveBeenCalledWith(
+        "https://proxy.example.com/archive",
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+      );
+    });
+
+    it("should fail with 400+ HTTP status from proxy", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 500,
+        responseText: "Server error",
+      });
+
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: "https://proxy.example.com/archive",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("HTTP");
+    });
+
+    it("should fail with 403 forbidden from proxy", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 403,
+        responseText: "Forbidden",
+      });
+
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: "https://proxy.example.com/archive",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("HTTP 403");
+    });
+
+    it("should handle connection errors to proxy", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockRejectedValueOnce(
+        new Error("Connection refused")
+      );
+
+      const result = await ArchiveTodayService.testCredentials({
+        proxyUrl: "https://proxy.example.com/archive",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Connection error");
+    });
+  });
 });

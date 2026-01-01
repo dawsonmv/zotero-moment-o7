@@ -512,4 +512,127 @@ describe("InternetArchiveService", function () {
       expect(results).toHaveLength(2);
     });
   });
+
+  describe("testCredentials", function () {
+    it("should fail with empty access key", async function () {
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "",
+        secretKey: "test-secret",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("alphanumeric");
+    });
+
+    it("should fail with empty secret key", async function () {
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "test-access",
+        secretKey: "",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("alphanumeric");
+    });
+
+    it("should fail with invalid credential format (special characters)", async function () {
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "invalid@key",
+        secretKey: "test-secret",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("alphanumeric");
+    });
+
+    it("should test valid credentials with successful response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 200,
+        responseText: JSON.stringify({
+          url: "https://web.archive.org/web/20231215120000/https://example.com",
+          job_id: "test-job-123",
+        }),
+      });
+
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "valid-access-key",
+        secretKey: "valid-secret-key",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("valid");
+      expect(Zotero.HTTP.request).toHaveBeenCalledWith(
+        "https://web.archive.org/save",
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "LOW valid-access-key:valid-secret-key",
+          }),
+        })
+      );
+    });
+
+    it("should fail with 401 unauthorized response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 401,
+        responseText: JSON.stringify({
+          error: "Unauthorized",
+        }),
+      });
+
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "invalid-access",
+        secretKey: "invalid-secret",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Authentication failed");
+    });
+
+    it("should fail with 403 forbidden response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 403,
+        responseText: JSON.stringify({
+          error: "Forbidden",
+        }),
+      });
+
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "forbidden-access",
+        secretKey: "forbidden-secret",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Authentication failed");
+    });
+
+    it("should handle connection errors", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockRejectedValueOnce(
+        new Error("Network error")
+      );
+
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "test-access",
+        secretKey: "test-secret",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Connection error");
+    });
+
+    it("should accept job_id as valid response", async function () {
+      (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        status: 200,
+        responseText: JSON.stringify({
+          job_id: "test-job-456",
+        }),
+      });
+
+      const result = await InternetArchiveService.testCredentials({
+        accessKey: "valid-access-key",
+        secretKey: "valid-secret-key",
+      });
+
+      expect(result.success).toBe(true);
+    });
+  });
 });
