@@ -11,7 +11,7 @@ if (!basicTool.getGlobal("Zotero")[config.addonInstance]) {
     return _globalThis.addon.data.ztoolkit;
   });
   // @ts-expect-error - Plugin instance is not typed
-  Zotero[config.addonInstance] = addon;
+  Zotero[config.addonInstance] = _globalThis.addon;
 }
 
 function defineGlobal(name: Parameters<BasicTool["getGlobal"]>[0]): void;
