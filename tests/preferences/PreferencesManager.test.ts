@@ -329,4 +329,68 @@ describe("PreferencesManager", function () {
       );
     });
   });
+
+  describe("static credential methods", function () {
+    it("hasIACredentials should return true when both keys exist", async function () {
+      const { CredentialManager } = require("../../src/utils/CredentialManager");
+      CredentialManager.getInstance().getCredential
+        .mockResolvedValueOnce("access-key-123")
+        .mockResolvedValueOnce("secret-key-456");
+
+      const result = await PreferencesManager.hasIACredentials();
+
+      expect(result).toBe(true);
+    });
+
+    it("hasIACredentials should return false when credentials missing", async function () {
+      const { CredentialManager } = require("../../src/utils/CredentialManager");
+      CredentialManager.getInstance().getCredential.mockResolvedValue(
+        undefined,
+      );
+
+      const result = await PreferencesManager.hasIACredentials();
+
+      expect(result).toBe(false);
+    });
+
+    it("getIACredentials should return both keys", async function () {
+      const { CredentialManager } = require("../../src/utils/CredentialManager");
+      CredentialManager.getInstance().getCredential
+        .mockResolvedValueOnce("access-key-123")
+        .mockResolvedValueOnce("secret-key-456");
+
+      const result = await PreferencesManager.getIACredentials();
+
+      expect(result.accessKey).toBe("access-key-123");
+      expect(result.secretKey).toBe("secret-key-456");
+    });
+
+    it("getPermaCCApiKey should return the API key", async function () {
+      const { CredentialManager } = require("../../src/utils/CredentialManager");
+      CredentialManager.getInstance().getCredential.mockResolvedValue(
+        "permacc-api-key-xyz",
+      );
+
+      const result = await PreferencesManager.getPermaCCApiKey();
+
+      expect(result).toBe("permacc-api-key-xyz");
+    });
+
+    it("getArchiveTodayProxyUrl should return the proxy URL", function () {
+      prefsStore.set(
+        "extensions.momento7.archiveTodayProxyUrl",
+        "https://my-proxy.workers.dev/",
+      );
+
+      const result = PreferencesManager.getArchiveTodayProxyUrl();
+
+      expect(result).toBe("https://my-proxy.workers.dev/");
+    });
+
+    it("getArchiveTodayProxyUrl should return empty string when not set", function () {
+      const result = PreferencesManager.getArchiveTodayProxyUrl();
+
+      expect(result).toBe("");
+    });
+  });
 });
