@@ -1,0 +1,821 @@
+/**
+ * Archive Service Configuration UI - Preferences Panel Styling
+ *
+ * Provides visual styling for the Zotero Momento7 preferences panel
+ * including sections for services, credentials, and general preferences.
+ *
+ * Compliant with WCAG 2.1 AA accessibility standards.
+ */
+
+/* ============================================================================
+   LAYOUT & CONTAINER STYLES
+   ============================================================================ */
+
+.momento7-preferences-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #333;
+  background-color: #fff;
+}
+
+.momento7-section {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  background-color: #fafafa;
+}
+
+.momento7-section h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.momento7-section-description {
+  margin: 0 0 16px 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   SERVICES SECTION
+   ============================================================================ */
+
+.momento7-services-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.momento7-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.momento7-service-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  cursor: move;
+}
+
+.momento7-service-item:hover {
+  background: #f8f8f8;
+  border-color: #d0d0d0;
+}
+
+.momento7-service-item.dragging {
+  opacity: 0.5;
+  background: #e8e8e8;
+}
+
+.momento7-service-item.drag-over {
+  border: 2px dashed #0066cc;
+  background: #f0f6ff;
+}
+
+.momento7-service-toggle {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0066cc;
+}
+
+.momento7-service-toggle:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.momento7-service-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.momento7-service-name {
+  font-weight: 500;
+  color: #000;
+  margin-bottom: 4px;
+}
+
+.momento7-service-url {
+  font-size: 11px;
+  color: #999;
+  text-decoration: none;
+  word-break: break-word;
+}
+
+.momento7-service-url:hover {
+  text-decoration: underline;
+}
+
+.momento7-service-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.momento7-service-status--online {
+  color: #107c10;
+  background: #dffcf0;
+}
+
+.momento7-service-status--offline {
+  color: #d83b01;
+  background: #fed9cc;
+}
+
+.momento7-service-status--unknown {
+  color: #666;
+  background: #f0f0f0;
+}
+
+.momento7-service-status--testing {
+  color: #0066cc;
+  background: #e8f4fd;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.momento7-service-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.momento7-service-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #999;
+  cursor: grab;
+  user-select: none;
+}
+
+.momento7-service-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ============================================================================
+   CREDENTIALS SECTION
+   ============================================================================ */
+
+.momento7-credentials-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.momento7-credentials-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.momento7-credential-group {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 12px;
+  background: #fff;
+}
+
+.momento7-credential-group-title {
+  font-weight: 500;
+  color: #000;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.momento7-credential-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.momento7-credential-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.momento7-credential-label {
+  font-weight: 500;
+  color: #333;
+  font-size: 12px;
+}
+
+.momento7-credential-input {
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: monospace;
+  background: #fff;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.momento7-credential-input:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.momento7-credential-input:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.momento7-credential-input.error {
+  border-color: #d83b01;
+}
+
+.momento7-credential-status {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.momento7-credential-status--configured {
+  color: #107c10;
+}
+
+.momento7-credential-status--empty {
+  color: #999;
+  font-style: italic;
+}
+
+.momento7-credential-status--error {
+  color: #d83b01;
+}
+
+.momento7-credential-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ============================================================================
+   PREFERENCES SECTION
+   ============================================================================ */
+
+.momento7-preferences-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.momento7-preferences-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.momento7-preference-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.momento7-preference-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #333;
+  font-size: 13px;
+}
+
+.momento7-preference-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #0066cc;
+}
+
+.momento7-preference-checkbox:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.momento7-preference-input {
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  font-size: 12px;
+  width: 120px;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.momento7-preference-input:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.momento7-preference-input.error {
+  border-color: #d83b01;
+}
+
+.momento7-preference-help {
+  font-size: 11px;
+  color: #666;
+  margin-left: 26px;
+}
+
+.momento7-preference-group--slider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.momento7-preference-slider {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: #e0e0e0;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.momento7-preference-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0066cc;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.momento7-preference-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #0066cc;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.momento7-preference-slider:focus {
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.2);
+}
+
+.momento7-preference-value {
+  font-weight: 500;
+  color: #000;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* ============================================================================
+   ACTION BUTTONS
+   ============================================================================ */
+
+.momento7-action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 24px;
+}
+
+.momento7-btn {
+  padding: 8px 16px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  background: #fff;
+  color: #333;
+  white-space: nowrap;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.momento7-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.momento7-btn:active:not(:disabled) {
+  background: #e8e8e8;
+  border-color: #666;
+}
+
+.momento7-btn:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+}
+
+.momento7-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.momento7-btn-primary {
+  background: #0066cc;
+  color: #fff;
+  border-color: #0066cc;
+}
+
+.momento7-btn-primary:hover:not(:disabled) {
+  background: #0052a3;
+  border-color: #0052a3;
+}
+
+.momento7-btn-primary:active:not(:disabled) {
+  background: #003d7a;
+}
+
+.momento7-btn-secondary {
+  background: #fff;
+  color: #333;
+  border-color: #d0d0d0;
+}
+
+.momento7-btn-secondary:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.momento7-btn-danger {
+  background: #d83b01;
+  color: #fff;
+  border-color: #d83b01;
+}
+
+.momento7-btn-danger:hover:not(:disabled) {
+  background: #a52a00;
+  border-color: #a52a00;
+}
+
+.momento7-btn-small {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* ============================================================================
+   STATE & FEEDBACK STYLES
+   ============================================================================ */
+
+.momento7-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.momento7-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #ddd;
+  border-top-color: #0066cc;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.momento7-error-message {
+  color: #d83b01;
+  font-size: 11px;
+  padding: 8px;
+  background: #fef2f0;
+  border-left: 3px solid #d83b01;
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+.momento7-success-message {
+  color: #107c10;
+  font-size: 11px;
+  padding: 8px;
+  background: #f1f7f1;
+  border-left: 3px solid #107c10;
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+.momento7-info-message {
+  color: #0066cc;
+  font-size: 11px;
+  padding: 8px;
+  background: #f0f6ff;
+  border-left: 3px solid #0066cc;
+  border-radius: 2px;
+  margin-top: 8px;
+}
+
+/* ============================================================================
+   ACCESSIBILITY FEATURES
+   ============================================================================ */
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  .momento7-preferences-panel {
+    color: #000;
+  }
+
+  .momento7-section {
+    border-width: 2px;
+  }
+
+  .momento7-btn {
+    border-width: 2px;
+  }
+
+  .momento7-preference-checkbox,
+  .momento7-service-toggle {
+    border: 2px solid #333;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .momento7-service-item,
+  .momento7-credential-input,
+  .momento7-preference-input,
+  .momento7-btn {
+    transition: none;
+  }
+
+  .momento7-spinner,
+  @keyframes spin {
+    animation: none;
+  }
+
+  .momento7-status--testing {
+    animation: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .momento7-preferences-panel {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  .momento7-section {
+    background-color: #2a2a2a;
+    border-color: #3a3a3a;
+  }
+
+  .momento7-section h3 {
+    color: #fff;
+  }
+
+  .momento7-section-description {
+    color: #999;
+  }
+
+  .momento7-service-item,
+  .momento7-credential-group,
+  .momento7-preferences-form {
+    background: #333;
+    border-color: #3a3a3a;
+  }
+
+  .momento7-service-item:hover {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+  }
+
+  .momento7-credential-input,
+  .momento7-preference-input {
+    background: #2a2a2a;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+  }
+
+  .momento7-credential-input:focus,
+  .momento7-preference-input:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .momento7-btn {
+    background: #333;
+    color: #e0e0e0;
+    border-color: #3a3a3a;
+  }
+
+  .momento7-btn:hover:not(:disabled) {
+    background: #3a3a3a;
+    border-color: #4a4a4a;
+  }
+
+  .momento7-btn-primary {
+    background: #0066cc;
+    border-color: #0066cc;
+    color: #fff;
+  }
+
+  .momento7-btn-primary:hover:not(:disabled) {
+    background: #4a9eff;
+  }
+
+  .momento7-credential-status--empty {
+    color: #999;
+  }
+
+  .momento7-error-message {
+    background: #3a2020;
+    color: #ff6b6b;
+  }
+
+  .momento7-success-message {
+    background: #1a3a1a;
+    color: #6bff6b;
+  }
+
+  .momento7-info-message {
+    background: #1a2a3a;
+    color: #6b9fff;
+  }
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 600px) {
+  .momento7-preferences-panel {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .momento7-section {
+    padding: 12px;
+  }
+
+  .momento7-service-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .momento7-service-info {
+    width: 100%;
+  }
+
+  .momento7-service-status,
+  .momento7-service-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .momento7-preference-group--slider {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .momento7-preference-slider {
+    width: 100%;
+  }
+
+  .momento7-action-buttons {
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .momento7-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .momento7-preference-input {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.momento7-hidden {
+  display: none !important;
+}
+
+.momento7-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.momento7-flex-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.momento7-flex-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.momento7-align-center {
+  align-items: center;
+  justify-content: center;
+}
+
+.momento7-gap-small {
+  gap: 4px;
+}
+
+.momento7-gap-medium {
+  gap: 8px;
+}
+
+.momento7-gap-large {
+  gap: 16px;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .momento7-action-buttons {
+    display: none;
+  }
+
+  .momento7-preference-slider {
+    display: none;
+  }
+
+  .momento7-service-drag-handle {
+    display: none;
+  }
+}
