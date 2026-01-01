@@ -651,6 +651,14 @@ export class CredentialsSection {
 export class PreferencesSection {
   private container: HTMLElement | null = null;
   private eventHandlers: Map<string, Function[]> = new Map();
+  private timeout: number = 120000;
+  private checkBeforeArchive: boolean = true;
+  private archiveAgeThreshold: number = 30; // In days
+  private autoArchive: boolean = true;
+  private timeoutInput: HTMLInputElement | null = null;
+  private checkBeforeArchiveCheckbox: HTMLInputElement | null = null;
+  private ageThresholdInput: HTMLInputElement | null = null;
+  private autoArchiveCheckbox: HTMLInputElement | null = null;
 
   async render(parent: HTMLElement): Promise<void> {
     this.container = document!.createElement("div");
@@ -664,22 +672,220 @@ export class PreferencesSection {
     `;
 
     parent.appendChild(this.container);
+
+    // Load initial preferences
+    this.loadInitialPreferences();
+
+    // Render form controls
+    this.renderForm();
+  }
+
+  private loadInitialPreferences(): void {
+    const manager = PreferencesManager.getInstance();
+    this.timeout = manager.getPref("iaTimeout") || 120000;
+    this.checkBeforeArchive = manager.getPref("checkBeforeArchive") ?? true;
+    this.archiveAgeThreshold = (manager.getPref("archiveAgeThresholdHours") || 720) / 24; // Convert hours to days
+    this.autoArchive = manager.getPref("autoArchive") ?? true;
+  }
+
+  private renderForm(): void {
+    const formContainer = this.container?.querySelector(".momento7-preferences-form") as HTMLElement;
+    if (!formContainer) return;
+
+    // Timeout setting
+    const timeoutGroup = document!.createElement("div");
+    timeoutGroup.className = "momento7-preference-group";
+
+    const timeoutLabel = document!.createElement("label");
+    timeoutLabel.className = "momento7-preference-label";
+    timeoutLabel.innerHTML = "Request Timeout";
+
+    const timeoutContainer = document!.createElement("div");
+    timeoutContainer.className = "momento7-flex-row";
+
+    this.timeoutInput = document!.createElement("input");
+    this.timeoutInput.type = "number";
+    this.timeoutInput.className = "momento7-preference-input";
+    this.timeoutInput.min = "1000";
+    this.timeoutInput.max = "600000";
+    this.timeoutInput.step = "1000";
+    this.timeoutInput.value = String(this.timeout);
+    this.timeoutInput.setAttribute("aria-label", "Request timeout in milliseconds");
+    this.timeoutInput.addEventListener("change", () => {
+      this.timeout = Math.max(1000, Math.min(600000, parseInt(this.timeoutInput!.value, 10)));
+      this.timeoutInput!.value = String(this.timeout);
+    });
+
+    const timeoutUnit = document!.createElement("span");
+    timeoutUnit.textContent = "ms";
+    timeoutUnit.style.marginLeft = "8px";
+    timeoutUnit.style.alignSelf = "center";
+
+    timeoutContainer.appendChild(this.timeoutInput);
+    timeoutContainer.appendChild(timeoutUnit);
+    timeoutGroup.appendChild(timeoutLabel);
+    timeoutGroup.appendChild(timeoutContainer);
+
+    const timeoutHelp = document!.createElement("p");
+    timeoutHelp.className = "momento7-preference-help";
+    timeoutHelp.textContent = "Maximum time to wait for archive service responses. Range: 1-600 seconds.";
+    timeoutGroup.appendChild(timeoutHelp);
+
+    formContainer.appendChild(timeoutGroup);
+
+    // Check before archive setting
+    const checkGroup = document!.createElement("div");
+    checkGroup.className = "momento7-preference-group";
+
+    this.checkBeforeArchiveCheckbox = document!.createElement("input");
+    this.checkBeforeArchiveCheckbox.type = "checkbox";
+    this.checkBeforeArchiveCheckbox.className = "momento7-preference-checkbox";
+    this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
+    this.checkBeforeArchiveCheckbox.setAttribute("aria-label", "Check for existing archives before archiving");
+    this.checkBeforeArchiveCheckbox.addEventListener("change", () => {
+      this.checkBeforeArchive = this.checkBeforeArchiveCheckbox!.checked;
+    });
+
+    const checkLabel = document!.createElement("label");
+    checkLabel.className = "momento7-preference-label";
+    checkLabel.appendChild(this.checkBeforeArchiveCheckbox);
+    checkLabel.appendChild(document!.createTextNode("Check for existing archives before archiving"));
+
+    checkGroup.appendChild(checkLabel);
+
+    const checkHelp = document!.createElement("p");
+    checkHelp.className = "momento7-preference-help";
+    checkHelp.textContent = "Query archive services for existing mementos of the URL before archiving.";
+    checkGroup.appendChild(checkHelp);
+
+    formContainer.appendChild(checkGroup);
+
+    // Age threshold setting (only show if check before archive is enabled)
+    const ageGroup = document!.createElement("div");
+    ageGroup.className = "momento7-preference-group";
+    if (!this.checkBeforeArchive) {
+      ageGroup.style.display = "none";
+    }
+
+    const ageLabel = document!.createElement("label");
+    ageLabel.className = "momento7-preference-label";
+    ageLabel.textContent = "Archive age threshold";
+
+    const ageContainer = document!.createElement("div");
+    ageContainer.className = "momento7-flex-row";
+
+    this.ageThresholdInput = document!.createElement("input");
+    this.ageThresholdInput.type = "number";
+    this.ageThresholdInput.className = "momento7-preference-input";
+    this.ageThresholdInput.min = "1";
+    this.ageThresholdInput.max = "3650";
+    this.ageThresholdInput.value = String(this.archiveAgeThreshold);
+    this.ageThresholdInput.setAttribute("aria-label", "Minimum age of archive in days");
+    this.ageThresholdInput.addEventListener("change", () => {
+      this.archiveAgeThreshold = Math.max(1, parseInt(this.ageThresholdInput!.value, 10));
+      this.ageThresholdInput!.value = String(this.archiveAgeThreshold);
+    });
+
+    const ageUnit = document!.createElement("span");
+    ageUnit.textContent = "days";
+    ageUnit.style.marginLeft = "8px";
+    ageUnit.style.alignSelf = "center";
+
+    ageContainer.appendChild(this.ageThresholdInput);
+    ageContainer.appendChild(ageUnit);
+    ageGroup.appendChild(ageLabel);
+    ageGroup.appendChild(ageContainer);
+
+    const ageHelp = document!.createElement("p");
+    ageHelp.className = "momento7-preference-help";
+    ageHelp.textContent = "Only archive if existing memento is older than this threshold. Skip archiving if recent enough.";
+    ageGroup.appendChild(ageHelp);
+
+    formContainer.appendChild(ageGroup);
+
+    // Toggle visibility of age group when check before archive changes
+    this.checkBeforeArchiveCheckbox.addEventListener("change", () => {
+      ageGroup.style.display = this.checkBeforeArchive ? "flex" : "none";
+    });
+
+    // Auto-archive setting
+    const autoGroup = document!.createElement("div");
+    autoGroup.className = "momento7-preference-group";
+
+    this.autoArchiveCheckbox = document!.createElement("input");
+    this.autoArchiveCheckbox.type = "checkbox";
+    this.autoArchiveCheckbox.className = "momento7-preference-checkbox";
+    this.autoArchiveCheckbox.checked = this.autoArchive;
+    this.autoArchiveCheckbox.setAttribute("aria-label", "Automatically archive new items");
+    this.autoArchiveCheckbox.addEventListener("change", () => {
+      this.autoArchive = this.autoArchiveCheckbox!.checked;
+    });
+
+    const autoLabel = document!.createElement("label");
+    autoLabel.className = "momento7-preference-label";
+    autoLabel.appendChild(this.autoArchiveCheckbox);
+    autoLabel.appendChild(document!.createTextNode("Automatically archive new items"));
+
+    autoGroup.appendChild(autoLabel);
+
+    const autoHelp = document!.createElement("p");
+    autoHelp.className = "momento7-preference-help";
+    autoHelp.textContent = "When enabled, new items added to Zotero will be automatically archived.";
+    autoGroup.appendChild(autoHelp);
+
+    formContainer.appendChild(autoGroup);
+
+    // Reset button
+    const resetBtn = document!.createElement("button");
+    resetBtn.className = "momento7-btn momento7-btn-secondary";
+    resetBtn.textContent = "Reset to Defaults";
+    resetBtn.setAttribute("aria-label", "Reset all preferences to default values");
+    resetBtn.addEventListener("click", () => this.resetToDefaults());
+
+    const resetGroup = document!.createElement("div");
+    resetGroup.style.marginTop = "16px";
+    resetGroup.appendChild(resetBtn);
+
+    formContainer.appendChild(resetGroup);
+  }
+
+  private resetToDefaults(): void {
+    this.timeout = 120000;
+    this.checkBeforeArchive = true;
+    this.archiveAgeThreshold = 30;
+    this.autoArchive = true;
+
+    // Update UI
+    if (this.timeoutInput) this.timeoutInput.value = String(this.timeout);
+    if (this.checkBeforeArchiveCheckbox) this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
+    if (this.ageThresholdInput) this.ageThresholdInput.value = String(this.archiveAgeThreshold);
+    if (this.autoArchiveCheckbox) this.autoArchiveCheckbox.checked = this.autoArchive;
   }
 
   getTimeout(): number {
-    return 120000;
+    return this.timeout;
   }
 
   getCheckBeforeArchive(): boolean {
-    return true;
+    return this.checkBeforeArchive;
   }
 
   getArchiveAgeThreshold(): number {
-    return 30 * 24 * 60 * 60 * 1000;
+    // Convert days to hours for preference storage
+    return this.archiveAgeThreshold * 24;
   }
 
   getAutoArchive(): boolean {
-    return true;
+    return this.autoArchive;
+  }
+
+  private emit(event: string, ...args: any[]): void {
+    const handlers = this.eventHandlers.get(event);
+    if (handlers) {
+      for (const handler of handlers) {
+        handler(...args);
+      }
+    }
   }
 
   on(event: string, handler: Function): void {
