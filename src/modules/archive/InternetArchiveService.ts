@@ -336,7 +336,7 @@ export class InternetArchiveService extends BaseArchiveService {
       if (matches && matches.length > 0) {
         const lastMatch = matches[matches.length - 1];
         const urlMatch = lastMatch.match(/<([^>]+)>/);
-        if (urlMatch) {
+        if (urlMatch && urlMatch.length > 1 && urlMatch[1]) {
           return urlMatch[1];
         }
       }

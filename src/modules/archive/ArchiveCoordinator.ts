@@ -92,7 +92,8 @@ export class ArchiveCoordinator {
     item: Zotero.Item,
     serviceId?: string,
   ): Promise<ArchiveResult> {
-    const url = item.getField("url");
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
     if (!url) {
       throw new Error("Item has no URL to archive");
     }
@@ -336,7 +337,8 @@ export class ArchiveCoordinator {
    * Auto-archive an item using the default service
    */
   async autoArchive(item: Zotero.Item): Promise<ArchiveResult | null> {
-    const url = item.getField("url");
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
     if (!url || !this.shouldAutoArchive(url)) {
       return null;
     }

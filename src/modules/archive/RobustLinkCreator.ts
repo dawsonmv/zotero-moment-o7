@@ -174,7 +174,7 @@ export class RobustLinkCreator {
     for (const line of lines) {
       for (const { pattern, service } of servicePatterns) {
         const match = line.match(pattern);
-        if (match) {
+        if (match && match.length > 1 && match[1]) {
           archiveUrls[service] = match[1].trim();
         }
       }

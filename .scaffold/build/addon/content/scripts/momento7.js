@@ -5435,11 +5435,14 @@ html {
      * Get the best URL for archiving (prefer DOI if available)
      */
     getBestUrl(item) {
-      const doi = item.getField("DOI");
+      const doiField = item.getField("DOI");
+      const doi = typeof doiField === "string" ? doiField : null;
       if (doi) {
         return `https://doi.org/${doi}`;
       }
-      return item.getField("url") || "";
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
+      return url;
     }
     /**
      * Make HTTP request with traffic monitoring
@@ -5535,9 +5538,12 @@ html {
      * Save archive URL to item
      */
     async saveToItem(item, archivedUrl, metadata = {}) {
-      const originalUrl = item.getField("url");
-      const linkText = item.getField("title") || originalUrl;
-      let extra = item.getField("extra") || "";
+      const originalUrlField = item.getField("url");
+      const originalUrl = typeof originalUrlField === "string" ? originalUrlField : "";
+      const titleField = item.getField("title");
+      const linkText = typeof titleField === "string" && titleField ? titleField : originalUrl;
+      const extraField = item.getField("extra");
+      let extra = typeof extraField === "string" ? extraField : "";
       const archiveField = `${this.id}Archived: ${archivedUrl}`;
       if (!extra.includes(archiveField)) {
         extra = extra ? extra + "\n" + archiveField : archiveField;
@@ -5909,7 +5915,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         if (matches && matches.length > 0) {
           const lastMatch = matches[matches.length - 1];
           const urlMatch = lastMatch.match(/<([^>]+)>/);
-          if (urlMatch) {
+          if (urlMatch && urlMatch.length > 1 && urlMatch[1]) {
             return urlMatch[1];
           }
         }
@@ -6346,8 +6352,11 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       ];
       for (const pattern of patterns) {
         const match = html.match(pattern);
-        if (match) {
-          return match[1] || match[0];
+        if (match && match.length > 1 && match[1]) {
+          return match[1];
+        }
+        if (match && match[0]) {
+          return match[0];
         }
       }
       return null;
@@ -8312,7 +8321,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
                 `data-versiondate="([^"]+)"[^>]*data-versionurl="${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`
               )
             );
-            const datetime = datetimeMatch ? datetimeMatch[1] : (/* @__PURE__ */ new Date()).toISOString();
+            const datetime = datetimeMatch && datetimeMatch.length > 1 && datetimeMatch[1] ? datetimeMatch[1] : (/* @__PURE__ */ new Date()).toISOString();
             mementos.push({
               url,
               datetime,
@@ -8615,7 +8624,8 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
      * Checks for existing mementos before archiving if preference enabled
      */
     async archiveItem(item, serviceId) {
-      const url = item.getField("url");
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
       if (!url) {
         throw new Error("Item has no URL to archive");
       }
@@ -8807,7 +8817,8 @@ ${errors.join("\n")}`);
      * Auto-archive an item using the default service
      */
     async autoArchive(item) {
-      const url = item.getField("url");
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
       if (!url || !this.shouldAutoArchive(url)) {
         return null;
       }
@@ -8956,8 +8967,15 @@ ${errors.join("\n")}`);
       ];
       for (const pattern of patterns) {
         const match = html.match(pattern);
-        if (match) {
-          const url = match[1] || match[0];
+        if (match && match.length > 1 && match[1]) {
+          const url = match[1];
+          if (url.startsWith("/")) {
+            return `${_ArquivoPtService.API_BASE}${url}`;
+          }
+          return url;
+        }
+        if (match && match[0]) {
+          const url = match[0];
           if (url.startsWith("/")) {
             return `${_ArquivoPtService.API_BASE}${url}`;
           }
@@ -8980,7 +8998,7 @@ ${errors.join("\n")}`);
           const timestampPattern = /\/wayback\/(\d{14})\//g;
           const matches = [...response.data.matchAll(timestampPattern)];
           if (matches.length > 0) {
-            const timestamps = matches.map((m) => m[1]).sort().reverse();
+            const timestamps = matches.filter((m) => m && m.length > 1 && m[1]).map((m) => m[1]).sort().reverse();
             const mostRecent = timestamps[0];
             return `${_ArquivoPtService.API_BASE}/wayback/${mostRecent}/${url}`;
           }
@@ -9278,7 +9296,7 @@ ${errors.join("\n")}`);
       for (const line of lines) {
         for (const { pattern, service } of servicePatterns) {
           const match = line.match(pattern);
-          if (match) {
+          if (match && match.length > 1 && match[1]) {
             archiveUrls[service] = match[1].trim();
           }
         }
@@ -9482,10 +9500,13 @@ ${errors.join("\n")}`);
      * Extract metadata from Zotero item
      */
     static extractMetadata(item) {
-      const url = item.getField("url") || "";
-      const doi = item.getField("DOI");
-      const title = item.getField("title") || url;
-      const tags = item.getTags ? item.getTags().map((t) => t.tag) : [];
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
+      const doiField = item.getField("DOI");
+      const doi = typeof doiField === "string" ? doiField : void 0;
+      const titleField = item.getField("title");
+      const title = typeof titleField === "string" && titleField ? titleField : url;
+      const tags = typeof item.getTags === "function" ? item.getTags().map((t) => t.tag) : [];
       return {
         url: doi ? `https://doi.org/${doi}` : url,
         title,
@@ -9580,11 +9601,12 @@ ${archiveField}` : archiveField;
      */
     static findExistingArchives(item) {
       const archives = /* @__PURE__ */ new Map();
-      const extra = item.getField("extra") || "";
+      const extraField = item.getField("extra");
+      const extra = typeof extraField === "string" ? extraField : "";
       const lines = extra.split("\n");
       for (const line of lines) {
         const match = line.match(/^(.+?):\s*(https?:\/\/.+)$/);
-        if (match) {
+        if (match && match.length > 2 && match[1] && match[2]) {
           archives.set(match[1].toLowerCase(), match[2]);
         }
       }
@@ -9599,7 +9621,7 @@ ${archiveField}` : archiveField;
      * Get notes for an item
      */
     static getItemNotes(item) {
-      const noteIds = item.getNotes ? item.getNotes() : [];
+      const noteIds = typeof item.getNotes === "function" ? item.getNotes() : [];
       return noteIds.map((id) => Zotero.Items.get(id)).filter((note) => note != null);
     }
     /**
@@ -9975,7 +9997,8 @@ ${archiveField}` : archiveField;
     let foundCount = 0;
     let checkedCount = 0;
     for (const item of items) {
-      const url = item.getField("url");
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
       if (!url) {
         checkedCount++;
         continue;

@@ -157,8 +157,11 @@ export class ArchiveTodayService extends BaseArchiveService {
 
     for (const pattern of patterns) {
       const match = html.match(pattern);
-      if (match) {
-        return match[1] || match[0];
+      if (match && match.length > 1 && match[1]) {
+        return match[1];
+      }
+      if (match && match[0]) {
+        return match[0];
       }
     }
 

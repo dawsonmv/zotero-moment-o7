@@ -270,7 +270,7 @@ export class MementoChecker {
               `data-versiondate="([^"]+)"[^>]*data-versionurl="${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`,
             ),
           );
-          const datetime = datetimeMatch
+          const datetime = datetimeMatch && datetimeMatch.length > 1 && datetimeMatch[1]
             ? datetimeMatch[1]
             : new Date().toISOString();
 

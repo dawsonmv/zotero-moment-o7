@@ -24,10 +24,16 @@ export class ZoteroItemHandler {
    * Extract metadata from Zotero item
    */
   static extractMetadata(item: Zotero.Item): ItemMetadata {
-    const url = item.getField("url") || "";
-    const doi = item.getField("DOI");
-    const title = item.getField("title") || url;
-    const tags = item.getTags ? item.getTags().map((t) => t.tag) : [];
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
+
+    const doiField = item.getField("DOI");
+    const doi = typeof doiField === "string" ? doiField : undefined;
+
+    const titleField = item.getField("title");
+    const title = (typeof titleField === "string" && titleField) ? titleField : url;
+
+    const tags = typeof item.getTags === "function" ? item.getTags().map((t) => t.tag) : [];
 
     return {
       url: doi ? `https://doi.org/${doi}` : url,
@@ -164,12 +170,13 @@ export class ZoteroItemHandler {
     const archives = new Map<string, string>();
 
     // Check Extra field
-    const extra = item.getField("extra") || "";
+    const extraField = item.getField("extra");
+    const extra = typeof extraField === "string" ? extraField : "";
     const lines = extra.split("\n");
 
     for (const line of lines) {
       const match = line.match(/^(.+?):\s*(https?:\/\/.+)$/);
-      if (match) {
+      if (match && match.length > 2 && match[1] && match[2]) {
         archives.set(match[1].toLowerCase(), match[2]);
       }
     }
@@ -188,7 +195,7 @@ export class ZoteroItemHandler {
    * Get notes for an item
    */
   private static getItemNotes(item: Zotero.Item): Zotero.Item[] {
-    const noteIds = item.getNotes ? item.getNotes() : [];
+    const noteIds = typeof item.getNotes === "function" ? item.getNotes() : [];
     return noteIds
       .map((id) => Zotero.Items.get(id))
       .filter((note): note is Zotero.Item => note != null);

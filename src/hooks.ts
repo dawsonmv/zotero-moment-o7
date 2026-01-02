@@ -470,7 +470,8 @@ async function onCheckMementos(): Promise<void> {
   let checkedCount = 0;
 
   for (const item of items) {
-    const url = item.getField("url");
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
     if (!url) {
       checkedCount++;
       continue;

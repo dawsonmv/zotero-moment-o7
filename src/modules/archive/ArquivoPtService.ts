@@ -114,8 +114,16 @@ export class ArquivoPtService extends BaseArchiveService {
 
     for (const pattern of patterns) {
       const match = html.match(pattern);
-      if (match) {
-        const url = match[1] || match[0];
+      if (match && match.length > 1 && match[1]) {
+        const url = match[1];
+        // Convert relative URL to absolute if needed
+        if (url.startsWith("/")) {
+          return `${ArquivoPtService.API_BASE}${url}`;
+        }
+        return url;
+      }
+      if (match && match[0]) {
+        const url = match[0];
         // Convert relative URL to absolute if needed
         if (url.startsWith("/")) {
           return `${ArquivoPtService.API_BASE}${url}`;
@@ -149,6 +157,7 @@ export class ArquivoPtService extends BaseArchiveService {
         if (matches.length > 0) {
           // Get the most recent timestamp
           const timestamps = matches
+            .filter((m) => m && m.length > 1 && m[1])
             .map((m) => m[1])
             .sort()
             .reverse();

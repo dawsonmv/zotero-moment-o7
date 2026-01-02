@@ -107,11 +107,14 @@ export abstract class BaseArchiveService implements ArchiveService {
    * Get the best URL for archiving (prefer DOI if available)
    */
   getBestUrl(item: Zotero.Item): string {
-    const doi = item.getField("DOI");
+    const doiField = item.getField("DOI");
+    const doi = typeof doiField === "string" ? doiField : null;
     if (doi) {
       return `https://doi.org/${doi}`;
     }
-    return item.getField("url") || "";
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
+    return url;
   }
 
   /**
@@ -242,11 +245,15 @@ export abstract class BaseArchiveService implements ArchiveService {
     archivedUrl: string,
     metadata: { additionalInfo?: string } = {},
   ): Promise<void> {
-    const originalUrl = item.getField("url");
-    const linkText = item.getField("title") || originalUrl;
+    const originalUrlField = item.getField("url");
+    const originalUrl = typeof originalUrlField === "string" ? originalUrlField : "";
+
+    const titleField = item.getField("title");
+    const linkText = (typeof titleField === "string" && titleField) ? titleField : originalUrl;
 
     // Update extra field
-    let extra = item.getField("extra") || "";
+    const extraField = item.getField("extra");
+    let extra = typeof extraField === "string" ? extraField : "";
     const archiveField = `${this.id}Archived: ${archivedUrl}`;
     if (!extra.includes(archiveField)) {
       extra = extra ? extra + "\n" + archiveField : archiveField;
