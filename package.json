@@ -21,6 +21,7 @@
   "homepage": "https://github.com/dawsonmv/zotero-moment-o7#readme",
   "license": "GPL-3.0",
   "scripts": {
+    "postinstall": "npm run build --silent && node -e \"console.log('\\n✅ Build completed! The .scaffold directory and .xpi plugin file are now available.\\n')\"",
     "start": "zotero-plugin serve",
     "build": "zotero-plugin build && tsc --noEmit",
     "lint:check": "prettier --check . && eslint .",
