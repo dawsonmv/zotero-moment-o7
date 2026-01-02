@@ -1,5 +1,6 @@
 /**
  * Base class for all archive services
+ * Wraps HTTP requests with traffic monitoring for performance tracking
  */
 
 import {
@@ -13,6 +14,7 @@ import {
   ArchiveProgress,
   HTTPRequestOptions,
 } from "./types";
+import { TrafficMonitor } from "../../utils/TrafficMonitor";
 
 export abstract class BaseArchiveService implements ArchiveService {
   protected lastRequest: number | null = null;
@@ -113,24 +115,58 @@ export abstract class BaseArchiveService implements ArchiveService {
   }
 
   /**
-   * Make HTTP request with error handling
+   * Make HTTP request with traffic monitoring
+   * Wraps request with TrafficMonitor to track service response times
+   * Uses 1-second delayed timer start to account for network overhead
    */
   protected async makeHttpRequest(
     url: string,
     options: HTTPRequestOptions,
   ): Promise<{ success: boolean; data: any; error?: string; status?: number }> {
+    const trafficMonitor = TrafficMonitor.getInstance();
+    const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Track whether monitoring has started
+    let monitoringStarted = false;
+
+    // Schedule traffic monitoring to start after 1 second delay
+    // This accounts for network overhead before actual transfer begins
+    const timerHandle = Zotero.setTimeout(() => {
+      monitoringStarted = true;
+      trafficMonitor.startRequest(requestId, this.id, url);
+    }, 1000);
+
     try {
       const requestOptions = {
         ...options,
         method: options.method || "GET",
       };
       const response = await Zotero.HTTP.request(url, requestOptions as any);
+
+      // Clear timer if request completed before 1 second
+      if (!monitoringStarted) {
+        Zotero.clearTimeout(timerHandle);
+        // Fast response (< 1s): no score recorded
+      } else {
+        // Slow response (>= 1s): record success
+        trafficMonitor.endRequest(requestId, true);
+      }
+
       return {
         success: true,
         data: response.responseText,
         status: response.status,
       };
     } catch (error: any) {
+      // Clear timer if request failed before 1 second
+      if (!monitoringStarted) {
+        Zotero.clearTimeout(timerHandle);
+        // Fast failure (< 1s): no score recorded
+      } else {
+        // Slow failure (>= 1s): record failure
+        trafficMonitor.endRequest(requestId, false);
+      }
+
       return {
         success: false,
         data: error.responseText || "",
