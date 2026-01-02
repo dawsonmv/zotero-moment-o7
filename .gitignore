@@ -1,30 +1,69 @@
 # dot files
 .DS_Store
+.env.local
+.env.*.local
 
 # Node.js
 node_modules
 pnpm-lock.yaml
 yarn.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # TSC
 tsconfig.tsbuildinfo
+*.tsbuildinfo
 
-# Scaffold
-.env
-logs
+# Build artifacts (auto-generated, use dist/ and releases/ for public builds)
+.scaffold/
+build/
+out/
+*.xpi
+
+# Ignore contents of dist/ and build/ but keep directory structure
+dist/*
+releases/*
+!dist/README.md
+!releases/README.md
+!releases/.gitkeep
 
 # Test coverage
 coverage
+.nyc_output
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
 
 # PAC (Product as Code)
 .pac/tmp/
 .pac/cache/
 *.pac.lock
 
-# Health Check Reports (generated locally, not tracked)
+# Generated Reports (local development only, not tracked)
 EXECUTIVE-SUMMARY.md
 METRICS-DASHBOARD.md
 REPORTING-INDEX.md
 TASK-HEALTH-SNAPSHOT.txt
 TASK-MANAGEMENT-HEALTH-REPORT.md
 DEPENDENCY-HEALTH-REPORT.md
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+temp/
+
+# OS specific
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
