@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-12-30
+## [0.0.3] - 2026-01-02
 
 ### Added
 
@@ -49,11 +49,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Robust link notes attached to items
   - "archived" tag for processed items
 
+### Changed
+
+- Enhanced type safety across all modules with strict null/undefined checks
+- Improved promise error handling in concurrent operations
+- Better error tracking in Promise.race() based queue system
+
+### Fixed
+
+- Fixed 17 TypeScript type safety issues preventing runtime errors
+- Fixed unsafe regex match array access patterns
+- Fixed promise rejection handling in startup initialization
+- Fixed concurrent queue identity tracking for failed promises
+
 ### Technical
 
 - Built on zotero-plugin-template for Zotero 7 compatibility
 - TypeScript with strict mode
-- 644 unit tests with 88% code coverage
+- 764 unit tests with comprehensive coverage
 - ESLint + Prettier for code quality
 - GitHub Actions CI/CD pipeline
 
@@ -70,12 +83,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
+- Concurrent batch archiving with traffic monitoring (max 4 parallel items)
 - Signposting protocol support for ORCID extraction
-- Batch archiving improvements
 - Archive status dashboard
 - Export format translators (BibLaTeX, Wikipedia, etc.)
 
 ---
 
-[1.0.0]: https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v1.0.0
-[Unreleased]: https://github.com/dawsonmv/zotero-moment-o7/compare/v1.0.0...HEAD
+[0.0.3]: https://github.com/dawsonmv/zotero-moment-o7/releases/tag/v0.0.3
+[Unreleased]: https://github.com/dawsonmv/zotero-moment-o7/compare/v0.0.3...HEAD

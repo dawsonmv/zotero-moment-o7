@@ -1,7 +1,7 @@
 {
   "name": "zotero-moment-o7",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.0.3",
   "description": "Archive web resources to prevent link rot - Zotero 7 plugin for automated web archiving",
   "config": {
     "addonName": "Moment-o7",
