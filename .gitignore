@@ -20,3 +20,11 @@ coverage
 .pac/tmp/
 .pac/cache/
 *.pac.lock
+
+# Health Check Reports (generated locally, not tracked)
+EXECUTIVE-SUMMARY.md
+METRICS-DASHBOARD.md
+REPORTING-INDEX.md
+TASK-HEALTH-SNAPSHOT.txt
+TASK-MANAGEMENT-HEALTH-REPORT.md
+DEPENDENCY-HEALTH-REPORT.md
