@@ -20,11 +20,18 @@ import { ZoteroItemHandler } from "./modules/archive/ZoteroItemHandler";
  * Initialize services, register notifiers, set up menus
  */
 async function onStartup() {
-  await Promise.all([
-    Zotero.initializationPromise,
-    Zotero.unlockPromise,
-    Zotero.uiReadyPromise,
-  ]);
+  try {
+    await Promise.all([
+      Zotero.initializationPromise,
+      Zotero.unlockPromise,
+      Zotero.uiReadyPromise,
+    ]);
+  } catch (error) {
+    Zotero.debug(
+      `[Moment-o7] Zotero initialization promise failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    // Continue startup anyway - some promises may have already resolved
+  }
 
   // Initialize localization
   initLocale();

@@ -8383,29 +8383,47 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         while (queue.length > 0 || activePromises.length > 0) {
           if (activePromises.length === 0) break;
           let result;
+          let failedEntryId;
           try {
-            result = await Promise.race(
-              activePromises.map((entry) => entry.promise)
+            const wrappedPromises = activePromises.map(
+              (entry) => entry.promise.then((r) => ({ result: r, entryId: entry.id, failed: false })).catch((e) => {
+                Zotero.debug(
+                  `MomentO7 Queue: Item ${entry.id} failed: ${e instanceof Error ? e.message : String(e)}`
+                );
+                return { result: void 0, entryId: entry.id, failed: true };
+              })
             );
+            const settledResult = await Promise.race(wrappedPromises);
+            if (settledResult.failed) {
+              failedEntryId = settledResult.entryId;
+            } else {
+              result = settledResult.result;
+            }
           } catch (error) {
             Zotero.debug(
-              `MomentO7 Queue: Promise.race error: ${error}`
+              `MomentO7 Queue: Unexpected Promise.race error: ${error instanceof Error ? error.message : String(error)}`
             );
-            if (activePromises.length > 0) {
-              activePromises.splice(0, 1);
+            continue;
+          }
+          if (failedEntryId) {
+            const failedIndex = activePromises.findIndex((e) => e.id === failedEntryId);
+            if (failedIndex >= 0) {
+              activePromises.splice(failedIndex, 1);
               this.activeCount = Math.max(0, this.activeCount - 1);
             }
             continue;
           }
-          const completedId = this.getItemKey(result.item);
-          completedResults.set(completedId, result);
-          const completedIndex = activePromises.findIndex(
-            (entry) => entry.id === completedId
-          );
-          if (completedIndex >= 0) {
-            activePromises.splice(completedIndex, 1);
+          if (result) {
+            const completedId = this.getItemKey(result.item);
+            completedResults.set(completedId, result);
+            const completedIndex = activePromises.findIndex(
+              (entry) => entry.id === completedId
+            );
+            if (completedIndex >= 0) {
+              activePromises.splice(completedIndex, 1);
+            }
+            this.activeCount--;
           }
-          this.activeCount--;
           if (queue.length > 0) {
             const nextItem = queue.shift();
             const nextPromise = this.processItem(nextItem, archiveFn);
@@ -9675,11 +9693,17 @@ ${archiveField}` : archiveField;
 
   // src/hooks.ts
   async function onStartup() {
-    await Promise.all([
-      Zotero.initializationPromise,
-      Zotero.unlockPromise,
-      Zotero.uiReadyPromise
-    ]);
+    try {
+      await Promise.all([
+        Zotero.initializationPromise,
+        Zotero.unlockPromise,
+        Zotero.uiReadyPromise
+      ]);
+    } catch (error) {
+      Zotero.debug(
+        `[Moment-o7] Zotero initialization promise failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     initLocale();
     await PreferencesManager.getInstance().init();
     initializeServices();

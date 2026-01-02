@@ -90,36 +90,63 @@ export class ConcurrentArchiveQueue {
       while (queue.length > 0 || activePromises.length > 0) {
         if (activePromises.length === 0) break;
 
-        let result: ArchiveResult;
+        let result: ArchiveResult | undefined;
+        let failedEntryId: string | undefined;
+
         try {
-          // Wait for next item to complete using Promise.race
-          result = await Promise.race(
-            activePromises.map((entry) => entry.promise),
+          // Wrap each promise to catch errors and track which one fails
+          const wrappedPromises = activePromises.map((entry) =>
+            entry.promise
+              .then((r) => ({ result: r, entryId: entry.id, failed: false }))
+              .catch((e) => {
+                Zotero.debug(
+                  `MomentO7 Queue: Item ${entry.id} failed: ${e instanceof Error ? e.message : String(e)}`,
+                );
+                return { result: undefined, entryId: entry.id, failed: true };
+              }),
           );
+
+          // Wait for next item to complete
+          const settledResult = await Promise.race(wrappedPromises);
+
+          if (settledResult.failed) {
+            failedEntryId = settledResult.entryId;
+          } else {
+            result = settledResult.result;
+          }
         } catch (error) {
-          // If Promise.race itself throws, log and recover
+          // Unexpected error in Promise.race itself
           Zotero.debug(
-            `MomentO7 Queue: Promise.race error: ${error}`,
+            `MomentO7 Queue: Unexpected Promise.race error: ${error instanceof Error ? error.message : String(error)}`,
           );
-          // Continue with remaining active promises
-          if (activePromises.length > 0) {
-            activePromises.splice(0, 1); // Remove failed promise
+          // Skip this batch iteration and continue
+          continue;
+        }
+
+        // Handle failed promise by removing it
+        if (failedEntryId) {
+          const failedIndex = activePromises.findIndex((e) => e.id === failedEntryId);
+          if (failedIndex >= 0) {
+            activePromises.splice(failedIndex, 1);
             this.activeCount = Math.max(0, this.activeCount - 1);
           }
           continue;
         }
 
-        const completedId = this.getItemKey(result.item);
-        completedResults.set(completedId, result);
+        // Handle successful completion
+        if (result) {
+          const completedId = this.getItemKey(result.item);
+          completedResults.set(completedId, result);
 
-        // Remove completed promise from active array by matching result's item ID
-        const completedIndex = activePromises.findIndex(
-          (entry) => entry.id === completedId,
-        );
-        if (completedIndex >= 0) {
-          activePromises.splice(completedIndex, 1);
+          // Remove completed promise from active array by matching result's item ID
+          const completedIndex = activePromises.findIndex(
+            (entry) => entry.id === completedId,
+          );
+          if (completedIndex >= 0) {
+            activePromises.splice(completedIndex, 1);
+          }
+          this.activeCount--;
         }
-        this.activeCount--;
 
         // Start next queued item
         if (queue.length > 0) {
