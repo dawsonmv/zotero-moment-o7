@@ -90,10 +90,25 @@ export class ConcurrentArchiveQueue {
       while (queue.length > 0 || activePromises.length > 0) {
         if (activePromises.length === 0) break;
 
-        // Wait for next item to complete using Promise.race
-        const result = await Promise.race(
-          activePromises.map((entry) => entry.promise),
-        );
+        let result: ArchiveResult;
+        try {
+          // Wait for next item to complete using Promise.race
+          result = await Promise.race(
+            activePromises.map((entry) => entry.promise),
+          );
+        } catch (error) {
+          // If Promise.race itself throws, log and recover
+          Zotero.debug(
+            `MomentO7 Queue: Promise.race error: ${error}`,
+          );
+          // Continue with remaining active promises
+          if (activePromises.length > 0) {
+            activePromises.splice(0, 1); // Remove failed promise
+            this.activeCount = Math.max(0, this.activeCount - 1);
+          }
+          continue;
+        }
+
         const completedId = this.getItemKey(result.item);
         completedResults.set(completedId, result);
 
@@ -131,8 +146,12 @@ export class ConcurrentArchiveQueue {
       });
     } catch (error) {
       Zotero.debug(
-        `MomentO7 Queue: Error during processing: ${error}`,
+        `MomentO7 Queue: Fatal error during processing: ${error}`,
       );
+      // Ensure progress window closes even on error
+      try {
+        this.closeProgressWindow(0, items.length);
+      } catch {}
       throw error;
     }
   }

@@ -134,7 +134,11 @@ function registerNotifier(): void {
       _extraData: Record<string, unknown>,
     ) => {
       if (!addon?.data?.alive) return;
-      onNotify(event, type, ids, _extraData);
+      try {
+        await onNotify(event, type, ids, _extraData);
+      } catch (error) {
+        ztoolkit.log(`Notifier error: ${error}`, "error");
+      }
     },
   };
 
@@ -155,6 +159,17 @@ function registerPrefsObserver(): void {
  * Register menu items in the Zotero UI
  */
 function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
+  // Helper to wrap async menu handlers with error handling
+  const safeAsyncCommand =
+    (fn: () => Promise<void>) => async () => {
+      try {
+        await fn();
+      } catch (error) {
+        ztoolkit.log(`Menu command error: ${error}`, "error");
+        showNotification("fail", `Error: ${error}`);
+      }
+    };
+
   // Right-click context menu for items
   ztoolkit.Menu.register("item", {
     tag: "menu",
@@ -164,13 +179,13 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
       {
         tag: "menuitem",
         label: getString("menu-archive-selected") || "Archive Selected Items",
-        commandListener: () => onArchiveSelected(),
+        commandListener: safeAsyncCommand(onArchiveSelected),
       },
       {
         tag: "menuitem",
         label:
           getString("menu-check-mementos") || "Check for Existing Archives",
-        commandListener: () => onCheckMementos(),
+        commandListener: safeAsyncCommand(onCheckMementos),
       },
       {
         tag: "menuseparator",
@@ -183,27 +198,37 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
           {
             tag: "menuitem",
             label: "Internet Archive",
-            commandListener: () => onArchiveToService("internetarchive"),
+            commandListener: safeAsyncCommand(() =>
+              onArchiveToService("internetarchive"),
+            ),
           },
           {
             tag: "menuitem",
             label: "Archive.today",
-            commandListener: () => onArchiveToService("archivetoday"),
+            commandListener: safeAsyncCommand(() =>
+              onArchiveToService("archivetoday"),
+            ),
           },
           {
             tag: "menuitem",
             label: "Perma.cc",
-            commandListener: () => onArchiveToService("permacc"),
+            commandListener: safeAsyncCommand(() =>
+              onArchiveToService("permacc"),
+            ),
           },
           {
             tag: "menuitem",
             label: "UK Web Archive",
-            commandListener: () => onArchiveToService("ukwebarchive"),
+            commandListener: safeAsyncCommand(() =>
+              onArchiveToService("ukwebarchive"),
+            ),
           },
           {
             tag: "menuitem",
             label: "Arquivo.pt",
-            commandListener: () => onArchiveToService("arquivopt"),
+            commandListener: safeAsyncCommand(() =>
+              onArchiveToService("arquivopt"),
+            ),
           },
         ],
       },
@@ -213,7 +238,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
       {
         tag: "menuitem",
         label: getString("menu-create-robust-links") || "Create Robust Links",
-        commandListener: () => onCreateRobustLinks(),
+        commandListener: safeAsyncCommand(onCreateRobustLinks),
       },
     ],
   });
@@ -227,7 +252,7 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
       {
         tag: "menuitem",
         label: getString("menu-archive-all") || "Archive All Items with URLs",
-        commandListener: () => onArchiveAll(),
+        commandListener: safeAsyncCommand(onArchiveAll),
       },
       {
         tag: "menuseparator",
@@ -236,10 +261,14 @@ function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
         tag: "menuitem",
         label: getString("menu-preferences") || "Preferences...",
         commandListener: () => {
-          // Open Zotero preferences to the Moment-o7 pane
-          (Zotero as any).Utilities.Internal.openPreferences(
-            addon.data.config.addonRef,
-          );
+          try {
+            // Open Zotero preferences to the Moment-o7 pane
+            (Zotero as any).Utilities.Internal.openPreferences(
+              addon.data.config.addonRef,
+            );
+          } catch (error) {
+            ztoolkit.log(`Preferences error: ${error}`, "error");
+          }
         },
       },
     ],

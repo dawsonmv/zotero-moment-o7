@@ -8373,9 +8373,21 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         }
         while (queue.length > 0 || activePromises.length > 0) {
           if (activePromises.length === 0) break;
-          const result = await Promise.race(
-            activePromises.map((entry) => entry.promise)
-          );
+          let result;
+          try {
+            result = await Promise.race(
+              activePromises.map((entry) => entry.promise)
+            );
+          } catch (error) {
+            Zotero.debug(
+              `MomentO7 Queue: Promise.race error: ${error}`
+            );
+            if (activePromises.length > 0) {
+              activePromises.splice(0, 1);
+              this.activeCount = Math.max(0, this.activeCount - 1);
+            }
+            continue;
+          }
           const completedId = this.getItemKey(result.item);
           completedResults.set(completedId, result);
           const completedIndex = activePromises.findIndex(
@@ -8403,8 +8415,12 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         });
       } catch (error) {
         Zotero.debug(
-          `MomentO7 Queue: Error during processing: ${error}`
+          `MomentO7 Queue: Fatal error during processing: ${error}`
         );
+        try {
+          this.closeProgressWindow(0, items.length);
+        } catch {
+        }
         throw error;
       }
     }
@@ -9695,7 +9711,11 @@ ${archiveField}` : archiveField;
     const callback = {
       notify: async (event, type, ids, _extraData) => {
         if (!addon?.data?.alive) return;
-        onNotify(event, type, ids, _extraData);
+        try {
+          await onNotify(event, type, ids, _extraData);
+        } catch (error) {
+          ztoolkit.log(`Notifier error: ${error}`, "error");
+        }
       }
     };
     addon.data.momento7.notifierId = Zotero.Notifier.registerObserver(callback, [
@@ -9706,6 +9726,14 @@ ${archiveField}` : archiveField;
     ztoolkit.log("Preferences observer registered");
   }
   function registerMenuItems(_win) {
+    const safeAsyncCommand = (fn) => async () => {
+      try {
+        await fn();
+      } catch (error) {
+        ztoolkit.log(`Menu command error: ${error}`, "error");
+        showNotification("fail", `Error: ${error}`);
+      }
+    };
     ztoolkit.Menu.register("item", {
       tag: "menu",
       label: getString("menu-archive") || "Archive",
@@ -9714,12 +9742,12 @@ ${archiveField}` : archiveField;
         {
           tag: "menuitem",
           label: getString("menu-archive-selected") || "Archive Selected Items",
-          commandListener: () => onArchiveSelected()
+          commandListener: safeAsyncCommand(onArchiveSelected)
         },
         {
           tag: "menuitem",
           label: getString("menu-check-mementos") || "Check for Existing Archives",
-          commandListener: () => onCheckMementos()
+          commandListener: safeAsyncCommand(onCheckMementos)
         },
         {
           tag: "menuseparator"
@@ -9732,27 +9760,37 @@ ${archiveField}` : archiveField;
             {
               tag: "menuitem",
               label: "Internet Archive",
-              commandListener: () => onArchiveToService("internetarchive")
+              commandListener: safeAsyncCommand(
+                () => onArchiveToService("internetarchive")
+              )
             },
             {
               tag: "menuitem",
               label: "Archive.today",
-              commandListener: () => onArchiveToService("archivetoday")
+              commandListener: safeAsyncCommand(
+                () => onArchiveToService("archivetoday")
+              )
             },
             {
               tag: "menuitem",
               label: "Perma.cc",
-              commandListener: () => onArchiveToService("permacc")
+              commandListener: safeAsyncCommand(
+                () => onArchiveToService("permacc")
+              )
             },
             {
               tag: "menuitem",
               label: "UK Web Archive",
-              commandListener: () => onArchiveToService("ukwebarchive")
+              commandListener: safeAsyncCommand(
+                () => onArchiveToService("ukwebarchive")
+              )
             },
             {
               tag: "menuitem",
               label: "Arquivo.pt",
-              commandListener: () => onArchiveToService("arquivopt")
+              commandListener: safeAsyncCommand(
+                () => onArchiveToService("arquivopt")
+              )
             }
           ]
         },
@@ -9762,7 +9800,7 @@ ${archiveField}` : archiveField;
         {
           tag: "menuitem",
           label: getString("menu-create-robust-links") || "Create Robust Links",
-          commandListener: () => onCreateRobustLinks()
+          commandListener: safeAsyncCommand(onCreateRobustLinks)
         }
       ]
     });
@@ -9774,7 +9812,7 @@ ${archiveField}` : archiveField;
         {
           tag: "menuitem",
           label: getString("menu-archive-all") || "Archive All Items with URLs",
-          commandListener: () => onArchiveAll()
+          commandListener: safeAsyncCommand(onArchiveAll)
         },
         {
           tag: "menuseparator"
@@ -9783,9 +9821,13 @@ ${archiveField}` : archiveField;
           tag: "menuitem",
           label: getString("menu-preferences") || "Preferences...",
           commandListener: () => {
-            Zotero.Utilities.Internal.openPreferences(
-              addon.data.config.addonRef
-            );
+            try {
+              Zotero.Utilities.Internal.openPreferences(
+                addon.data.config.addonRef
+              );
+            } catch (error) {
+              ztoolkit.log(`Preferences error: ${error}`, "error");
+            }
           }
         }
       ]
@@ -10098,6 +10140,15 @@ ${archiveField}` : archiveField;
 
   // src/index.ts
   var basicTool2 = new BasicTool();
+  if (typeof _globalThis.onunhandledrejection === "undefined") {
+    _globalThis.onunhandledrejection = (event) => {
+      const error = event.reason || "Unknown error";
+      console.error(
+        `[${config.addonName}] Unhandled promise rejection:`,
+        error
+      );
+    };
+  }
   if (!basicTool2.getGlobal("Zotero")[config.addonInstance]) {
     _globalThis.addon = new addon_default();
     defineGlobal("ztoolkit", () => {
