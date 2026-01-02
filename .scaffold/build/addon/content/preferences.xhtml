@@ -1,0 +1,25 @@
+<!--
+  Moment-o7 Preferences Panel
+
+  Modern HTML-based preferences following Zotero 7 standards.
+  Uses DOM-based rendering instead of deprecated XUL overlays.
+
+  Reference: https://www.zotero.org/support/dev/zotero_7_for_developers
+-->
+
+<html:linkset>
+  <html:link rel="localization" href="momento7-preferences.ftl" />
+  <html:link rel="stylesheet" href="momento7-preferences.css" />
+</html:linkset>
+
+<!--
+  Preferences Panel Container
+
+  This div is populated by PreferencesPanel class which renders:
+  - Service configuration section
+  - Preferences section
+  - Credentials management section
+
+  All UI is generated dynamically using DOM APIs, not static XUL overlays.
+-->
+<html:div id="momento7-preferences-panel-container"></html:div>

@@ -11,8 +11,6 @@ tsconfig.tsbuildinfo
 
 # Scaffold
 .env
-.scaffold
-build
 logs
 
 # Test coverage

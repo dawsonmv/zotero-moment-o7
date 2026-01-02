@@ -1,0 +1,16 @@
+pref("extensions.momento7.autoArchive", true);
+pref("extensions.momento7.defaultService", "internetarchive");
+pref("extensions.momento7.iaTimeout", 120000);
+pref("extensions.momento7.iaMaxRetries", 3);
+pref("extensions.momento7.iaRetryDelay", 5000);
+pref("extensions.momento7.robustLinkServices", "internetarchive,archivetoday");
+pref("extensions.momento7.fallbackOrder", "internetarchive,archivetoday,arquivopt,permacc,ukwebarchive");
+pref("extensions.momento7.checkBeforeArchive", true);
+pref("extensions.momento7.archiveAgeThresholdHours", 24);
+pref("extensions.momento7.skipExistingMementos", false);
+pref("extensions.momento7.enableInternetArchive", true);
+pref("extensions.momento7.enableArchiveToday", true);
+pref("extensions.momento7.enableArquivoPt", true);
+pref("extensions.momento7.enablePermaCC", false);
+pref("extensions.momento7.enableUKWebArchive", false);
+pref("extensions.momento7.preferDOI", true);
