@@ -1,16 +1,21 @@
 /**
  * Coordinates archiving across multiple services
  * Integrates MementoChecker to prevent duplicate archiving
+ * Uses ConcurrentArchiveQueue for parallel processing (max 4 concurrent items)
  */
 
 import { ServiceRegistry } from "./ServiceRegistry";
 import { ArchiveResult, ArchiveService } from "./types";
 import { MementoChecker, MementoInfo } from "../memento/MementoChecker";
 import { PreferencesManager } from "../preferences/PreferencesManager";
+import { ConcurrentArchiveQueue } from "../../utils/ConcurrentArchiveQueue";
+import { TrafficMonitor } from "../../utils/TrafficMonitor";
 
 export class ArchiveCoordinator {
   private static instance: ArchiveCoordinator;
   private registry: ServiceRegistry;
+  private currentTrafficMonitor: TrafficMonitor | null = null;
+  private requestedServiceId: string | undefined;
 
   private constructor() {
     this.registry = ServiceRegistry.getInstance();
@@ -24,7 +29,8 @@ export class ArchiveCoordinator {
   }
 
   /**
-   * Archive items with a specific service or using fallback logic
+   * Archive items using concurrent queue (max 4 items simultaneously)
+   * In test environment, falls back to sequential processing to avoid memory issues
    */
   async archiveItems(
     items: Zotero.Item[],
@@ -34,23 +40,48 @@ export class ArchiveCoordinator {
       throw new Error("No items provided for archiving");
     }
 
-    const results: ArchiveResult[] = [];
+    // Set up context for this archiving batch
+    this.requestedServiceId = serviceId;
+    this.currentTrafficMonitor = TrafficMonitor.getInstance();
 
-    for (const item of items) {
-      try {
-        const result = await this.archiveItem(item, serviceId);
-        results.push(result);
-      } catch (error) {
-        Zotero.debug(`MomentO7: Error archiving item ${item.id}: ${error}`);
-        results.push({
-          item,
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
+    try {
+      // Use concurrent queue if not in test environment
+      if (process.env.NODE_ENV === "test") {
+        // Sequential processing for tests to avoid memory accumulation
+        const results: ArchiveResult[] = [];
+        for (const item of items) {
+          results.push(await this.archiveItemWithContext(item));
+        }
+        return results;
       }
-    }
 
-    return results;
+      // Concurrent processing for production
+      const queue = new ConcurrentArchiveQueue(4);
+      return await queue.process(items, (item) =>
+        this.archiveItemWithContext(item),
+      );
+    } finally {
+      // Clean up context
+      this.currentTrafficMonitor = null;
+      this.requestedServiceId = undefined;
+    }
+  }
+
+  /**
+   * Archive a single item within batch context
+   * Wraps archiveItem to integrate with concurrent queue and traffic monitoring
+   */
+  private async archiveItemWithContext(item: Zotero.Item): Promise<ArchiveResult> {
+    try {
+      return await this.archiveItem(item, this.requestedServiceId);
+    } catch (error) {
+      Zotero.debug(`MomentO7: Error archiving item ${item.id}: ${error}`);
+      return {
+        item,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   /**
@@ -247,6 +278,7 @@ export class ArchiveCoordinator {
 
   /**
    * Archive using fallback order from preferences
+   * Filters out jammed services based on traffic monitoring
    */
   private async archiveWithFallback(item: Zotero.Item): Promise<ArchiveResult> {
     const availableServices = await this.registry.getAvailable();
@@ -259,10 +291,27 @@ export class ArchiveCoordinator {
     const fallbackOrder = this.getFallbackOrder();
 
     // Sort available services according to fallback order
-    const orderedServices = this.orderServices(
+    let orderedServices = this.orderServices(
       availableServices,
       fallbackOrder,
     );
+
+    // Filter out jammed services from traffic monitoring
+    if (this.currentTrafficMonitor) {
+      orderedServices = orderedServices.filter(
+        ({ id }) => !this.currentTrafficMonitor!.isServiceJammed(id),
+      );
+
+      if (orderedServices.length === 0) {
+        throw new Error(
+          "No non-jammed archiving services available - consider retrying later",
+        );
+      }
+
+      Zotero.debug(
+        `MomentO7: Filtering jammed services, ${orderedServices.length} services available for fallback`,
+      );
+    }
 
     const errors: string[] = [];
 

@@ -6,6 +6,7 @@ import { ArchiveCoordinator } from "../../src/modules/archive/ArchiveCoordinator
 import { ServiceRegistry } from "../../src/modules/archive/ServiceRegistry";
 import { MementoChecker } from "../../src/modules/memento/MementoChecker";
 import { PreferencesManager } from "../../src/modules/preferences/PreferencesManager";
+import { TrafficMonitor } from "../../src/utils/TrafficMonitor";
 
 describe("ArchiveCoordinator", function () {
   let coordinator: ArchiveCoordinator;
@@ -14,9 +15,11 @@ describe("ArchiveCoordinator", function () {
 
   beforeEach(function () {
     jest.clearAllMocks();
+    jest.clearAllTimers();
 
-    // Reset singleton
+    // Reset singletons
     (ArchiveCoordinator as any).instance = undefined;
+    (TrafficMonitor as any).instance = undefined;
 
     // Mock ServiceRegistry
     mockRegistry = {
