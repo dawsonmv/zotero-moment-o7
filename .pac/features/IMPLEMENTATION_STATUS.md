@@ -9,25 +9,28 @@
 ## 1. Completion Status Overview
 
 ### Summary Metrics
-| Category | Status | Progress |
-|----------|--------|----------|
-| **Planning & Design** | ✅ Complete | 100% |
-| **Component Scaffolds** | ⚠️ Partial | 20% |
-| **UI Implementation** | ❌ Not Started | 0% |
-| **Functionality** | ❌ Not Started | 0% |
-| **Testing** | ❌ Partial | 10% |
-| **Integration** | ❌ Not Started | 0% |
-| **Documentation** | ⚠️ Partial | 50% |
-| **Overall** | ⚠️ Early Stage | 15-20% |
+
+| Category                | Status         | Progress |
+| ----------------------- | -------------- | -------- |
+| **Planning & Design**   | ✅ Complete    | 100%     |
+| **Component Scaffolds** | ⚠️ Partial     | 20%      |
+| **UI Implementation**   | ❌ Not Started | 0%       |
+| **Functionality**       | ❌ Not Started | 0%       |
+| **Testing**             | ❌ Partial     | 10%      |
+| **Integration**         | ❌ Not Started | 0%       |
+| **Documentation**       | ⚠️ Partial     | 50%      |
+| **Overall**             | ⚠️ Early Stage | 15-20%   |
 
 ---
 
 ## 2. What Is Complete ✅
 
 ### 2.1 Feature Planning & Documentation
+
 **Files**: `.pac/features/archive-service-config-ui.md`
 
 ✅ **Completed**:
+
 - Comprehensive feature overview and requirements
 - 5 functional requirements with acceptance criteria
 - 4 non-functional requirements (security, performance, accessibility, usability)
@@ -39,15 +42,18 @@
 - Success metrics and rollout plan
 
 **What This Covers**:
+
 - Clear requirements for implementation
 - Reference architecture
 - Testing approach
 - Security guidelines
 
 ### 2.2 Component Structure & Scaffolding
+
 **Files**: `src/modules/preferences/ui/PreferencesPanel.ts`
 
 ✅ **Completed**:
+
 - `PreferencesPanel` class structure with core methods
 - `ServiceConfigSection` class structure
 - `CredentialsSection` class structure
@@ -58,11 +64,13 @@
 - Method signatures for all components
 
 ⚠️ **Partial**:
+
 - `initialize()` method - Has structure but needs XUL integration
 - `render()` method - Calls sub-sections but doesn't wire up actual DOM
 - Event binding - Infrastructure exists but no actual event firing
 
 ❌ **Missing**:
+
 - Actual DOM element creation and manipulation
 - Service/credential data rendering
 - Form elements and inputs
@@ -70,9 +78,11 @@
 - Data persistence logic
 
 ### 2.3 Test Infrastructure
+
 **Files**: `tests/preferences/PreferencesPanel.test.ts`
 
 ✅ **Completed**:
+
 - Test file structure and imports
 - Test suite organization (describe/beforeEach/afterEach)
 - 40+ test case stubs covering all major features
@@ -80,6 +90,7 @@
 - Container setup/cleanup
 
 ⚠️ **Partial**:
+
 - Test cases defined but mostly empty (comment-only)
 - Mock objects created but not fully utilized
 - No actual assertions or test logic
@@ -91,6 +102,7 @@
 ### 3.1 ServiceConfigSection Implementation (30-40% effort)
 
 **Current State**:
+
 - Basic class structure with method stubs
 - `render()` creates container but doesn't populate services
 - `renderServiceList()` is a placeholder
@@ -101,6 +113,7 @@
 **What Needs to Be Done**:
 
 1. **Service List Rendering** (~4-6 hours)
+
    ```typescript
    // Need to implement:
    - Fetch available services from ServiceRegistry
@@ -114,6 +127,7 @@
    ```
 
 2. **Enable/Disable Toggles** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Create checkbox input for each service
@@ -124,6 +138,7 @@
    ```
 
 3. **Service Testing** (~3-4 hours)
+
    ```typescript
    // Need to implement:
    - [Test Connection] button handlers
@@ -135,6 +150,7 @@
    ```
 
 4. **Drag-and-Drop Reordering** (~5-6 hours)
+
    ```typescript
    // Need to implement:
    - Add draggable attribute to service items
@@ -147,6 +163,7 @@
    ```
 
 5. **Event Firing** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Emit 'serviceToggle' events with (serviceId, enabled)
@@ -165,6 +182,7 @@
    ```
 
 **Dependencies**:
+
 - `ServiceRegistry` - To get available services
 - `HealthChecker` - To test service connectivity
 - Existing preference system for enabled services
@@ -176,6 +194,7 @@
 ### 3.2 PreferencesSection Implementation (10-15% effort)
 
 **Current State**:
+
 - Class structure with method stubs
 - Hardcoded return values
 - No actual form rendering
@@ -184,6 +203,7 @@
 **What Needs to Be Done**:
 
 1. **Preferences Form Rendering** (~3-4 hours)
+
    ```typescript
    // Need to implement:
    - Timeout input field (number, min: 1000ms, max: 600000ms)
@@ -195,6 +215,7 @@
    ```
 
 2. **Form Input Handling** (~3-4 hours)
+
    ```typescript
    // Need to implement:
    - onChange handlers for all inputs
@@ -204,6 +225,7 @@
    ```
 
 3. **Value Getters** (~2 hours)
+
    ```typescript
    // Need to implement:
    - Replace hardcoded values with form inputs
@@ -222,6 +244,7 @@
    ```
 
 **Dependencies**:
+
 - `PreferencesManager` - For loading current preferences
 - Form validation utilities
 
@@ -232,6 +255,7 @@
 ### 3.3 CredentialsSection Implementation (15-20% effort)
 
 **Current State**:
+
 - Class structure with method stubs
 - No credential forms
 - No credential display
@@ -240,6 +264,7 @@
 **What Needs to Be Done**:
 
 1. **Credential Form Rendering** (~6-8 hours)
+
    ```typescript
    // Need to implement:
    - Internet Archive form (2 fields: access key, secret key)
@@ -252,6 +277,7 @@
    ```
 
 2. **Credential Loading** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Load stored credentials from CredentialManager
@@ -262,6 +288,7 @@
    ```
 
 3. **Credential Storage** (~3-4 hours)
+
    ```typescript
    // Need to implement:
    - Capture credential input values
@@ -273,6 +300,7 @@
    ```
 
 4. **Credential Testing** (~4-5 hours)
+
    ```typescript
    // Need to implement:
    - [Test Credentials] button handlers
@@ -284,6 +312,7 @@
    ```
 
 5. **Credential Clearing** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - [Clear] button handlers
@@ -303,6 +332,7 @@
    ```
 
 **Dependencies**:
+
 - `CredentialManager` - For credential storage/retrieval
 - Archive service implementations - For credential testing
 - Form validation utilities
@@ -318,6 +348,7 @@
 **What Needs to Be Done**:
 
 1. **CSS Framework** (~3-4 hours)
+
    ```css
    /* Need to implement:
    - .momento7-preferences-panel { }
@@ -365,6 +396,7 @@
 **What Needs to Be Done**:
 
 1. **Zotero Preferences Panel Integration** (~5-6 hours)
+
    ```typescript
    // Need to implement:
    - Register panel with Zotero preferences
@@ -375,6 +407,7 @@
    ```
 
 2. **Preferences Window** (~3-4 hours)
+
    ```xul
    <!-- Need to create or modify:
    - src/addon/content/preferences.xhtml
@@ -395,6 +428,7 @@
    ```
 
 **Files**:
+
 - Modify: `src/addon/content/preferences.xhtml`
 - Create/Modify: Integration hooks in main addon
 
@@ -409,6 +443,7 @@
 **What Needs to Be Done**:
 
 1. **Service Event Handlers** (~3-4 hours)
+
    ```typescript
    // In PreferencesPanel.bindEventHandlers():
    - Connect serviceToggle → onServiceToggle()
@@ -418,6 +453,7 @@
    ```
 
 2. **Credential Event Handlers** (~3-4 hours)
+
    ```typescript
    // In PreferencesPanel.bindEventHandlers():
    - Connect credentialUpdate → onCredentialUpdate()
@@ -426,6 +462,7 @@
    ```
 
 3. **State Management** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Track pending changes in PreferencesPanel
@@ -453,6 +490,7 @@
 **What Needs to Be Done**:
 
 1. **Service Status Display** (~3-4 hours)
+
    ```typescript
    // Need to implement:
    - Call HealthChecker.checkService() for each service
@@ -463,6 +501,7 @@
    ```
 
 2. **Async Loading** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Load health status asynchronously
@@ -480,6 +519,7 @@
    ```
 
 **Dependencies**:
+
 - `HealthChecker` - Existing service availability checking
 
 **Total Estimated Effort**: 7-9 hours
@@ -493,6 +533,7 @@
 **What Needs to Be Done**:
 
 1. **Internet Archive Credential Test** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Use Internet Archive API
@@ -502,6 +543,7 @@
    ```
 
 2. **Perma.cc Credential Test** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Use Perma.cc API
@@ -511,6 +553,7 @@
    ```
 
 3. **Archive.today Proxy Test** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - Test proxy URL connectivity
@@ -529,6 +572,7 @@
    ```
 
 **Dependencies**:
+
 - Archive service implementations
 
 **Total Estimated Effort**: 7-11 hours
@@ -542,6 +586,7 @@
 **What Needs to Be Done**:
 
 1. **Input Validation** (~4-5 hours)
+
    ```typescript
    // Need to implement:
    - Validate timeout range (1000-600000ms)
@@ -553,6 +598,7 @@
    ```
 
 2. **Form Error Display** (~3-4 hours)
+
    ```typescript
    // Need to implement:
    - Error message containers
@@ -581,6 +627,7 @@
 **What Needs to Be Done**:
 
 1. **Unit Tests** (~8-10 hours)
+
    ```typescript
    // Need to implement:
    - PreferencesPanel initialization tests
@@ -593,6 +640,7 @@
    ```
 
 2. **Integration Tests** (~5-6 hours)
+
    ```typescript
    // Need to implement:
    - Service enable/disable workflow
@@ -626,6 +674,7 @@
 **What Needs to Be Done**:
 
 1. **Code Documentation** (~2-3 hours)
+
    ```typescript
    // Need to implement:
    - JSDoc comments for all public methods
@@ -654,9 +703,11 @@
 ## 4. Recommended Completion Order
 
 ### Phase 1: Foundation (Days 1-2)
+
 **Goal**: Get core UI rendering and basic interactions working
 
 **Order**:
+
 1. **Create CSS file** (6-9 hours)
    - Foundation styling
    - Component layouts
@@ -674,6 +725,7 @@
    - Value getters updated
 
 **Why This Order**:
+
 - CSS needed for all components
 - ServiceConfigSection is foundation (other sections depend on seeing it work)
 - PreferencesSection is simpler than CredentialsSection
@@ -683,9 +735,11 @@
 ---
 
 ### Phase 2: Credentials & Polish (Days 3-4)
+
 **Goal**: Complete credential management and add event wiring
 
 **Order**:
+
 1. **CredentialsSection UI** (19-26 hours)
    - Credential form rendering
    - Credential loading/storage
@@ -697,6 +751,7 @@
    - State management
 
 **Why This Order**:
+
 - Can be done in parallel with testing
 - Depends on Phase 1 being mostly complete
 
@@ -705,9 +760,11 @@
 ---
 
 ### Phase 3: Integration & Features (Days 5-6)
+
 **Goal**: Integrate with Zotero, add testing and health checks
 
 **Order**:
+
 1. **XUL/Zotero Integration** (10-13 hours)
    - Preferences window setup
    - Lifecycle management
@@ -721,6 +778,7 @@
    - Error handling
 
 **Why This Order**:
+
 - Integration must come before testing can work properly
 - Health checks enable credential testing
 
@@ -729,9 +787,11 @@
 ---
 
 ### Phase 4: Polish & Testing (Days 7+)
+
 **Goal**: Validation, testing, accessibility, and documentation
 
 **Order**:
+
 1. **Form Validation & Error Handling** (10-13 hours)
    - Input validation
    - Error display
@@ -748,6 +808,7 @@
    - Developer documentation
 
 **Why This Order**:
+
 - Validation needed before intensive testing
 - Testing validates all functionality
 - Documentation last when everything is stable
@@ -781,26 +842,27 @@ CredentialsSection (19-26h)
 
 ### Total Estimated Effort by Component
 
-| Component | Hours | Days | Phase |
-|-----------|-------|------|-------|
-| CSS & Styling | 6-9 | 1 | 1 |
-| ServiceConfigSection | 18-25 | 2.5-3 | 1 |
-| PreferencesSection | 10-14 | 1.5-2 | 1 |
-| CredentialsSection | 19-26 | 2.5-3 | 2 |
-| Event Wiring | 10-14 | 1.5-2 | 2 |
-| XUL Integration | 10-13 | 1.5-2 | 3 |
-| Health Check Integration | 7-9 | 1-1.5 | 3 |
-| Credential Testing | 7-11 | 1-1.5 | 3 |
-| Form Validation | 10-13 | 1.5-2 | 4 |
-| Testing | 16-20 | 2-2.5 | 4 |
-| Documentation | 5-8 | 1-1.5 | 4 |
-| **Total** | **118-162** | **16-22** | |
+| Component                | Hours       | Days      | Phase |
+| ------------------------ | ----------- | --------- | ----- |
+| CSS & Styling            | 6-9         | 1         | 1     |
+| ServiceConfigSection     | 18-25       | 2.5-3     | 1     |
+| PreferencesSection       | 10-14       | 1.5-2     | 1     |
+| CredentialsSection       | 19-26       | 2.5-3     | 2     |
+| Event Wiring             | 10-14       | 1.5-2     | 2     |
+| XUL Integration          | 10-13       | 1.5-2     | 3     |
+| Health Check Integration | 7-9         | 1-1.5     | 3     |
+| Credential Testing       | 7-11        | 1-1.5     | 3     |
+| Form Validation          | 10-13       | 1.5-2     | 4     |
+| Testing                  | 16-20       | 2-2.5     | 4     |
+| Documentation            | 5-8         | 1-1.5     | 4     |
+| **Total**                | **118-162** | **16-22** |       |
 
 **Conservative Estimate**: 7-8 weeks (1 developer)
 **Optimistic Estimate**: 4-5 weeks (1 developer, focused work)
 **With 2 Developers**: 2-3 weeks
 
 ### Parallelizable Work
+
 - Testing can happen in parallel with feature work
 - Documentation can happen in parallel with implementation
 - Some components can be worked on in parallel after Phase 1
@@ -810,6 +872,7 @@ CredentialsSection (19-26h)
 ## 7. Critical Path
 
 **Longest Path to Completion**:
+
 1. CSS (1 day)
 2. ServiceConfigSection (2.5-3 days)
 3. CredentialsSection (2.5-3 days)
@@ -824,19 +887,20 @@ CredentialsSection (19-26h)
 
 ## 8. Risk Factors
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| Zotero API compatibility | High | Early integration testing |
-| Drag-drop complexity | Medium | Use proven library or polyfill |
-| HealthChecker integration | Medium | Early prototyping |
-| Credential security | High | Code review + security audit |
-| Accessibility compliance | Medium | Early axe-core testing |
+| Risk                      | Impact | Mitigation                     |
+| ------------------------- | ------ | ------------------------------ |
+| Zotero API compatibility  | High   | Early integration testing      |
+| Drag-drop complexity      | Medium | Use proven library or polyfill |
+| HealthChecker integration | Medium | Early prototyping              |
+| Credential security       | High   | Code review + security audit   |
+| Accessibility compliance  | Medium | Early axe-core testing         |
 
 ---
 
 ## 9. Success Criteria for Each Phase
 
 ### Phase 1: Foundation
+
 - ✅ CSS file compiles without errors
 - ✅ ServiceConfigSection renders all services
 - ✅ Toggles enable/disable services
@@ -844,18 +908,21 @@ CredentialsSection (19-26h)
 - ✅ All inputs are functional
 
 ### Phase 2: Credentials & Events
+
 - ✅ CredentialsSection forms render correctly
 - ✅ Credentials can be stored/cleared
 - ✅ Events fire correctly between sections
 - ✅ Panel can save and close properly
 
 ### Phase 3: Integration
+
 - ✅ Panel integrates with Zotero preferences
 - ✅ Health checks display correctly
 - ✅ Service testing works
 - ✅ Credential testing works
 
 ### Phase 4: Polish & Release
+
 - ✅ All tests pass (>80% coverage)
 - ✅ Accessibility audit passes (WCAG 2.1 AA)
 - ✅ No console errors

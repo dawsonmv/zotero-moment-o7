@@ -10,6 +10,7 @@
 ## Setup (5 minutes)
 
 1. **Open Zotero**:
+
    ```bash
    open /Applications/Zotero.app
    ```
@@ -29,6 +30,7 @@
 ## Quick Test Phases (12 total)
 
 ### ✅ Phase 1: Plugin Loads (5 min)
+
 - [ ] Plugin in Tools menu
 - [ ] "Archive this Resource" in right-click menu
 - [ ] Preferences open without errors
@@ -39,6 +41,7 @@
 ---
 
 ### ✅ Phase 2: Single Item Archiving (15 min)
+
 - [ ] Archive to Internet Archive → success
 - [ ] Archive to Archive.today → success
 - [ ] URL saved in item metadata
@@ -50,6 +53,7 @@
 ---
 
 ### ✅ Phase 3: Concurrent Batch (10 min) 🆕
+
 - [ ] Select 10+ items
 - [ ] Right-click → Archive this Resource
 - [ ] Progress window shows "Archiving (X/10)"
@@ -61,6 +65,7 @@
 ---
 
 ### ✅ Phase 4: Traffic Monitoring (10 min) 🆕
+
 - [ ] Progress shows traffic data: "Archiving (5/10) | IA: 0.8"
 - [ ] Slow requests (>1s) increase score
 - [ ] Fast requests (<1s) score = 0
@@ -70,6 +75,7 @@
 ---
 
 ### ✅ Phase 5: Service Jamming (10 min) 🆕
+
 - [ ] Multiple slow requests to same service
 - [ ] Service marked "JAMMED" when score ≥ 2.0
 - [ ] Jammed service filtered from fallback
@@ -79,6 +85,7 @@
 ---
 
 ### ✅ Phase 6: Fallback Chain (10 min)
+
 - [ ] Configure fallback: IA → Archive.today → Perma.cc
 - [ ] Archive with "Create Robust Link (All Archives)"
 - [ ] Some items use fallback successfully
@@ -88,6 +95,7 @@
 ---
 
 ### ✅ Phase 7: Robust Links (10 min)
+
 - [ ] Archived items have note with link
 - [ ] HTML includes data attributes
 - [ ] Date and service name shown
@@ -97,6 +105,7 @@
 ---
 
 ### ✅ Phase 8: Preferences (10 min)
+
 - [ ] Auto-archive toggle works
 - [ ] Default service selection persists
 - [ ] Fallback order changes apply
@@ -106,6 +115,7 @@
 ---
 
 ### ✅ Phase 9: Error Handling (10 min) 🔑 CRITICAL
+
 - [ ] Network error shows message
 - [ ] Timeout handled gracefully
 - [ ] No URL → appropriate error
@@ -117,6 +127,7 @@
 ---
 
 ### ✅ Phase 10: Performance (15 min) 🔑 CRITICAL
+
 - [ ] Archive 50+ items without memory errors
 - [ ] No "Not Responding" message
 - [ ] Zotero stays responsive
@@ -127,6 +138,7 @@
 ---
 
 ### ✅ Phase 11: Data Integrity (10 min)
+
 - [ ] Original metadata unchanged
 - [ ] Archive URLs stored correctly
 - [ ] Multiple archives per item tracked
@@ -137,6 +149,7 @@
 ---
 
 ### ✅ Phase 12: Stability (15 min) 🔑 CRITICAL
+
 - [ ] No crashes or exceptions
 - [ ] No memory leaks over 3+ batches
 - [ ] Clear error messages
@@ -149,6 +162,7 @@
 ## Critical Success Indicators
 
 🔴 **MUST PASS** (Blocking):
+
 - Phase 1: Plugin loads
 - Phase 2: Basic archiving works
 - Phase 9: Error handling (no crashes)
@@ -156,6 +170,7 @@
 - Phase 12: Stability (no errors)
 
 🟡 **SHOULD PASS** (High Priority):
+
 - Phase 3: Concurrent batch
 - Phase 4: Traffic monitoring
 - Phase 5: Service jamming
@@ -165,6 +180,7 @@
 ## Debug Tips
 
 ### View Errors
+
 ```
 Zotero Debug Console:
   Help → Debug Output Logging
@@ -177,12 +193,14 @@ Look for:
 ```
 
 ### Test Items
+
 - Simple: Wikipedia, news articles
 - Complex: JavaScript-heavy sites
 - Various: PDFs, documents, images
 - Mix: ~50% simple, 50% complex
 
 ### If Errors Occur
+
 1. Note exact error message
 2. Check Zotero Debug Console
 3. Note which phase failed
@@ -205,28 +223,32 @@ Save this as `FUNCTIONAL-TEST-REPORT.md`:
 
 ## Results
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| 1 | ✅ PASS / ❌ FAIL | [Notes] |
-| 2 | ✅ PASS / ❌ FAIL | [Notes] |
-| 3 | ✅ PASS / ❌ FAIL | [Notes] |
-| ... | ... | ... |
+| Phase | Status            | Notes   |
+| ----- | ----------------- | ------- |
+| 1     | ✅ PASS / ❌ FAIL | [Notes] |
+| 2     | ✅ PASS / ❌ FAIL | [Notes] |
+| 3     | ✅ PASS / ❌ FAIL | [Notes] |
+| ...   | ...               | ...     |
 
 ## Summary
+
 - Total Phases: 12
 - Passed: [X]
 - Failed: [Y]
 - Overall: ✅ READY / ⚠️ ISSUES / ❌ BLOCKED
 
 ## Issues Found
+
 [List any bugs, crashes, or unexpected behavior]
 
 ## Performance
+
 - Memory usage: [OK/HIGH]
 - Response time: [OK/SLOW]
 - Crashes: [None/Describe]
 
 ## Recommendation
+
 [Ready to deploy / Fix issues / Retest]
 ```
 
@@ -248,12 +270,14 @@ Save this as `FUNCTIONAL-TEST-REPORT.md`:
 ## Next Steps After Testing
 
 **If all tests PASS** ✅:
+
 1. Create testing report
 2. Merge to main branch
 3. Create GitHub release
 4. Deploy to production
 
 **If issues found** ❌:
+
 1. Document exact errors
 2. Check Zotero console logs
 3. Note reproduction steps

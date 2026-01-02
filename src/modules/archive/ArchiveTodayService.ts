@@ -224,17 +224,14 @@ export class ArchiveTodayService extends BaseArchiveService {
       const timeout = 10000; // 10 second timeout for test
 
       // Make a test request to the proxy URL
-      const response = await Zotero.HTTP.request(
-        credentials.proxyUrl,
-        {
-          method: "POST",
-          timeout,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: "https://example.com" }),
+      const response = await Zotero.HTTP.request(credentials.proxyUrl, {
+        method: "POST",
+        timeout,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ url: "https://example.com" }),
+      });
 
       // Check for connectivity errors
       if (response.status >= 400) {

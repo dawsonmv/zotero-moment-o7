@@ -19,6 +19,7 @@ Complete guide for using Product as Code (PAC) in the Zotero Moment-o7 project.
 **Epics** are large, strategic initiatives. They represent major features or improvements that span multiple months and involve multiple team members.
 
 **Characteristics:**
+
 - Represent 2-8 weeks of work
 - Require 5+ related tickets
 - Have clear business goals
@@ -26,6 +27,7 @@ Complete guide for using Product as Code (PAC) in the Zotero Moment-o7 project.
 - Contain strategic timeline
 
 **Example Epic:**
+
 ```
 EPIC-circuit-breaker-resilience
 ├─ Implement circuit breaker pattern
@@ -39,6 +41,7 @@ EPIC-circuit-breaker-resilience
 **Tickets** are implementation tasks. They represent work items that can be completed by one person in 1-3 days.
 
 **Characteristics:**
+
 - Represent 1-3 days of work
 - Linked to a parent epic
 - Include acceptance criteria
@@ -46,6 +49,7 @@ EPIC-circuit-breaker-resilience
 - Fit within a sprint
 
 **Example Tickets (under EPIC-circuit-breaker-resilience):**
+
 ```
 TICKET-implement-circuit-breaker-pattern
 TICKET-add-health-check-endpoint
@@ -62,6 +66,7 @@ TICKET-add-circuit-breaker-metrics
 ```
 
 The script will prompt for:
+
 1. Epic slug (lowercase, hyphenated): `archive-resilience`
 2. Epic name: `Archive Service Resilience`
 3. Description: "Improve reliability of archive service calls"
@@ -71,11 +76,13 @@ The script will prompt for:
 ### Manual Creation
 
 1. Copy the template:
+
    ```bash
    cp .pac/templates/epic-template.yaml .pac/epics/epic-your-epic-name.yaml
    ```
 
 2. Edit the file with your favorite editor:
+
    ```bash
    nano .pac/epics/epic-your-epic-name.yaml
    ```
@@ -154,6 +161,7 @@ spec:
 ```
 
 The script will prompt for:
+
 1. Ticket slug: `implement-circuit-breaker`
 2. Ticket name: `Implement Circuit Breaker Pattern`
 3. Epic ID: `EPIC-circuit-breaker-resilience`
@@ -163,11 +171,13 @@ The script will prompt for:
 ### Manual Creation
 
 1. Copy the template:
+
    ```bash
    cp .pac/templates/ticket-template.yaml .pac/tickets/ticket-your-ticket-name.yaml
    ```
 
 2. Edit with your editor:
+
    ```bash
    nano .pac/tickets/ticket-your-ticket-name.yaml
    ```
@@ -262,15 +272,15 @@ backlog → ready → in_progress → review → testing → done
 
 ### Status Definitions
 
-| Status | Meaning |
-|--------|---------|
-| `backlog` | Not yet ready; waiting for prioritization or dependencies |
-| `ready` | Prioritized and ready for development |
-| `in_progress` | Currently being worked on |
-| `review` | Submitted for code review |
-| `testing` | In QA/testing phase |
-| `done` | Completed and merged |
-| `blocked` | Blocked by another ticket (document blocker) |
+| Status        | Meaning                                                   |
+| ------------- | --------------------------------------------------------- |
+| `backlog`     | Not yet ready; waiting for prioritization or dependencies |
+| `ready`       | Prioritized and ready for development                     |
+| `in_progress` | Currently being worked on                                 |
+| `review`      | Submitted for code review                                 |
+| `testing`     | In QA/testing phase                                       |
+| `done`        | Completed and merged                                      |
+| `blocked`     | Blocked by another ticket (document blocker)              |
 
 ### Updating Status
 
@@ -282,6 +292,7 @@ metadata:
 ```
 
 Commit with message:
+
 ```bash
 git commit -am "Update ticket status: TICKET-implement-circuit-breaker in_progress"
 ```
@@ -305,6 +316,7 @@ spec:
 ### Before Creating a PR
 
 1. **Validate PAC files:**
+
    ```bash
    .pac/scripts/validate.sh
    ```
@@ -320,8 +332,10 @@ spec:
 When creating a PR with PAC changes:
 
 1. Include in PR description:
+
    ```markdown
    ## PAC Changes
+
    - Created EPIC-feature-name
    - Created TICKET-feature-detail
    - Updated TICKET-other-ticket status
@@ -355,6 +369,7 @@ Reviewers should check:
 ### Starting a New Feature
 
 1. **Create Epic:**
+
    ```bash
    .pac/scripts/new-epic.sh
    # Follow prompts, creates EPIC-feature-name
@@ -362,6 +377,7 @@ Reviewers should check:
 
 2. **Decompose into Tickets:**
    Create 5-10 related tickets under the epic
+
    ```bash
    .pac/scripts/new-ticket.sh
    # Parent: EPIC-feature-name
@@ -379,12 +395,14 @@ Reviewers should check:
 ### Starting Work on a Ticket
 
 1. **Update status:**
+
    ```yaml
    metadata:
-     status: "ready"  # Then to "in_progress"
+     status: "ready" # Then to "in_progress"
    ```
 
 2. **Create feature branch:**
+
    ```bash
    git checkout -b feature/ticket-name
    ```
@@ -400,6 +418,7 @@ Reviewers should check:
    - Code reviewed
 
 2. **Update ticket:**
+
    ```yaml
    metadata:
      status: "done"
@@ -416,11 +435,13 @@ Reviewers should check:
 ### Completing an Epic
 
 1. **Verify all tickets done:**
+
    ```bash
    .pac/scripts/validate.sh  # Check all related tickets
    ```
 
 2. **Update epic:**
+
    ```yaml
    metadata:
      status: "completed"
@@ -436,8 +457,10 @@ Reviewers should check:
 ### Linking Between Files
 
 Reference tickets in epic descriptions:
+
 ```markdown
 Related Tickets:
+
 - TICKET-implement-circuit-breaker
 - TICKET-add-health-checks
 - TICKET-create-fallback-logic
@@ -465,11 +488,13 @@ spec:
 ### Quick Status Check
 
 See all active work:
+
 ```bash
 grep -l "status: \"in_progress\"" .pac/tickets/*.yaml
 ```
 
 See all blocked tickets:
+
 ```bash
 grep -l "status: \"blocked\"" .pac/tickets/*.yaml
 ```
@@ -477,6 +502,7 @@ grep -l "status: \"blocked\"" .pac/tickets/*.yaml
 ### Updating Related Tickets
 
 When blocking relationships change:
+
 ```yaml
 spec:
   blockers:
@@ -488,6 +514,7 @@ spec:
 ### Estimating Effort
 
 Consistent story points help with planning:
+
 - 1 point: Few hours
 - 2 points: 1 day
 - 3 points: 1-2 days
@@ -495,6 +522,7 @@ Consistent story points help with planning:
 - 8+ points: Split into smaller tickets
 
 Record in ticket:
+
 ```yaml
 metadata:
   estimated_effort: "3 story points"

@@ -167,15 +167,14 @@ function registerPrefsObserver(): void {
  */
 function registerMenuItems(_win: _ZoteroTypes.MainWindow): void {
   // Helper to wrap async menu handlers with error handling
-  const safeAsyncCommand =
-    (fn: () => Promise<void>) => async () => {
-      try {
-        await fn();
-      } catch (error) {
-        ztoolkit.log(`Menu command error: ${error}`, "error");
-        showNotification("fail", `Error: ${error}`);
-      }
-    };
+  const safeAsyncCommand = (fn: () => Promise<void>) => async () => {
+    try {
+      await fn();
+    } catch (error) {
+      ztoolkit.log(`Menu command error: ${error}`, "error");
+      showNotification("fail", `Error: ${error}`);
+    }
+  };
 
   // Right-click context menu for items
   ztoolkit.Menu.register("item", {

@@ -5,6 +5,7 @@ This project uses the Orchestration Commit System for synchronized task tracking
 ## Quick Start
 
 ### View Current Task Status
+
 ```bash
 /orchestration:status
 ```
@@ -12,6 +13,7 @@ This project uses the Orchestration Commit System for synchronized task tracking
 Shows all tasks with their status, commits, and completion percentage.
 
 ### Commit for Current Task
+
 ```bash
 /orchestration:commit
 ```
@@ -19,6 +21,7 @@ Shows all tasks with their status, commits, and completion percentage.
 Automatically creates a commit message based on the task in `in_progress` status.
 
 ### Move Task to Next Status
+
 ```bash
 /orchestration:move TASK-009 in_progress
 ```
@@ -26,6 +29,7 @@ Automatically creates a commit message based on the task in `in_progress` status
 Transitions task through: `todos` → `in_progress` → `qa` → `complete`
 
 ### Auto-commit on Status Change
+
 ```bash
 /orchestration:move TASK-009 qa --auto-commit
 ```
@@ -35,10 +39,12 @@ Moves task to QA and creates commit automatically.
 ## Task Structure
 
 ### Task ID Format
+
 - **EPIC-001**: Epic (long-running feature)
 - **TASK-001**: Individual task within epic
 
 ### Task Types
+
 - `feature`: New functionality
 - `bugfix`: Bug fixes
 - `test`: Test coverage
@@ -48,6 +54,7 @@ Moves task to QA and creates commit automatically.
 - `security`: Security fixes
 
 ### Task Statuses
+
 ```
 todos → in_progress → qa → complete
         ↓
@@ -57,6 +64,7 @@ todos → in_progress → qa → complete
 ## Current Epic: Traffic Monitoring & Concurrent Archiving
 
 ### Completed Tasks (TASK-001 through TASK-008)
+
 - ✅ TrafficMonitor utility
 - ✅ ConcurrentArchiveQueue
 - ✅ ArchiveCoordinator integration
@@ -67,11 +75,13 @@ todos → in_progress → qa → complete
 - ✅ Plugin rebuild
 
 ### Pending Tasks
+
 - ⏳ **TASK-009**: Functional testing in Zotero (CRITICAL - required for merge)
 
 ## Workflow Examples
 
 ### Example 1: Start Work on Pending Task
+
 ```bash
 # Move task to in_progress
 /orchestration:move TASK-009 in_progress
@@ -84,6 +94,7 @@ todos → in_progress → qa → complete
 ```
 
 ### Example 2: Create New Feature Task
+
 ```bash
 # Check status
 /orchestration:status
@@ -109,6 +120,7 @@ todos → in_progress → qa → complete
 ```
 
 ### Example 3: Batch Commits for Related Tasks
+
 ```bash
 # Group related completed tasks
 /orchestration:commit --feature authentication --batch
@@ -122,6 +134,7 @@ todos → in_progress → qa → complete
 ## Integration with Git
 
 ### Automatic Commit Messages
+
 Based on TASK-STATUS-TRACKER.yaml, commits are auto-generated:
 
 ```
@@ -139,6 +152,7 @@ Commits: a6f04f5
 ```
 
 ### Manual Commit Override
+
 ```bash
 /orchestration:commit TASK-001 --message "Custom commit message"
 ```
@@ -146,11 +160,13 @@ Commits: a6f04f5
 ## Git Tracking in TASK-STATUS-TRACKER.yaml
 
 The `git_tracking` section maintains mapping between:
+
 - **Task ID** ↔ **Git commit hash**
 - **Task description** ↔ **Commit message**
 - **Task files** ↔ **Modified files**
 
 Example:
+
 ```yaml
 git_tracking:
   TASK-001:
@@ -165,11 +181,13 @@ git_tracking:
 ## Status Dashboard
 
 View the complete project status:
+
 ```bash
 cat TASK-STATUS-TRACKER.yaml | grep -A 5 "git_tracking:"
 ```
 
 Shows:
+
 - All commits and their task IDs
 - Test counts per task
 - Duration tracking
@@ -178,6 +196,7 @@ Shows:
 ## Best Practices
 
 ### 1. Update Task Status First
+
 ```bash
 /orchestration:move TASK-009 in_progress
 # ... do work ...
@@ -185,13 +204,16 @@ Shows:
 ```
 
 Not:
+
 ```bash
 git commit -m "..."
 # Then update task manually
 ```
 
 ### 2. Keep Task Descriptions Updated
+
 Update TASK-STATUS-TRACKER.yaml as you work:
+
 ```yaml
 TASK-009:
   status: in_progress
@@ -202,6 +224,7 @@ TASK-009:
 ```
 
 ### 3. Link Related Tasks
+
 ```yaml
 TASK-010:
   blocks: [TASK-011]
@@ -210,6 +233,7 @@ TASK-010:
 ```
 
 ### 4. Document Decision Points
+
 ```yaml
 TASK-009:
   notes: |
@@ -225,6 +249,7 @@ TASK-009:
 ```
 
 Checks:
+
 - ✓ All tests passing
 - ✓ No linting errors
 - ✓ Task requirements met
@@ -234,11 +259,13 @@ Checks:
 ## Integration with Linear (Optional)
 
 If using Linear issue tracking:
+
 ```bash
 /orchestration:commit TASK-009 --link-task
 ```
 
 Adds Linear issue link to commit message:
+
 ```
 feat(testing): complete functional testing in Zotero
 

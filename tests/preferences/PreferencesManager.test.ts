@@ -3,6 +3,7 @@
  */
 
 import { PreferencesManager } from "../../src/modules/preferences/PreferencesManager";
+import * as CredentialManagerModule from "../../src/utils/CredentialManager";
 
 // Mock CredentialManager
 jest.mock("../../src/utils/CredentialManager", () => ({
@@ -15,6 +16,11 @@ jest.mock("../../src/utils/CredentialManager", () => ({
     }),
   },
 }));
+
+// Get mocked version with proper types
+const mockedCredentialManager = jest.mocked(
+  CredentialManagerModule.CredentialManager,
+);
 
 describe("PreferencesManager", function () {
   let manager: PreferencesManager;
@@ -332,8 +338,7 @@ describe("PreferencesManager", function () {
 
   describe("static credential methods", function () {
     it("hasIACredentials should return true when both keys exist", async function () {
-      const { CredentialManager } = require("../../src/utils/CredentialManager");
-      CredentialManager.getInstance().getCredential
+      (mockedCredentialManager.getInstance() as any).getCredential
         .mockResolvedValueOnce("access-key-123")
         .mockResolvedValueOnce("secret-key-456");
 
@@ -343,10 +348,9 @@ describe("PreferencesManager", function () {
     });
 
     it("hasIACredentials should return false when credentials missing", async function () {
-      const { CredentialManager } = require("../../src/utils/CredentialManager");
-      CredentialManager.getInstance().getCredential.mockResolvedValue(
-        undefined,
-      );
+      (
+        mockedCredentialManager.getInstance() as any
+      ).getCredential.mockResolvedValue(undefined);
 
       const result = await PreferencesManager.hasIACredentials();
 
@@ -354,8 +358,7 @@ describe("PreferencesManager", function () {
     });
 
     it("getIACredentials should return both keys", async function () {
-      const { CredentialManager } = require("../../src/utils/CredentialManager");
-      CredentialManager.getInstance().getCredential
+      (mockedCredentialManager.getInstance() as any).getCredential
         .mockResolvedValueOnce("access-key-123")
         .mockResolvedValueOnce("secret-key-456");
 
@@ -366,10 +369,9 @@ describe("PreferencesManager", function () {
     });
 
     it("getPermaCCApiKey should return the API key", async function () {
-      const { CredentialManager } = require("../../src/utils/CredentialManager");
-      CredentialManager.getInstance().getCredential.mockResolvedValue(
-        "permacc-api-key-xyz",
-      );
+      (
+        mockedCredentialManager.getInstance() as any
+      ).getCredential.mockResolvedValue("permacc-api-key-xyz");
 
       const result = await PreferencesManager.getPermaCCApiKey();
 

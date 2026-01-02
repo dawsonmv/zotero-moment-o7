@@ -567,7 +567,7 @@ describe("InternetArchiveService", function () {
           headers: expect.objectContaining({
             Authorization: "LOW valid-access-key:valid-secret-key",
           }),
-        })
+        }),
       );
     });
 
@@ -607,7 +607,7 @@ describe("InternetArchiveService", function () {
 
     it("should handle connection errors", async function () {
       (Zotero.HTTP.request as jest.Mock).mockRejectedValueOnce(
-        new Error("Network error")
+        new Error("Network error"),
       );
 
       const result = await InternetArchiveService.testCredentials({

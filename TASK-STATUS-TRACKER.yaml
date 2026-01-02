@@ -160,9 +160,9 @@ tasks:
       - GETTING_STARTED.md: Developer onboarding guide
       - .scaffoldkeep: Documentation of git-ignored build artifacts
 
-# ============================================================================
-# ADMIN TASKS (Build & Artifacts)
-# ============================================================================
+  # ============================================================================
+  # ADMIN TASKS (Build & Artifacts)
+  # ============================================================================
   TASK-007:
     id: TASK-007
     epic: EPIC-001
@@ -212,9 +212,9 @@ tasks:
       - 4 files updated with latest build
       - Ready for functional testing in Zotero
 
-# ============================================================================
-# PENDING TASKS (Next Phase)
-# ============================================================================
+  # ============================================================================
+  # PENDING TASKS (Next Phase)
+  # ============================================================================
   TASK-009:
     id: TASK-009
     epic: EPIC-001
@@ -353,10 +353,10 @@ workflow:
 # NEXT STEPS
 # ============================================================================
 next_steps:
-  1. "Complete TASK-009: Functional testing in Zotero (CRITICAL)"
-  2. "If all tests pass in Zotero, merge to main branch"
-  3. "Create GitHub release with traffic monitoring feature"
-  4. "Monitor production deployment for any issues"
+  - "Complete TASK-009: Functional testing in Zotero (CRITICAL)"
+  - "If all tests pass in Zotero, merge to main branch"
+  - "Create GitHub release with traffic monitoring feature"
+  - "Monitor production deployment for any issues"
 
 # ============================================================================
 # NOTES & DECISIONS

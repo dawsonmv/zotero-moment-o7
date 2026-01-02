@@ -41,6 +41,7 @@ Product as Code treats product management, planning, and tracking as first-class
 ```
 
 Or manually:
+
 ```bash
 cp .pac/templates/epic-template.yaml .pac/epics/epic-feature-name.yaml
 # Edit the file with your epic details
@@ -54,6 +55,7 @@ cp .pac/templates/epic-template.yaml .pac/epics/epic-feature-name.yaml
 ```
 
 Or manually:
+
 ```bash
 cp .pac/templates/ticket-template.yaml .pac/tickets/ticket-feature-detail.yaml
 # Edit the file with your ticket details
@@ -63,6 +65,7 @@ cp .pac/templates/ticket-template.yaml .pac/tickets/ticket-feature-detail.yaml
 ### 3. Update Ticket Status
 
 Edit the `status` field in the ticket YAML file:
+
 - `backlog` - Not yet ready to work on
 - `ready` - Ready for development
 - `in_progress` - Currently being worked on
@@ -74,6 +77,7 @@ Edit the `status` field in the ticket YAML file:
 ### 4. Validate PAC Files
 
 Run validation to check syntax and consistency:
+
 ```bash
 .pac/scripts/validate.sh
 ```
@@ -101,11 +105,13 @@ spec:
 ## Naming Conventions
 
 ### Epic IDs
+
 - Format: `EPIC-{slug}`
 - Example: `EPIC-archive-service-reliability`
 - Pattern: lowercase letters, numbers, and hyphens
 
 ### Ticket IDs
+
 - Format: `TICKET-{slug}`
 - Example: `TICKET-implement-circuit-breaker`
 - Pattern: lowercase letters, numbers, and hyphens
@@ -253,6 +259,7 @@ Run validation in CI pipeline:
 ### Validation fails with "yq not found"
 
 Install yq for full YAML validation:
+
 ```bash
 # macOS
 brew install yq

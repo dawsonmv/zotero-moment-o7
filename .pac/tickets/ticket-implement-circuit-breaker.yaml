@@ -39,34 +39,11 @@ spec:
     - "[ ] Zero regression in existing tests"
 
   implementation_details:
-    approach: |
-      Create a generic CircuitBreaker<T> class with state machine logic:
-
-      1. CLOSED state (normal operation):
-         - Track consecutive failures
-         - When failures >= threshold, transition to OPEN
-         - Reset failure count on success
-
-      2. OPEN state (circuit open, reject calls):
-         - Reject all requests with CircuitBreakerError
-         - After timeout, transition to HALF_OPEN
-
-      3. HALF_OPEN state (testing recovery):
-         - Allow limited requests to test if service recovered
-         - If success count >= threshold, return to CLOSED
-         - On any failure, return to OPEN with full timeout
-
-      Configuration options:
-      - failureThreshold: Failures before opening (default: 5)
-      - successThreshold: Successes in HALF_OPEN before closing (default: 2)
-      - timeout: Milliseconds before HALF_OPEN (default: 60000)
-      - resetTimeout: Time window for counting failures (default: 120000)
-
+    approach: "Create a generic CircuitBreaker<T> class with state machine logic: 1. CLOSED state (normal operation): Track consecutive failures, When failures >= threshold transition to OPEN, Reset failure count on success. 2. OPEN state (circuit open, reject calls): Reject all requests with CircuitBreakerError, After timeout transition to HALF_OPEN. 3. HALF_OPEN state (testing recovery): Allow limited requests to test if service recovered, If success count >= threshold return to CLOSED, On any failure return to OPEN with full timeout. Configuration options: failureThreshold (default 5), successThreshold (default 2), timeout (default 60000), resetTimeout (default 120000)"
     affected_files:
-      - "src/utils/CircuitBreaker.ts" (NEW - core implementation)
-      - "tests/utils/CircuitBreaker.test.ts" (NEW - unit tests)
-      - "src/types/index.ts" (UPDATE - export CircuitBreakerError)
-
+      - "src/utils/CircuitBreaker.ts (NEW - core implementation)"
+      - "tests/utils/CircuitBreaker.test.ts (NEW - unit tests)"
+      - "src/types/index.ts (UPDATE - export CircuitBreakerError)"
     dependencies:
       - library: "TypeScript"
         version: "^5.9"

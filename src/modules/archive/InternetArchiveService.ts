@@ -384,7 +384,8 @@ export class InternetArchiveService extends BaseArchiveService {
       ) {
         return {
           success: false,
-          message: "Invalid credential format (alphanumeric, dashes, underscores only)",
+          message:
+            "Invalid credential format (alphanumeric, dashes, underscores only)",
         };
       }
 

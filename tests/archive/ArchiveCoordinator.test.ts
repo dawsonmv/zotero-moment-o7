@@ -41,9 +41,15 @@ describe("ArchiveCoordinator", function () {
     });
 
     // Mock PreferencesManager
-    jest.spyOn(PreferencesManager, "shouldCheckBeforeArchive").mockReturnValue(false);
-    jest.spyOn(PreferencesManager, "shouldSkipExistingMementos").mockReturnValue(true);
-    jest.spyOn(PreferencesManager, "getArchiveAgeThresholdMs").mockReturnValue(30 * 24 * 60 * 60 * 1000); // 30 days
+    jest
+      .spyOn(PreferencesManager, "shouldCheckBeforeArchive")
+      .mockReturnValue(false);
+    jest
+      .spyOn(PreferencesManager, "shouldSkipExistingMementos")
+      .mockReturnValue(true);
+    jest
+      .spyOn(PreferencesManager, "getArchiveAgeThresholdMs")
+      .mockReturnValue(30 * 24 * 60 * 60 * 1000); // 30 days
 
     coordinator = ArchiveCoordinator.getInstance();
 
@@ -455,7 +461,9 @@ describe("ArchiveCoordinator", function () {
       mockRegistry.get.mockReturnValue(mockService as any);
 
       // Enable memento checking
-      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
+      (
+        PreferencesManager.shouldCheckBeforeArchive as jest.Mock
+      ).mockReturnValue(true);
 
       // Mock stored mementos found
       const mockMemento = {
@@ -463,9 +471,14 @@ describe("ArchiveCoordinator", function () {
         service: "internetarchive",
         datetime: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
       };
-      (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([mockMemento]);
+      (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([
+        mockMemento,
+      ]);
 
-      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+      const results = await coordinator.archiveItems(
+        [mockItem],
+        "internetarchive",
+      );
 
       // Should return existing memento result, not archive
       expect(results[0].success).toBe(true);
@@ -489,8 +502,12 @@ describe("ArchiveCoordinator", function () {
       mockRegistry.get.mockReturnValue(mockService as any);
 
       // Enable memento checking and auto-skip
-      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
-      (PreferencesManager.shouldSkipExistingMementos as jest.Mock).mockReturnValue(true);
+      (
+        PreferencesManager.shouldCheckBeforeArchive as jest.Mock
+      ).mockReturnValue(true);
+      (
+        PreferencesManager.shouldSkipExistingMementos as jest.Mock
+      ).mockReturnValue(true);
 
       // Mock no stored mementos but remote mementos found
       (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([]);
@@ -504,7 +521,10 @@ describe("ArchiveCoordinator", function () {
         mementos: [mockRemoteMemento],
       });
 
-      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+      const results = await coordinator.archiveItems(
+        [mockItem],
+        "internetarchive",
+      );
 
       // Should use remote memento
       expect(results[0].success).toBe(true);
@@ -528,8 +548,12 @@ describe("ArchiveCoordinator", function () {
       mockRegistry.get.mockReturnValue(mockService as any);
 
       // Enable memento checking but disable auto-skip
-      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
-      (PreferencesManager.shouldSkipExistingMementos as jest.Mock).mockReturnValue(false);
+      (
+        PreferencesManager.shouldCheckBeforeArchive as jest.Mock
+      ).mockReturnValue(true);
+      (
+        PreferencesManager.shouldSkipExistingMementos as jest.Mock
+      ).mockReturnValue(false);
 
       // Mock remote mementos found
       (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([]);
@@ -543,7 +567,10 @@ describe("ArchiveCoordinator", function () {
         mementos: [mockRemoteMemento],
       });
 
-      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+      const results = await coordinator.archiveItems(
+        [mockItem],
+        "internetarchive",
+      );
 
       // Should return existing archive info with message
       expect(results[0].success).toBe(true);
@@ -568,7 +595,9 @@ describe("ArchiveCoordinator", function () {
       mockRegistry.get.mockReturnValue(mockService as any);
 
       // Enable memento checking
-      (PreferencesManager.shouldCheckBeforeArchive as jest.Mock).mockReturnValue(true);
+      (
+        PreferencesManager.shouldCheckBeforeArchive as jest.Mock
+      ).mockReturnValue(true);
 
       // Mock memento check to fail
       (MementoChecker.findExistingMementos as jest.Mock).mockReturnValue([]);
@@ -576,7 +605,10 @@ describe("ArchiveCoordinator", function () {
         new Error("Network error checking mementos"),
       );
 
-      const results = await coordinator.archiveItems([mockItem], "internetarchive");
+      const results = await coordinator.archiveItems(
+        [mockItem],
+        "internetarchive",
+      );
 
       // Should proceed with archiving despite memento check failure
       expect(results[0].success).toBe(true);
@@ -615,7 +647,11 @@ describe("ArchiveCoordinator", function () {
         name: "Archive.today",
         id: "archivetoday",
         archive: jest.fn().mockResolvedValue([
-          { item: mockItem, success: true, archivedUrl: "https://archive.today/abc" },
+          {
+            item: mockItem,
+            success: true,
+            archivedUrl: "https://archive.today/abc",
+          },
         ]),
       };
 

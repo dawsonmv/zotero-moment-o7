@@ -31,9 +31,13 @@ export class ZoteroItemHandler {
     const doi = typeof doiField === "string" ? doiField : undefined;
 
     const titleField = item.getField("title");
-    const title = (typeof titleField === "string" && titleField) ? titleField : url;
+    const title =
+      typeof titleField === "string" && titleField ? titleField : url;
 
-    const tags = typeof item.getTags === "function" ? item.getTags().map((t) => t.tag) : [];
+    const tags =
+      typeof item.getTags === "function"
+        ? item.getTags().map((t) => t.tag)
+        : [];
 
     return {
       url: doi ? `https://doi.org/${doi}` : url,

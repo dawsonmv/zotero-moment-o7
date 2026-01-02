@@ -45,7 +45,9 @@ describe("PreferencesPanel", function () {
         document.body.removeChild(container);
       }
 
-      await expect(panel.initialize()).rejects.toThrow("Preferences container not found");
+      await expect(panel.initialize()).rejects.toThrow(
+        "Preferences container not found",
+      );
     });
   });
 
@@ -53,15 +55,23 @@ describe("PreferencesPanel", function () {
     it("should render all preference sections", async function () {
       await panel.initialize();
 
-      expect(container.querySelector(".momento7-services-section")).toBeTruthy();
-      expect(container.querySelector(".momento7-credentials-section")).toBeTruthy();
-      expect(container.querySelector(".momento7-preferences-section")).toBeTruthy();
+      expect(
+        container.querySelector(".momento7-services-section"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".momento7-credentials-section"),
+      ).toBeTruthy();
+      expect(
+        container.querySelector(".momento7-preferences-section"),
+      ).toBeTruthy();
     });
 
     it("should render save and cancel buttons", async function () {
       await panel.initialize();
 
-      const buttons = container.querySelectorAll(".momento7-action-buttons button");
+      const buttons = container.querySelectorAll(
+        ".momento7-action-buttons button",
+      );
       expect(buttons.length).toBe(2);
     });
   });
@@ -121,7 +131,9 @@ describe("ServiceConfigSection", function () {
     it("should render services section", async function () {
       await section.render(container);
 
-      expect(container.querySelector(".momento7-services-section")).toBeTruthy();
+      expect(
+        container.querySelector(".momento7-services-section"),
+      ).toBeTruthy();
     });
 
     it("should display section title and description", async function () {
@@ -189,7 +201,9 @@ describe("CredentialsSection", function () {
     it("should render credentials section", async function () {
       await section.render(container);
 
-      expect(container.querySelector(".momento7-credentials-section")).toBeTruthy();
+      expect(
+        container.querySelector(".momento7-credentials-section"),
+      ).toBeTruthy();
     });
 
     it("should display credential forms", async function () {
@@ -238,7 +252,9 @@ describe("PreferencesSection", function () {
     it("should render preferences section", async function () {
       await section.render(container);
 
-      expect(container.querySelector(".momento7-preferences-section")).toBeTruthy();
+      expect(
+        container.querySelector(".momento7-preferences-section"),
+      ).toBeTruthy();
     });
 
     it("should display preference form", async function () {

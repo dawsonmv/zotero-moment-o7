@@ -41,27 +41,33 @@ Generated: 2026-01-01
 ## Files Created
 
 ### Configuration
+
 - `.pac/pac.config.yaml` - Main PAC configuration with defaults and validation rules
 
 ### Documentation
+
 - `.pac/README.md` - Overview and quick start guide
 - `.pac/GUIDE.md` - Comprehensive workflow guide with examples
 - `.pac/SETUP_SUMMARY.md` - This file
 
 ### Templates
+
 - `.pac/templates/epic-template.yaml` - Template for creating new epics
 - `.pac/templates/ticket-template.yaml` - Template for creating new tickets
 
 ### Scripts
+
 - `.pac/scripts/validate.sh` - Validates PAC files (YAML syntax, unique IDs, relationships)
 - `.pac/scripts/new-epic.sh` - Interactive helper for creating new epics
 - `.pac/scripts/new-ticket.sh` - Interactive helper for creating new tickets
 
 ### Example Epic & Ticket
+
 - `.pac/epics/epic-archive-resilience.yaml` - Example epic: "Archive Service Resilience and Observability"
 - `.pac/tickets/ticket-implement-circuit-breaker.yaml` - Example ticket linked to the epic
 
 ### Git Integration
+
 - Updated `.gitignore` with PAC-specific entries
 
 ## Quick Start
@@ -95,12 +101,15 @@ Generated: 2026-01-01
 ### Update Ticket Status
 
 Edit the `status` field in ticket YAML files:
+
 - `backlog` → `ready` → `in_progress` → `review` → `testing` → `done`
 
 ## Key Concepts
 
 ### Epics
+
 Large strategic initiatives representing 2-8 weeks of work. Key sections:
+
 - Description and goals
 - Scope (in/out)
 - Success criteria
@@ -110,7 +119,9 @@ Large strategic initiatives representing 2-8 weeks of work. Key sections:
 **Example**: `EPIC-archive-resilience` - Implement circuit breaker patterns and monitoring
 
 ### Tickets
+
 Implementation tasks representing 1-3 days of work. Key sections:
+
 - Description and problem statement
 - Acceptance criteria (checkboxes)
 - Implementation approach
@@ -130,16 +141,19 @@ Implementation tasks representing 1-3 days of work. Key sections:
    - Detailed guide: `.pac/GUIDE.md`
 
 3. **Create your first epic** (if not using the example)
+
    ```bash
    .pac/scripts/new-epic.sh
    ```
 
 4. **Create related tickets** for the epic
+
    ```bash
    .pac/scripts/new-ticket.sh
    ```
 
 5. **Validate before committing**
+
    ```bash
    .pac/scripts/validate.sh
    ```
@@ -165,6 +179,7 @@ Implementation tasks representing 1-3 days of work. Key sections:
 ### Edit Default Assignee
 
 Update `.pac/pac.config.yaml`:
+
 ```yaml
 spec:
   defaults:
@@ -174,6 +189,7 @@ spec:
 ### Change Naming Convention
 
 Update `.pac/pac.config.yaml`:
+
 ```yaml
 spec:
   epic_prefix: "FEAT-"
@@ -183,6 +199,7 @@ spec:
 ### Adjust Validation Rules
 
 Update `.pac/pac.config.yaml`:
+
 ```yaml
 spec:
   validation:
@@ -202,17 +219,20 @@ spec:
 ## Troubleshooting
 
 ### Validation fails
+
 - Check YAML syntax: `.pac/scripts/validate.sh`
 - Install `yq` for full validation: `brew install yq`
 - Check for duplicate IDs across all files
 - Verify epic IDs referenced in tickets exist
 
 ### Helper scripts don't work
+
 - Make scripts executable: `chmod +x .pac/scripts/*.sh`
 - Use full path if running from different directory
 - Check bash version (should be 4.0+)
 
 ### Issues creating files
+
 - Ensure `.pac/epics/` and `.pac/tickets/` directories exist
 - Check file permissions: `ls -la .pac/`
 - Verify disk space available
@@ -227,6 +247,7 @@ spec:
 ## Changelog
 
 ### 2026-01-01 - Initial Setup
+
 - Created PAC configuration structure
 - Generated templates for epics and tickets
 - Created validation and helper scripts

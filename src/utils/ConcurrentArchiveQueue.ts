@@ -125,7 +125,9 @@ export class ConcurrentArchiveQueue {
 
         // Handle failed promise by removing it
         if (failedEntryId) {
-          const failedIndex = activePromises.findIndex((e) => e.id === failedEntryId);
+          const failedIndex = activePromises.findIndex(
+            (e) => e.id === failedEntryId,
+          );
           if (failedIndex >= 0) {
             activePromises.splice(failedIndex, 1);
             this.activeCount = Math.max(0, this.activeCount - 1);
@@ -166,19 +168,23 @@ export class ConcurrentArchiveQueue {
       this.closeProgressWindow(completedResults.size, items.length);
 
       // Return results in original item order
-      return items.map((item) => completedResults.get(this.getItemKey(item)) || {
-        item,
-        success: false,
-        error: "Item was not processed",
-      });
-    } catch (error) {
-      Zotero.debug(
-        `MomentO7 Queue: Fatal error during processing: ${error}`,
+      return items.map(
+        (item) =>
+          completedResults.get(this.getItemKey(item)) || {
+            item,
+            success: false,
+            error: "Item was not processed",
+          },
       );
+    } catch (error) {
+      Zotero.debug(`MomentO7 Queue: Fatal error during processing: ${error}`);
       // Ensure progress window closes even on error
       try {
         this.closeProgressWindow(0, items.length);
-      } catch {}
+      } catch (e) {
+        // Ignore errors during cleanup
+        Zotero.debug(`MomentO7 Queue: Error closing progress window: ${e}`);
+      }
       throw error;
     }
   }
@@ -229,7 +235,8 @@ export class ConcurrentArchiveQueue {
     } catch (error) {
       // Update status to failed
       itemProgress.status = "failed";
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       itemProgress.error = errorMessage;
 
       this.updateItemLine(
@@ -283,8 +290,7 @@ export class ConcurrentArchiveQueue {
     }
 
     const itemTitle = itemProgress.item.getField("title") || "Untitled";
-    const icon =
-      type === "success" ? "✓" : type === "fail" ? "✗" : "⏳";
+    const icon = type === "success" ? "✓" : type === "fail" ? "✗" : "⏳";
     const prefix = icon;
 
     this.progressWindow.addDescription(
@@ -295,15 +301,13 @@ export class ConcurrentArchiveQueue {
   /**
    * Update headline with progress and traffic summary
    */
-  private updateHeadline(
-    completedCount: number,
-    totalCount: number,
-  ): void {
+  private updateHeadline(completedCount: number, totalCount: number): void {
     if (!this.progressWindow) {
       return;
     }
 
-    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+    const percentage =
+      totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
     const trafficSummary = this.trafficMonitor.getTrafficSummary();
 
     let headline = `Archiving (${completedCount}/${totalCount} - ${percentage}%)`;
@@ -329,7 +333,8 @@ export class ConcurrentArchiveQueue {
       (p) => p.result?.success,
     ).length;
     const failCount = completedCount - successCount;
-    const percentage = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 0;
+    const percentage =
+      totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 0;
 
     this.progressWindow.changeHeadline(
       `Complete: ${successCount} archived, ${failCount} failed (${percentage}%)`,

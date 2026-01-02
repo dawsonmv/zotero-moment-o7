@@ -285,7 +285,8 @@ describe("ArchiveTodayService", function () {
       (Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
         status: 200,
         responseText: JSON.stringify({
-          archivedUrl: "https://archive.today/20231215T120000Z/https://example.com",
+          archivedUrl:
+            "https://archive.today/20231215T120000Z/https://example.com",
         }),
       });
 
@@ -302,7 +303,7 @@ describe("ArchiveTodayService", function () {
           headers: {
             "Content-Type": "application/json",
           },
-        })
+        }),
       );
     });
 
@@ -336,7 +337,7 @@ describe("ArchiveTodayService", function () {
 
     it("should handle connection errors to proxy", async function () {
       (Zotero.HTTP.request as jest.Mock).mockRejectedValueOnce(
-        new Error("Connection refused")
+        new Error("Connection refused"),
       );
 
       const result = await ArchiveTodayService.testCredentials({

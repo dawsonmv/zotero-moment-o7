@@ -449,7 +449,7 @@ describe("PermaCCService", function () {
           headers: {
             Authorization: "ApiKey valid-api-key",
           },
-        })
+        }),
       );
     });
 
@@ -487,7 +487,7 @@ describe("PermaCCService", function () {
 
     it("should handle connection errors", async function () {
       (Zotero.HTTP.request as jest.Mock).mockRejectedValueOnce(
-        new Error("Network timeout")
+        new Error("Network timeout"),
       );
 
       const result = await PermaCCService.testCredentials({

@@ -9,10 +9,7 @@ const basicTool = new BasicTool();
 if (typeof _globalThis.onunhandledrejection === "undefined") {
   _globalThis.onunhandledrejection = (event: PromiseRejectionEvent) => {
     const error = event.reason || "Unknown error";
-    console.error(
-      `[${config.addonName}] Unhandled promise rejection:`,
-      error,
-    );
+    console.error(`[${config.addonName}] Unhandled promise rejection:`, error);
     // Don't prevent default - let Zotero's error handler also log it
   };
 }

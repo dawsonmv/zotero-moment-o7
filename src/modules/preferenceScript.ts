@@ -91,7 +91,9 @@ async function initPreferencesPanelUI(_window: Window): Promise<void> {
 /**
  * Handle preferences save
  */
-async function onPreferencesSave(changes: Record<string, unknown>): Promise<void> {
+async function onPreferencesSave(
+  changes: Record<string, unknown>,
+): Promise<void> {
   try {
     const prefsManager = PreferencesManager.getInstance();
 

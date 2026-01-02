@@ -14,6 +14,7 @@
 **Critical Gate:** This is the final gate before merge to main and production release.
 
 **Success Criteria:**
+
 - ✅ All 5 critical phases pass (1, 2, 9, 10, 12)
 - ✅ Zero crashes or unhandled promise rejections
 - ✅ Data integrity verified
@@ -24,14 +25,18 @@
 ## 📂 Testing Documentation
 
 ### Quick Start
+
 **Read First:** `TESTING-QUICK-START.md`
+
 - TL;DR overview
 - Step-by-step installation
 - Phase summary table
 - 15-minute quick test option
 
 ### Detailed Checklist
+
 **During Testing:** `FUNCTIONAL-TEST-CHECKLIST.md`
+
 - Complete 12-phase breakdown
 - Pass criteria for each phase
 - Debug tips and error patterns
@@ -39,7 +44,9 @@
 - Final results summary
 
 ### Quick Reference
+
 **While Testing:** `FUNCTIONAL-TEST-QUICK-REFERENCE.md`
+
 - 5-minute summaries per phase
 - Critical success indicators
 - Debug console commands
@@ -50,6 +57,7 @@
 ## 🚀 Getting Started
 
 ### Step 1: Prepare
+
 ```bash
 # Verify XPI is built
 ls -lh .scaffold/build/moment-o-7.xpi
@@ -58,6 +66,7 @@ ls -lh .scaffold/build/moment-o-7.xpi
 ```
 
 ### Step 2: Install
+
 ```bash
 # Open Zotero
 open /Applications/Zotero.app
@@ -69,6 +78,7 @@ open /Applications/Zotero.app
 ```
 
 ### Step 3: Test
+
 ```bash
 # Open FUNCTIONAL-TEST-CHECKLIST.md
 # Follow 12 phases
@@ -80,40 +90,45 @@ open /Applications/Zotero.app
 ## 📊 Testing Phases Overview
 
 ### Critical Phases (MUST PASS)
-| Phase | Name | Time | Focus |
-|-------|------|------|-------|
-| 1 | Plugin Loads | 5min | UI visible, no errors |
-| 2 | Single Archiving | 15min | Basic functionality works |
-| 9 | Error Handling | 10min | **NO crashes, clear errors** |
-| 10 | Performance | 15min | 50+ items, responsive |
-| 12 | Stability | 15min | Multiple batches, **ZERO promise errors** |
+
+| Phase | Name             | Time  | Focus                                     |
+| ----- | ---------------- | ----- | ----------------------------------------- |
+| 1     | Plugin Loads     | 5min  | UI visible, no errors                     |
+| 2     | Single Archiving | 15min | Basic functionality works                 |
+| 9     | Error Handling   | 10min | **NO crashes, clear errors**              |
+| 10    | Performance      | 15min | 50+ items, responsive                     |
+| 12    | Stability        | 15min | Multiple batches, **ZERO promise errors** |
 
 ### High Priority Phases (SHOULD PASS)
-| Phase | Name | Time |
-|-------|------|------|
-| 3 | Concurrent Batch | 10min |
-| 4 | Traffic Monitoring | 10min |
-| 5 | Service Jamming | 10min |
-| 6 | Fallback Chain | 10min |
+
+| Phase | Name               | Time  |
+| ----- | ------------------ | ----- |
+| 3     | Concurrent Batch   | 10min |
+| 4     | Traffic Monitoring | 10min |
+| 5     | Service Jamming    | 10min |
+| 6     | Fallback Chain     | 10min |
 
 ### Standard Phases (NICE TO HAVE)
-| Phase | Name | Time |
-|-------|------|------|
-| 7 | Robust Links | 10min |
-| 8 | Preferences | 10min |
-| 11 | Data Integrity | 10min |
+
+| Phase | Name           | Time  |
+| ----- | -------------- | ----- |
+| 7     | Robust Links   | 10min |
+| 8     | Preferences    | 10min |
+| 11    | Data Integrity | 10min |
 
 ---
 
 ## 🎯 What to Watch For
 
 ### Phase 1: Plugin Loads
+
 - ✅ Tools menu shows "Archive with Momento7"
 - ✅ Right-click context menu visible
 - ✅ Preferences dialog opens
 - ❌ NO console errors on startup
 
 ### Phase 2: Single Archiving
+
 - ✅ Archive single item succeeds
 - ✅ Archive URL saved to metadata
 - ✅ Extra field updated
@@ -121,7 +136,9 @@ open /Applications/Zotero.app
 - ❌ NO type errors or crashes
 
 ### Phase 9: Error Handling 🔴 CRITICAL
+
 **Look for in Debug Console:**
+
 ```
 ❌ MUST NOT see:
   "Uncaught (in promise) undefined"
@@ -135,6 +152,7 @@ open /Applications/Zotero.app
 ```
 
 ### Phase 10: Performance 🔴 CRITICAL
+
 ```
 ✅ 50 items should:
   - Complete successfully
@@ -150,6 +168,7 @@ open /Applications/Zotero.app
 ```
 
 ### Phase 12: Stability 🔴 CRITICAL
+
 ```
 ✅ Multiple batches should:
   - All complete successfully
@@ -167,17 +186,20 @@ open /Applications/Zotero.app
 ## 🔍 Debug Console Quick Commands
 
 **Open it:**
+
 ```
 Help → Debug Output Logging
 ```
 
 **Monitor in real-time:**
+
 - Watch for `[Moment-o7]` messages
 - Search for `Uncaught` (should find 0)
 - Search for `TypeError` (should find 0)
 - Search for `promise` (only "promise" parts of normal names OK)
 
 **Critical Patterns:**
+
 ```
 FAIL: "Uncaught (in promise) undefined"
 FAIL: "Uncaught promise rejection:"
@@ -227,6 +249,7 @@ Complete Test (with retesting):     2-3 hours
 ## ✅ Success Checklist
 
 **Before Declaring Complete:**
+
 - [ ] Phase 1 PASS: Plugin loads
 - [ ] Phase 2 PASS: Single archiving works
 - [ ] Phase 9 PASS: No crashes, clear errors
@@ -253,6 +276,7 @@ run-functional-tests.sh             ← Helper script
 ## 🚨 If Critical Failures Found
 
 **Don't continue testing. Stop and:**
+
 1. Document the exact issue
 2. Copy error message/stack trace
 3. Note reproduction steps
@@ -260,6 +284,7 @@ run-functional-tests.sh             ← Helper script
 5. Return to code for fixing
 
 **Critical failures = Blocking issues:**
+
 - Phase 1: Plugin won't load
 - Phase 2: Archiving broken
 - Phase 9: Crash/unhandled error
@@ -271,6 +296,7 @@ run-functional-tests.sh             ← Helper script
 ## 🎉 Next Steps After Testing
 
 ### If All Tests Pass ✅
+
 1. Complete `FUNCTIONAL-TEST-CHECKLIST.md`
 2. Create GitHub issue: "TASK-009: Functional Testing Complete"
 3. Merge `feature/archive-service-config-ui` to `main`
@@ -278,6 +304,7 @@ run-functional-tests.sh             ← Helper script
 5. Deploy to production
 
 ### If Issues Found ❌
+
 1. Document each issue in checklist
 2. Create GitHub issues for blocking items
 3. Return to development
@@ -289,15 +316,19 @@ run-functional-tests.sh             ← Helper script
 ## 📞 Resources
 
 **Zotero Documentation:**
+
 - https://www.zotero.org/support/
 
 **Plugin Installation Help:**
+
 - https://www.zotero.org/support/plugins
 
 **Debug Console Guide:**
+
 - In Zotero: Help → Debug Output Logging
 
 **This Project:**
+
 - Repository: https://github.com/[user]/zotero-momento7-new
 - Issue Tracker: Same repo
 
@@ -309,6 +340,7 @@ run-functional-tests.sh             ← Helper script
 **Tester:** [NAME]
 
 ### Progress
+
 - [ ] Setup complete
 - [ ] Plugin installed
 - [ ] Phase 1 tested

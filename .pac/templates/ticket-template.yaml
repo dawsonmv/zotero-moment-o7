@@ -7,9 +7,9 @@ metadata:
   created: "[YYYY-MM-DDTHH:mm:ssZ]"
   updated: "[YYYY-MM-DDTHH:mm:ssZ]"
   assignee: "Dawson Valdes"
-  type: "feature"  # feature|bug|enhancement|refactor|docs|test
-  status: "backlog"  # backlog|ready|in_progress|review|testing|done|blocked
-  priority: "medium"  # critical|high|medium|low
+  type: "feature" # feature|bug|enhancement|refactor|docs|test
+  status: "backlog" # backlog|ready|in_progress|review|testing|done|blocked
+  priority: "medium" # critical|high|medium|low
 
 spec:
   description: |

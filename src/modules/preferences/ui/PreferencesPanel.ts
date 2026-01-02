@@ -48,8 +48,11 @@ export class PreferencesPanel {
   private healthChecker: HealthChecker;
   private isDirty: boolean = false;
   private saveButton: HTMLButtonElement | null = null;
-  private listeners: Array<{ section: any; event: string; handler: Function }> = [];
-  private onSaveCallback: ((changes: Record<string, unknown>) => Promise<void>) | null = null;
+  private listeners: Array<{ section: any; event: string; handler: Function }> =
+    [];
+  private onSaveCallback:
+    | ((changes: Record<string, unknown>) => Promise<void>)
+    | null = null;
   private onCloseCallback: (() => void) | null = null;
   private isInitialized: boolean = false;
 
@@ -81,9 +84,13 @@ export class PreferencesPanel {
 
     // Use provided container or try to find one
     if (!this.container) {
-      this.container = document.getElementById("momento7-preferences-panel-container") as HTMLElement | null;
+      this.container = document.getElementById(
+        "momento7-preferences-panel-container",
+      ) as HTMLElement | null;
       if (!this.container) {
-        this.container = document.getElementById("momento7-preferences") as HTMLElement | null;
+        this.container = document.getElementById(
+          "momento7-preferences",
+        ) as HTMLElement | null;
       }
     }
 
@@ -102,7 +109,9 @@ export class PreferencesPanel {
       try {
         await this.serviceSection.refreshHealthStatus();
       } catch (error) {
-        Zotero.debug(`Momento7: Failed to refresh health status on panel open: ${error}`);
+        Zotero.debug(
+          `Momento7: Failed to refresh health status on panel open: ${error}`,
+        );
       }
     }
 
@@ -161,7 +170,11 @@ export class PreferencesPanel {
    * Bind event handlers for preference changes
    */
   private bindEventHandlers(): void {
-    if (!this.serviceSection || !this.credentialsSection || !this.preferencesSection) {
+    if (
+      !this.serviceSection ||
+      !this.credentialsSection ||
+      !this.preferencesSection
+    ) {
       return;
     }
 
@@ -171,20 +184,32 @@ export class PreferencesPanel {
       this.markDirty();
     };
     this.serviceSection.on("serviceToggle", onServiceToggle);
-    this.listeners.push({ section: this.serviceSection, event: "serviceToggle", handler: onServiceToggle });
+    this.listeners.push({
+      section: this.serviceSection,
+      event: "serviceToggle",
+      handler: onServiceToggle,
+    });
 
     const onServiceReorder = (order: string[]) => {
       this.onServiceReorder(order);
       this.markDirty();
     };
     this.serviceSection.on("serviceReorder", onServiceReorder);
-    this.listeners.push({ section: this.serviceSection, event: "serviceReorder", handler: onServiceReorder });
+    this.listeners.push({
+      section: this.serviceSection,
+      event: "serviceReorder",
+      handler: onServiceReorder,
+    });
 
     const onTestConnection = (serviceId: string) => {
       this.onTestConnection(serviceId);
     };
     this.serviceSection.on("testConnection", onTestConnection);
-    this.listeners.push({ section: this.serviceSection, event: "testConnection", handler: onTestConnection });
+    this.listeners.push({
+      section: this.serviceSection,
+      event: "testConnection",
+      handler: onTestConnection,
+    });
 
     // Credential section events
     const onCredentialUpdate = (serviceId: string, credentials: any) => {
@@ -192,20 +217,32 @@ export class PreferencesPanel {
       this.markDirty();
     };
     this.credentialsSection.on("credentialUpdate", onCredentialUpdate);
-    this.listeners.push({ section: this.credentialsSection, event: "credentialUpdate", handler: onCredentialUpdate });
+    this.listeners.push({
+      section: this.credentialsSection,
+      event: "credentialUpdate",
+      handler: onCredentialUpdate,
+    });
 
     const onTestCredentials = (serviceId: string) => {
       this.onTestCredentials(serviceId);
     };
     this.credentialsSection.on("credentialTest", onTestCredentials);
-    this.listeners.push({ section: this.credentialsSection, event: "credentialTest", handler: onTestCredentials });
+    this.listeners.push({
+      section: this.credentialsSection,
+      event: "credentialTest",
+      handler: onTestCredentials,
+    });
 
     // Preference section events
     const onPreferenceUpdate = () => {
       this.markDirty();
     };
     this.preferencesSection.on("preferenceUpdate", onPreferenceUpdate);
-    this.listeners.push({ section: this.preferencesSection, event: "preferenceUpdate", handler: onPreferenceUpdate });
+    this.listeners.push({
+      section: this.preferencesSection,
+      event: "preferenceUpdate",
+      handler: onPreferenceUpdate,
+    });
   }
 
   /**
@@ -290,11 +327,13 @@ export class PreferencesPanel {
 
       this.credentialsSection.setTestResult(serviceId, isValid);
     } catch (error) {
-      Zotero.debug(`Momento7: Credential test failed for ${serviceId}: ${error}`);
+      Zotero.debug(
+        `Momento7: Credential test failed for ${serviceId}: ${error}`,
+      );
       this.credentialsSection.setTestResult(
         serviceId,
         false,
-        error instanceof Error ? error.message : String(error)
+        error instanceof Error ? error.message : String(error),
       );
     } finally {
       this.credentialsSection.setTestLoading(serviceId, false);
@@ -352,8 +391,11 @@ export class PreferencesPanel {
         enabledServices: this.serviceSection?.getEnabledServices() || [],
         fallbackOrder: this.serviceSection?.getServiceOrder() || [],
         timeout: this.preferencesSection?.getTimeout() || 120000,
-        checkBeforeArchive: this.preferencesSection?.getCheckBeforeArchive() || true,
-        archiveAgeThreshold: this.preferencesSection?.getArchiveAgeThreshold() || 30 * 24 * 60 * 60 * 1000,
+        checkBeforeArchive:
+          this.preferencesSection?.getCheckBeforeArchive() || true,
+        archiveAgeThreshold:
+          this.preferencesSection?.getArchiveAgeThreshold() ||
+          30 * 24 * 60 * 60 * 1000,
         autoArchive: this.preferencesSection?.getAutoArchive() || true,
       };
 
@@ -441,7 +483,10 @@ export class ServiceConfigSection {
   private eventHandlers: Map<string, Function[]> = new Map();
   private enabledServices: Set<string> = new Set();
   private serviceOrder: string[] = [];
-  private serviceStatus: Map<string, { available: boolean; checked: boolean; error?: string }> = new Map();
+  private serviceStatus: Map<
+    string,
+    { available: boolean; checked: boolean; error?: string }
+  > = new Map();
   private draggedServiceId: string | null = null;
 
   constructor(healthChecker: HealthChecker) {
@@ -493,7 +538,9 @@ export class ServiceConfigSection {
   }
 
   private async renderServiceList(): Promise<void> {
-    const listContainer = this.container?.querySelector(".momento7-services-list") as HTMLElement;
+    const listContainer = this.container?.querySelector(
+      ".momento7-services-list",
+    ) as HTMLElement;
     if (!listContainer) return;
 
     const registry = ServiceRegistry.getInstance();
@@ -538,7 +585,9 @@ export class ServiceConfigSection {
     toggle.className = "momento7-service-toggle";
     toggle.checked = isEnabled;
     toggle.setAttribute("aria-label", `Enable ${service.name}`);
-    toggle.addEventListener("change", (e: Event) => this.handleToggle(service.id, (e.target as HTMLInputElement).checked));
+    toggle.addEventListener("change", (e: Event) =>
+      this.handleToggle(service.id, (e.target as HTMLInputElement).checked),
+    );
 
     // Service info
     const info = document!.createElement("div");
@@ -554,7 +603,9 @@ export class ServiceConfigSection {
     if (health && health.status !== HealthStatus.UNKNOWN) {
       const details = document!.createElement("div");
       details.className = "momento7-service-health-details";
-      const lastCheckTime = health.lastCheck ? new Date(health.lastCheck).toLocaleTimeString() : "Never";
+      const lastCheckTime = health.lastCheck
+        ? new Date(health.lastCheck).toLocaleTimeString()
+        : "Never";
       const successPercent = (health.successRate * 100).toFixed(1);
       details.innerHTML = `
         <span class="momento7-health-metric">📊 ${successPercent}%</span>
@@ -568,11 +619,17 @@ export class ServiceConfigSection {
     const statusEl = document!.createElement("div");
     statusEl.className = "momento7-service-status";
     if (status?.checked) {
-      statusEl.classList.add(status.available ? "momento7-service-status--online" : "momento7-service-status--offline");
+      statusEl.classList.add(
+        status.available
+          ? "momento7-service-status--online"
+          : "momento7-service-status--offline",
+      );
       statusEl.innerHTML = status.available ? "✓ Online" : "⚠ Offline";
     } else if (health) {
       // Use health checker status if available
-      statusEl.classList.add(`momento7-service-status--${health.status.toLowerCase()}`);
+      statusEl.classList.add(
+        `momento7-service-status--${health.status.toLowerCase()}`,
+      );
       statusEl.textContent = health.status;
     } else {
       statusEl.classList.add("momento7-service-status--unknown");
@@ -594,7 +651,9 @@ export class ServiceConfigSection {
     testBtn.className = "momento7-btn momento7-btn-small";
     testBtn.textContent = "Test";
     testBtn.setAttribute("aria-label", `Test ${service.name} connection`);
-    testBtn.addEventListener("click", () => this.handleTestConnection(service.id));
+    testBtn.addEventListener("click", () =>
+      this.handleTestConnection(service.id),
+    );
 
     actions.appendChild(dragHandle);
     actions.appendChild(testBtn);
@@ -606,9 +665,15 @@ export class ServiceConfigSection {
     item.appendChild(actions);
 
     // Add drag event listeners
-    item.addEventListener("dragstart", (e) => this.handleDragStart(e as DragEvent, service.id));
-    item.addEventListener("dragover", (e) => this.handleDragOver(e as DragEvent));
-    item.addEventListener("drop", (e) => this.handleDrop(e as DragEvent, service.id));
+    item.addEventListener("dragstart", (e) =>
+      this.handleDragStart(e as DragEvent, service.id),
+    );
+    item.addEventListener("dragover", (e) =>
+      this.handleDragOver(e as DragEvent),
+    );
+    item.addEventListener("drop", (e) =>
+      this.handleDrop(e as DragEvent, service.id),
+    );
     item.addEventListener("dragend", (e) => this.handleDragEnd(e as DragEvent));
 
     // Store status element reference for updates
@@ -657,7 +722,9 @@ export class ServiceConfigSection {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
 
-    const items: Element[] = Array.from(this.container?.querySelectorAll(".momento7-service-item") || []);
+    const items: Element[] = Array.from(
+      this.container?.querySelectorAll(".momento7-service-item") || [],
+    );
     const afterElement = this.getDragAfterElement(e.clientY, items);
 
     const draggingItem = this.services.get(this.draggedServiceId || "");
@@ -666,7 +733,9 @@ export class ServiceConfigSection {
     if (afterElement) {
       afterElement.parentNode?.insertBefore(draggingItem, afterElement);
     } else {
-      this.container?.querySelector(".momento7-services-list")?.appendChild(draggingItem);
+      this.container
+        ?.querySelector(".momento7-services-list")
+        ?.appendChild(draggingItem);
     }
   }
 
@@ -682,9 +751,13 @@ export class ServiceConfigSection {
     }
 
     // Update service order
-    const listContainer = this.container?.querySelector(".momento7-services-list");
+    const listContainer = this.container?.querySelector(
+      ".momento7-services-list",
+    );
     if (listContainer) {
-      const items = Array.from(listContainer.querySelectorAll(".momento7-service-item"));
+      const items = Array.from(
+        listContainer.querySelectorAll(".momento7-service-item"),
+      );
       this.serviceOrder = items
         .map((item) => (item as HTMLElement).dataset.serviceId)
         .filter((id): id is string => !!id);
@@ -712,7 +785,8 @@ export class ServiceConfigSection {
     if (!statusEl) return;
 
     if (loading) {
-      statusEl.className = "momento7-service-status momento7-service-status--testing";
+      statusEl.className =
+        "momento7-service-status momento7-service-status--testing";
       statusEl.innerHTML = '<span class="momento7-spinner"></span> Testing...';
     }
   }
@@ -769,7 +843,9 @@ export class ServiceConfigSection {
       for (const health of allHealth) {
         // Update service status map
         this.serviceStatus.set(health.serviceId, {
-          available: health.status === HealthStatus.HEALTHY || health.status === HealthStatus.DEGRADED,
+          available:
+            health.status === HealthStatus.HEALTHY ||
+            health.status === HealthStatus.DEGRADED,
           checked: true,
           error: health.message,
         });
@@ -784,10 +860,14 @@ export class ServiceConfigSection {
 
             // Update health details if available
             const infoEl = item.querySelector(".momento7-service-info");
-            const detailsEl = infoEl?.querySelector(".momento7-service-health-details");
+            const detailsEl = infoEl?.querySelector(
+              ".momento7-service-health-details",
+            );
 
             if (detailsEl) {
-              const lastCheckTime = health.lastCheck ? new Date(health.lastCheck).toLocaleTimeString() : "Never";
+              const lastCheckTime = health.lastCheck
+                ? new Date(health.lastCheck).toLocaleTimeString()
+                : "Never";
               const successPercent = (health.successRate * 100).toFixed(1);
               detailsEl.innerHTML = `
                 <span class="momento7-health-metric">📊 ${successPercent}%</span>
@@ -858,7 +938,9 @@ export class CredentialsSection {
   }
 
   private async renderCredentialForms(): Promise<void> {
-    const formContainer = this.container?.querySelector(".momento7-credentials-form") as HTMLElement;
+    const formContainer = this.container?.querySelector(
+      ".momento7-credentials-form",
+    ) as HTMLElement;
     if (!formContainer) return;
 
     // Internet Archive credentials
@@ -871,7 +953,9 @@ export class CredentialsSection {
     await this.renderArchiveTodayForm(formContainer);
   }
 
-  private async renderInternetArchiveForm(container: HTMLElement): Promise<void> {
+  private async renderInternetArchiveForm(
+    container: HTMLElement,
+  ): Promise<void> {
     const group = document!.createElement("div");
     group.className = "momento7-credential-group";
 
@@ -896,9 +980,14 @@ export class CredentialsSection {
     this.iaAccessKeyInput.type = "password";
     this.iaAccessKeyInput.className = "momento7-credential-input";
     this.iaAccessKeyInput.placeholder = "••••••••";
-    this.iaAccessKeyInput.setAttribute("aria-label", "Internet Archive access key");
+    this.iaAccessKeyInput.setAttribute(
+      "aria-label",
+      "Internet Archive access key",
+    );
     this.iaAccessKeyInput.addEventListener("change", () => {
-      this.emit("credentialUpdate", "internetarchive", { accessKey: this.iaAccessKeyInput?.value });
+      this.emit("credentialUpdate", "internetarchive", {
+        accessKey: this.iaAccessKeyInput?.value,
+      });
     });
     accessKeyField.appendChild(this.iaAccessKeyInput);
 
@@ -917,9 +1006,14 @@ export class CredentialsSection {
     this.iaSecretKeyInput.type = "password";
     this.iaSecretKeyInput.className = "momento7-credential-input";
     this.iaSecretKeyInput.placeholder = "••••••••";
-    this.iaSecretKeyInput.setAttribute("aria-label", "Internet Archive secret key");
+    this.iaSecretKeyInput.setAttribute(
+      "aria-label",
+      "Internet Archive secret key",
+    );
     this.iaSecretKeyInput.addEventListener("change", () => {
-      this.emit("credentialUpdate", "internetarchive", { secretKey: this.iaSecretKeyInput?.value });
+      this.emit("credentialUpdate", "internetarchive", {
+        secretKey: this.iaSecretKeyInput?.value,
+      });
     });
     secretKeyField.appendChild(this.iaSecretKeyInput);
 
@@ -928,8 +1022,10 @@ export class CredentialsSection {
     group.appendChild(fields);
 
     // Check if credentials exist
-    const hasAccessKey = await this.credentialManager.hasCredential("iaAccessKey");
-    const hasSecretKey = await this.credentialManager.hasCredential("iaSecretKey");
+    const hasAccessKey =
+      await this.credentialManager.hasCredential("iaAccessKey");
+    const hasSecretKey =
+      await this.credentialManager.hasCredential("iaSecretKey");
 
     const status = document!.createElement("div");
     status.className = "momento7-credential-status";
@@ -950,14 +1046,24 @@ export class CredentialsSection {
     testBtn.className = "momento7-btn momento7-btn-small";
     testBtn.textContent = "Test";
     testBtn.setAttribute("aria-label", "Test Internet Archive credentials");
-    testBtn.addEventListener("click", () => this.handleTestCredentials("internetarchive", status));
+    testBtn.addEventListener("click", () =>
+      this.handleTestCredentials("internetarchive", status),
+    );
     actions.appendChild(testBtn);
 
     const clearBtn = document!.createElement("button");
     clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
     clearBtn.textContent = "Clear";
     clearBtn.setAttribute("aria-label", "Clear Internet Archive credentials");
-    clearBtn.addEventListener("click", () => this.handleClearCredentials("iaAccessKey", "iaSecretKey", status, this.iaAccessKeyInput, this.iaSecretKeyInput));
+    clearBtn.addEventListener("click", () =>
+      this.handleClearCredentials(
+        "iaAccessKey",
+        "iaSecretKey",
+        status,
+        this.iaAccessKeyInput,
+        this.iaSecretKeyInput,
+      ),
+    );
     actions.appendChild(clearBtn);
 
     group.appendChild(actions);
@@ -965,11 +1071,13 @@ export class CredentialsSection {
 
     // Load existing credentials if present
     if (hasAccessKey) {
-      const accessKey = await this.credentialManager.getCredential("iaAccessKey");
+      const accessKey =
+        await this.credentialManager.getCredential("iaAccessKey");
       if (accessKey) this.iaAccessKeyInput.value = accessKey;
     }
     if (hasSecretKey) {
-      const secretKey = await this.credentialManager.getCredential("iaSecretKey");
+      const secretKey =
+        await this.credentialManager.getCredential("iaSecretKey");
       if (secretKey) this.iaSecretKeyInput.value = secretKey;
     }
   }
@@ -1000,7 +1108,9 @@ export class CredentialsSection {
     this.permaCCApiKeyInput.placeholder = "••••••••";
     this.permaCCApiKeyInput.setAttribute("aria-label", "Perma.cc API key");
     this.permaCCApiKeyInput.addEventListener("change", () => {
-      this.emit("credentialUpdate", "permacc", { apiKey: this.permaCCApiKeyInput?.value });
+      this.emit("credentialUpdate", "permacc", {
+        apiKey: this.permaCCApiKeyInput?.value,
+      });
     });
     apiKeyField.appendChild(this.permaCCApiKeyInput);
 
@@ -1008,7 +1118,8 @@ export class CredentialsSection {
     group.appendChild(fields);
 
     // Check if credentials exist
-    const hasApiKey = await this.credentialManager.hasCredential("permaCCApiKey");
+    const hasApiKey =
+      await this.credentialManager.hasCredential("permaCCApiKey");
 
     const status = document!.createElement("div");
     status.className = "momento7-credential-status";
@@ -1029,14 +1140,23 @@ export class CredentialsSection {
     testBtn.className = "momento7-btn momento7-btn-small";
     testBtn.textContent = "Test";
     testBtn.setAttribute("aria-label", "Test Perma.cc credentials");
-    testBtn.addEventListener("click", () => this.handleTestCredentials("permacc", status));
+    testBtn.addEventListener("click", () =>
+      this.handleTestCredentials("permacc", status),
+    );
     actions.appendChild(testBtn);
 
     const clearBtn = document!.createElement("button");
     clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
     clearBtn.textContent = "Clear";
     clearBtn.setAttribute("aria-label", "Clear Perma.cc credentials");
-    clearBtn.addEventListener("click", () => this.handleClearCredentials("permaCCApiKey", undefined, status, this.permaCCApiKeyInput));
+    clearBtn.addEventListener("click", () =>
+      this.handleClearCredentials(
+        "permaCCApiKey",
+        undefined,
+        status,
+        this.permaCCApiKeyInput,
+      ),
+    );
     actions.appendChild(clearBtn);
 
     group.appendChild(actions);
@@ -1044,7 +1164,8 @@ export class CredentialsSection {
 
     // Load existing credentials if present
     if (hasApiKey) {
-      const apiKey = await this.credentialManager.getCredential("permaCCApiKey");
+      const apiKey =
+        await this.credentialManager.getCredential("permaCCApiKey");
       if (apiKey) this.permaCCApiKeyInput.value = apiKey;
     }
   }
@@ -1073,22 +1194,30 @@ export class CredentialsSection {
     this.archiveTodayProxyInput.type = "text";
     this.archiveTodayProxyInput.className = "momento7-credential-input";
     this.archiveTodayProxyInput.placeholder = "https://proxy.example.com";
-    this.archiveTodayProxyInput.setAttribute("aria-label", "Archive.today proxy URL");
+    this.archiveTodayProxyInput.setAttribute(
+      "aria-label",
+      "Archive.today proxy URL",
+    );
     this.archiveTodayProxyInput.addEventListener("change", () => {
-      this.emit("credentialUpdate", "archivetoday", { proxyUrl: this.archiveTodayProxyInput?.value });
+      this.emit("credentialUpdate", "archivetoday", {
+        proxyUrl: this.archiveTodayProxyInput?.value,
+      });
     });
     proxyField.appendChild(this.archiveTodayProxyInput);
 
     const help = document!.createElement("p");
     help.className = "momento7-preference-help";
-    help.textContent = "Optional proxy URL for accessing archive.today if direct access is blocked.";
+    help.textContent =
+      "Optional proxy URL for accessing archive.today if direct access is blocked.";
     proxyField.appendChild(help);
 
     fields.appendChild(proxyField);
     group.appendChild(fields);
 
     // Check if proxy URL exists
-    const hasProxy = await this.credentialManager.hasCredential("archiveTodayProxyUrl");
+    const hasProxy = await this.credentialManager.hasCredential(
+      "archiveTodayProxyUrl",
+    );
 
     const status = document!.createElement("div");
     status.className = "momento7-credential-status";
@@ -1109,14 +1238,23 @@ export class CredentialsSection {
     testBtn.className = "momento7-btn momento7-btn-small";
     testBtn.textContent = "Test";
     testBtn.setAttribute("aria-label", "Test Archive.today proxy");
-    testBtn.addEventListener("click", () => this.handleTestCredentials("archivetoday", status));
+    testBtn.addEventListener("click", () =>
+      this.handleTestCredentials("archivetoday", status),
+    );
     actions.appendChild(testBtn);
 
     const clearBtn = document!.createElement("button");
     clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
     clearBtn.textContent = "Clear";
     clearBtn.setAttribute("aria-label", "Clear Archive.today proxy");
-    clearBtn.addEventListener("click", () => this.handleClearCredentials("archiveTodayProxyUrl", undefined, status, this.archiveTodayProxyInput));
+    clearBtn.addEventListener("click", () =>
+      this.handleClearCredentials(
+        "archiveTodayProxyUrl",
+        undefined,
+        status,
+        this.archiveTodayProxyInput,
+      ),
+    );
     actions.appendChild(clearBtn);
 
     group.appendChild(actions);
@@ -1124,7 +1262,9 @@ export class CredentialsSection {
 
     // Load existing proxy URL if present
     if (hasProxy) {
-      const proxyUrl = await this.credentialManager.getCredential("archiveTodayProxyUrl");
+      const proxyUrl = await this.credentialManager.getCredential(
+        "archiveTodayProxyUrl",
+      );
       if (proxyUrl) this.archiveTodayProxyInput.value = proxyUrl;
     }
   }
@@ -1138,7 +1278,9 @@ export class CredentialsSection {
   ): Promise<void> {
     // Ask for confirmation using Zotero's standard dialog if available
     const shouldClear = Zotero.confirmationPrompt
-      ? Zotero.confirmationPrompt("Clear these credentials? This action cannot be undone.")
+      ? Zotero.confirmationPrompt(
+          "Clear these credentials? This action cannot be undone.",
+        )
       : true; // Default to clearing if no dialog available
 
     if (!shouldClear) {
@@ -1156,18 +1298,23 @@ export class CredentialsSection {
       if (input1) input1.value = "";
       if (input2) input2.value = "";
 
-      statusEl.className = "momento7-credential-status momento7-credential-status--empty";
+      statusEl.className =
+        "momento7-credential-status momento7-credential-status--empty";
       statusEl.innerHTML = "○ Not configured";
     } catch (error) {
       Zotero.debug(`Momento7: Failed to clear credentials: ${error}`);
     }
   }
 
-  private async handleTestCredentials(serviceId: string, statusEl: HTMLElement): Promise<void> {
+  private async handleTestCredentials(
+    serviceId: string,
+    statusEl: HTMLElement,
+  ): Promise<void> {
     this.testingServices.add(serviceId);
 
     // Show loading state
-    statusEl.className = "momento7-credential-status momento7-credential-status--testing";
+    statusEl.className =
+      "momento7-credential-status momento7-credential-status--testing";
     statusEl.innerHTML = '<span class="momento7-spinner"></span> Testing...';
 
     try {
@@ -1175,7 +1322,8 @@ export class CredentialsSection {
       this.emit("credentialTest", serviceId);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      statusEl.className = "momento7-credential-status momento7-credential-status--error";
+      statusEl.className =
+        "momento7-credential-status momento7-credential-status--error";
       statusEl.innerHTML = `✗ Test failed: ${msg}`;
     } finally {
       this.testingServices.delete(serviceId);
@@ -1188,24 +1336,33 @@ export class CredentialsSection {
 
   setTestResult(serviceId: string, success: boolean, error?: string): void {
     // Find the status element for this service and update it
-    const groups = this.container?.querySelectorAll(".momento7-credential-group") || [];
+    const groups =
+      this.container?.querySelectorAll(".momento7-credential-group") || [];
     let statusEl: HTMLElement | null = null;
 
     if (serviceId === "internetarchive") {
-      statusEl = groups[0]?.querySelector(".momento7-credential-status") as HTMLElement;
+      statusEl = groups[0]?.querySelector(
+        ".momento7-credential-status",
+      ) as HTMLElement;
     } else if (serviceId === "permacc") {
-      statusEl = groups[1]?.querySelector(".momento7-credential-status") as HTMLElement;
+      statusEl = groups[1]?.querySelector(
+        ".momento7-credential-status",
+      ) as HTMLElement;
     } else if (serviceId === "archivetoday") {
-      statusEl = groups[2]?.querySelector(".momento7-credential-status") as HTMLElement;
+      statusEl = groups[2]?.querySelector(
+        ".momento7-credential-status",
+      ) as HTMLElement;
     }
 
     if (!statusEl) return;
 
     if (success) {
-      statusEl.className = "momento7-credential-status momento7-credential-status--configured";
+      statusEl.className =
+        "momento7-credential-status momento7-credential-status--configured";
       statusEl.innerHTML = "✓ Valid";
     } else {
-      statusEl.className = "momento7-credential-status momento7-credential-status--error";
+      statusEl.className =
+        "momento7-credential-status momento7-credential-status--error";
       statusEl.innerHTML = `✗ Invalid${error ? `: ${error}` : ""}`;
     }
   }
@@ -1215,22 +1372,34 @@ export class CredentialsSection {
 
     // Collect credential values
     if (this.iaAccessKeyInput?.value) {
-      await this.credentialManager.storeCredential("iaAccessKey", this.iaAccessKeyInput.value);
+      await this.credentialManager.storeCredential(
+        "iaAccessKey",
+        this.iaAccessKeyInput.value,
+      );
       credentials.iaAccessKey = this.iaAccessKeyInput.value;
     }
 
     if (this.iaSecretKeyInput?.value) {
-      await this.credentialManager.storeCredential("iaSecretKey", this.iaSecretKeyInput.value);
+      await this.credentialManager.storeCredential(
+        "iaSecretKey",
+        this.iaSecretKeyInput.value,
+      );
       credentials.iaSecretKey = this.iaSecretKeyInput.value;
     }
 
     if (this.permaCCApiKeyInput?.value) {
-      await this.credentialManager.storeCredential("permaCCApiKey", this.permaCCApiKeyInput.value);
+      await this.credentialManager.storeCredential(
+        "permaCCApiKey",
+        this.permaCCApiKeyInput.value,
+      );
       credentials.permaCCApiKey = this.permaCCApiKeyInput.value;
     }
 
     if (this.archiveTodayProxyInput?.value) {
-      await this.credentialManager.storeCredential("archiveTodayProxyUrl", this.archiveTodayProxyInput.value);
+      await this.credentialManager.storeCredential(
+        "archiveTodayProxyUrl",
+        this.archiveTodayProxyInput.value,
+      );
       credentials.archiveTodayProxyUrl = this.archiveTodayProxyInput.value;
     }
 
@@ -1327,12 +1496,15 @@ export class PreferencesSection {
     const manager = PreferencesManager.getInstance();
     this.timeout = manager.getPref("iaTimeout") || 120000;
     this.checkBeforeArchive = manager.getPref("checkBeforeArchive") ?? true;
-    this.archiveAgeThreshold = (manager.getPref("archiveAgeThresholdHours") || 720) / 24; // Convert hours to days
+    this.archiveAgeThreshold =
+      (manager.getPref("archiveAgeThresholdHours") || 720) / 24; // Convert hours to days
     this.autoArchive = manager.getPref("autoArchive") ?? true;
   }
 
   private renderForm(): void {
-    const formContainer = this.container?.querySelector(".momento7-preferences-form") as HTMLElement;
+    const formContainer = this.container?.querySelector(
+      ".momento7-preferences-form",
+    ) as HTMLElement;
     if (!formContainer) return;
 
     // Timeout setting
@@ -1353,9 +1525,15 @@ export class PreferencesSection {
     this.timeoutInput.max = "600000";
     this.timeoutInput.step = "1000";
     this.timeoutInput.value = String(this.timeout);
-    this.timeoutInput.setAttribute("aria-label", "Request timeout in milliseconds");
+    this.timeoutInput.setAttribute(
+      "aria-label",
+      "Request timeout in milliseconds",
+    );
     this.timeoutInput.addEventListener("change", () => {
-      this.timeout = Math.max(1000, Math.min(600000, parseInt(this.timeoutInput!.value, 10)));
+      this.timeout = Math.max(
+        1000,
+        Math.min(600000, parseInt(this.timeoutInput!.value, 10)),
+      );
       this.timeoutInput!.value = String(this.timeout);
       this.emit("preferenceUpdate");
     });
@@ -1372,7 +1550,8 @@ export class PreferencesSection {
 
     const timeoutHelp = document!.createElement("p");
     timeoutHelp.className = "momento7-preference-help";
-    timeoutHelp.textContent = "Maximum time to wait for archive service responses. Range: 1-600 seconds.";
+    timeoutHelp.textContent =
+      "Maximum time to wait for archive service responses. Range: 1-600 seconds.";
     timeoutGroup.appendChild(timeoutHelp);
 
     formContainer.appendChild(timeoutGroup);
@@ -1385,7 +1564,10 @@ export class PreferencesSection {
     this.checkBeforeArchiveCheckbox.type = "checkbox";
     this.checkBeforeArchiveCheckbox.className = "momento7-preference-checkbox";
     this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
-    this.checkBeforeArchiveCheckbox.setAttribute("aria-label", "Check for existing archives before archiving");
+    this.checkBeforeArchiveCheckbox.setAttribute(
+      "aria-label",
+      "Check for existing archives before archiving",
+    );
     this.checkBeforeArchiveCheckbox.addEventListener("change", () => {
       this.checkBeforeArchive = this.checkBeforeArchiveCheckbox!.checked;
       this.emit("preferenceUpdate");
@@ -1394,13 +1576,16 @@ export class PreferencesSection {
     const checkLabel = document!.createElement("label");
     checkLabel.className = "momento7-preference-label";
     checkLabel.appendChild(this.checkBeforeArchiveCheckbox);
-    checkLabel.appendChild(document!.createTextNode("Check for existing archives before archiving"));
+    checkLabel.appendChild(
+      document!.createTextNode("Check for existing archives before archiving"),
+    );
 
     checkGroup.appendChild(checkLabel);
 
     const checkHelp = document!.createElement("p");
     checkHelp.className = "momento7-preference-help";
-    checkHelp.textContent = "Query archive services for existing mementos of the URL before archiving.";
+    checkHelp.textContent =
+      "Query archive services for existing mementos of the URL before archiving.";
     checkGroup.appendChild(checkHelp);
 
     formContainer.appendChild(checkGroup);
@@ -1425,9 +1610,15 @@ export class PreferencesSection {
     this.ageThresholdInput.min = "1";
     this.ageThresholdInput.max = "3650";
     this.ageThresholdInput.value = String(this.archiveAgeThreshold);
-    this.ageThresholdInput.setAttribute("aria-label", "Minimum age of archive in days");
+    this.ageThresholdInput.setAttribute(
+      "aria-label",
+      "Minimum age of archive in days",
+    );
     this.ageThresholdInput.addEventListener("change", () => {
-      this.archiveAgeThreshold = Math.max(1, parseInt(this.ageThresholdInput!.value, 10));
+      this.archiveAgeThreshold = Math.max(
+        1,
+        parseInt(this.ageThresholdInput!.value, 10),
+      );
       this.ageThresholdInput!.value = String(this.archiveAgeThreshold);
       this.emit("preferenceUpdate");
     });
@@ -1444,7 +1635,8 @@ export class PreferencesSection {
 
     const ageHelp = document!.createElement("p");
     ageHelp.className = "momento7-preference-help";
-    ageHelp.textContent = "Only archive if existing memento is older than this threshold. Skip archiving if recent enough.";
+    ageHelp.textContent =
+      "Only archive if existing memento is older than this threshold. Skip archiving if recent enough.";
     ageGroup.appendChild(ageHelp);
 
     formContainer.appendChild(ageGroup);
@@ -1462,7 +1654,10 @@ export class PreferencesSection {
     this.autoArchiveCheckbox.type = "checkbox";
     this.autoArchiveCheckbox.className = "momento7-preference-checkbox";
     this.autoArchiveCheckbox.checked = this.autoArchive;
-    this.autoArchiveCheckbox.setAttribute("aria-label", "Automatically archive new items");
+    this.autoArchiveCheckbox.setAttribute(
+      "aria-label",
+      "Automatically archive new items",
+    );
     this.autoArchiveCheckbox.addEventListener("change", () => {
       this.autoArchive = this.autoArchiveCheckbox!.checked;
       this.emit("preferenceUpdate");
@@ -1471,13 +1666,16 @@ export class PreferencesSection {
     const autoLabel = document!.createElement("label");
     autoLabel.className = "momento7-preference-label";
     autoLabel.appendChild(this.autoArchiveCheckbox);
-    autoLabel.appendChild(document!.createTextNode("Automatically archive new items"));
+    autoLabel.appendChild(
+      document!.createTextNode("Automatically archive new items"),
+    );
 
     autoGroup.appendChild(autoLabel);
 
     const autoHelp = document!.createElement("p");
     autoHelp.className = "momento7-preference-help";
-    autoHelp.textContent = "When enabled, new items added to Zotero will be automatically archived.";
+    autoHelp.textContent =
+      "When enabled, new items added to Zotero will be automatically archived.";
     autoGroup.appendChild(autoHelp);
 
     formContainer.appendChild(autoGroup);
@@ -1486,7 +1684,10 @@ export class PreferencesSection {
     const resetBtn = document!.createElement("button");
     resetBtn.className = "momento7-btn momento7-btn-secondary";
     resetBtn.textContent = "Reset to Defaults";
-    resetBtn.setAttribute("aria-label", "Reset all preferences to default values");
+    resetBtn.setAttribute(
+      "aria-label",
+      "Reset all preferences to default values",
+    );
     resetBtn.addEventListener("click", () => this.resetToDefaults());
 
     const resetGroup = document!.createElement("div");
@@ -1504,9 +1705,12 @@ export class PreferencesSection {
 
     // Update UI
     if (this.timeoutInput) this.timeoutInput.value = String(this.timeout);
-    if (this.checkBeforeArchiveCheckbox) this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
-    if (this.ageThresholdInput) this.ageThresholdInput.value = String(this.archiveAgeThreshold);
-    if (this.autoArchiveCheckbox) this.autoArchiveCheckbox.checked = this.autoArchive;
+    if (this.checkBeforeArchiveCheckbox)
+      this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
+    if (this.ageThresholdInput)
+      this.ageThresholdInput.value = String(this.archiveAgeThreshold);
+    if (this.autoArchiveCheckbox)
+      this.autoArchiveCheckbox.checked = this.autoArchive;
 
     // Emit event to mark preferences as changed
     this.emit("preferenceUpdate");

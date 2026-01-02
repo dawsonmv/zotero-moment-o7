@@ -16,6 +16,7 @@
 - [ ] Created test collection with 10-50 items (mix of URLs)
 
 **Test Items Needed:**
+
 - [ ] Simple web pages (Wikipedia, news articles)
 - [ ] Complex sites (JavaScript-heavy pages)
 - [ ] Academic articles with DOIs
@@ -26,9 +27,11 @@
 ## 🚀 Installation Steps
 
 1. **Open Zotero:**
+
    ```bash
    open /Applications/Zotero.app
    ```
+
    - [ ] Zotero opens without errors
    - [ ] Main window displays
 
@@ -54,6 +57,7 @@
 ## ✅ Testing Phases
 
 ### Phase 1: Plugin Loads (5 min) 🟢 CRITICAL
+
 **Pass Criteria:** Plugin visible in UI, no errors
 
 - [ ] Plugin appears in Tools menu
@@ -62,6 +66,7 @@
 - [ ] No console errors on startup
 
 **Debug if issues:**
+
 ```
 Help → Debug Output Logging
 Look for: [Moment-o7] messages
@@ -73,6 +78,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 2: Single Item Archiving (15 min) 🟢 CRITICAL
+
 **Pass Criteria:** Basic archiving works, metadata stored
 
 - [ ] Select one item with URL
@@ -86,6 +92,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Appropriate error message displayed
 
 **Expected behavior:**
+
 - Dialog shows progress: "Archiving..."
 - Completes successfully
 - Item metadata updated
@@ -96,6 +103,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 3: Concurrent Batch (10 min) 🟡 HIGH PRIORITY
+
 **Pass Criteria:** Multiple items process in parallel
 
 - [ ] Create test collection with 10-15 items
@@ -108,6 +116,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] All items archived successfully
 
 **Expected behavior:**
+
 - Progress indicates concurrent processing
 - Faster than sequential (should finish ~4x faster for 10 items)
 - No items skipped or duplicated
@@ -117,6 +126,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 4: Traffic Monitoring Display (10 min) 🟡 HIGH PRIORITY
+
 **Pass Criteria:** Traffic scores visible in progress
 
 - [ ] Start archiving 10+ items
@@ -127,6 +137,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Different services show different scores
 
 **Expected behavior:**
+
 - Traffic scores appear for slow services
 - Scores increase with request duration
 - Format: "ServiceName: X.X"
@@ -136,6 +147,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 5: Service Jamming Detection (10 min) 🟡 HIGH PRIORITY
+
 **Pass Criteria:** Jamming detected when service slow
 
 - [ ] Archive items to same service multiple times
@@ -145,6 +157,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Next batch uses fallback services instead
 
 **Expected behavior:**
+
 - Service scores accumulate
 - Threshold of 2.0 triggers "JAMMED" state
 - Service skipped in subsequent requests
@@ -154,6 +167,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 6: Fallback Chain (10 min) 🟡 HIGH PRIORITY
+
 **Pass Criteria:** Fallback services used correctly
 
 - [ ] Configure fallback order: IA → Archive.today → Perma.cc
@@ -163,6 +177,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Multiple archives per item tracked
 
 **Expected behavior:**
+
 - Items use primary service first
 - Fallback used when primary unavailable
 - All archives stored in metadata
@@ -172,6 +187,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 7: Robust Links (10 min)
+
 **Pass Criteria:** Archive notes created correctly
 
 - [ ] Archived items have note with archive link
@@ -181,6 +197,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Archive URL in note matches metadata
 
 **Expected behavior:**
+
 - Note created automatically
 - Contains formatted HTML with archive link
 - Shows archive date and service
@@ -190,6 +207,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 8: Preferences (10 min)
+
 **Pass Criteria:** Settings saved and applied
 
 - [ ] Open Preferences
@@ -201,6 +219,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Changes applied to next archive operation
 
 **Expected behavior:**
+
 - All settings preserved
 - UI reflects saved values
 - New operations use updated settings
@@ -210,6 +229,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 ---
 
 ### Phase 9: Error Handling (10 min) 🔴 CRITICAL
+
 **Pass Criteria:** Graceful error handling, no crashes
 
 - [ ] Network error → appropriate message
@@ -221,6 +241,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 - [ ] Debug console: NO TypeError/ReferenceError
 
 **Expected behavior:**
+
 - Clear error messages shown
 - Batch processing continues
 - Zotero remains responsive
@@ -229,6 +250,7 @@ Check for: TypeError, ReferenceError, uncaught promise
 **Result:** ✅ PASS / ❌ FAIL
 
 **Critical Check:**
+
 ```
 Help → Debug Output Logging
 Search for:
@@ -241,6 +263,7 @@ Search for:
 ---
 
 ### Phase 10: Performance (15 min) 🔴 CRITICAL
+
 **Pass Criteria:** Large batch processing, Zotero responsive
 
 - [ ] Create test with 50+ items
@@ -252,6 +275,7 @@ Search for:
 - [ ] No memory errors or warnings
 
 **Expected behavior:**
+
 - Completes without hanging
 - Memory usage stable
 - UI remains responsive during archiving
@@ -262,6 +286,7 @@ Search for:
 ---
 
 ### Phase 11: Data Integrity (10 min)
+
 **Pass Criteria:** Data stored correctly
 
 - [ ] Original item metadata unchanged
@@ -272,6 +297,7 @@ Search for:
 - [ ] Export/import preserves archive data
 
 **Expected behavior:**
+
 - All data stored in standard Zotero fields
 - Can export/import without loss
 - Metadata follows documented format
@@ -281,6 +307,7 @@ Search for:
 ---
 
 ### Phase 12: Stability (15 min) 🔴 CRITICAL
+
 **Pass Criteria:** Stable operation, no errors
 
 - [ ] Archive 3+ batches of items
@@ -292,6 +319,7 @@ Search for:
 - [ ] **CRITICAL:** Zero "Uncaught promise rejection: ..."
 
 **Expected behavior:**
+
 - Multiple batches process without issues
 - Stable memory usage
 - No degradation over time
@@ -300,6 +328,7 @@ Search for:
 **Result:** ✅ PASS / ❌ FAIL
 
 **Critical Check:**
+
 ```
 Help → Debug Output Logging
 Look for EXACT pattern:
@@ -312,26 +341,27 @@ If found = CRITICAL FAILURE
 
 ## 📊 Results Summary
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| 1 | ✅/❌ | Plugin Loads |
-| 2 | ✅/❌ | Single Item Archiving |
-| 3 | ✅/❌ | Concurrent Batch |
-| 4 | ✅/❌ | Traffic Monitoring |
-| 5 | ✅/❌ | Service Jamming |
-| 6 | ✅/❌ | Fallback Chain |
-| 7 | ✅/❌ | Robust Links |
-| 8 | ✅/❌ | Preferences |
-| 9 | ✅/❌ | Error Handling |
-| 10 | ✅/❌ | Performance |
-| 11 | ✅/❌ | Data Integrity |
-| 12 | ✅/❌ | Stability |
+| Phase | Status | Notes                 |
+| ----- | ------ | --------------------- |
+| 1     | ✅/❌  | Plugin Loads          |
+| 2     | ✅/❌  | Single Item Archiving |
+| 3     | ✅/❌  | Concurrent Batch      |
+| 4     | ✅/❌  | Traffic Monitoring    |
+| 5     | ✅/❌  | Service Jamming       |
+| 6     | ✅/❌  | Fallback Chain        |
+| 7     | ✅/❌  | Robust Links          |
+| 8     | ✅/❌  | Preferences           |
+| 9     | ✅/❌  | Error Handling        |
+| 10    | ✅/❌  | Performance           |
+| 11    | ✅/❌  | Data Integrity        |
+| 12    | ✅/❌  | Stability             |
 
 ---
 
 ## 🎯 Critical Success Indicators
 
 ### MUST PASS (Blocking Issues)
+
 - [ ] Phase 1: Plugin loads
 - [ ] Phase 2: Basic archiving works
 - [ ] Phase 9: Error handling (NO crashes)
@@ -339,12 +369,14 @@ If found = CRITICAL FAILURE
 - [ ] Phase 12: Stability (NO promise errors)
 
 ### SHOULD PASS (High Priority)
+
 - [ ] Phase 3: Concurrent batch
 - [ ] Phase 4: Traffic monitoring
 - [ ] Phase 5: Service jamming
 - [ ] Phase 6: Fallback chain
 
 ### NICE TO HAVE (Medium Priority)
+
 - [ ] Phase 7: Robust links formatting
 - [ ] Phase 8: Preferences persistence
 - [ ] Phase 11: Data integrity verification
@@ -354,6 +386,7 @@ If found = CRITICAL FAILURE
 ## 📝 Issues Found
 
 **Issue #1:**
+
 - Phase: [1-12]
 - Description: [What went wrong]
 - Steps to Reproduce: [How to reproduce]
@@ -370,6 +403,7 @@ If found = CRITICAL FAILURE
 ## 🎓 Debug Tips
 
 ### View Console Output
+
 ```
 Help → Debug Output Logging
 Watch in real-time as you test
@@ -377,6 +411,7 @@ Look for [Moment-o7] messages
 ```
 
 ### Check for Promise Errors
+
 ```
 Search for: "Uncaught promise"
 This MUST NOT appear
@@ -384,6 +419,7 @@ If it does = CRITICAL FAILURE
 ```
 
 ### Monitor Performance
+
 ```
 Activity Monitor → Zotero
 Watch Memory (should stay stable)
@@ -391,6 +427,7 @@ Watch CPU (should spike during archiving only)
 ```
 
 ### Capture Error Details
+
 ```
 If error occurs:
 1. Note exact error message
@@ -405,6 +442,7 @@ If error occurs:
 ## ✅ Final Checklist
 
 **Before Declaring Ready:**
+
 - [ ] All 12 phases tested
 - [ ] All CRITICAL phases passed
 - [ ] No crashes observed
@@ -420,13 +458,15 @@ If error occurs:
 **Overall Status:** ✅ READY / ⚠️ ISSUES FOUND / ❌ BLOCKED
 
 **Summary:**
-- Total Phases Tested: ___/12
-- Phases Passed: ___/12
-- Critical Failures: ___
-- High Priority Issues: ___
-- Medium Priority Issues: ___
+
+- Total Phases Tested: \_\_\_/12
+- Phases Passed: \_\_\_/12
+- Critical Failures: \_\_\_
+- High Priority Issues: \_\_\_
+- Medium Priority Issues: \_\_\_
 
 **Recommendation:**
+
 - [ ] Ready to merge and deploy
 - [ ] Fix issues and retest
 - [ ] Escalate to development team
@@ -439,6 +479,7 @@ If error occurs:
 ## 🚀 Next Steps
 
 **If All Tests Pass ✅:**
+
 1. Complete this checklist
 2. Create GitHub issue: "TASK-009: Functional Testing - PASSED"
 3. Merge feature branch to main
@@ -446,6 +487,7 @@ If error occurs:
 5. Deploy to production
 
 **If Issues Found ❌:**
+
 1. Document each issue in this checklist
 2. Create GitHub issues for each critical/high-priority item
 3. Return to development team
@@ -457,4 +499,4 @@ If error occurs:
 **Testing Completed:** [Date/Time]
 **Total Time:** [Hours spent]
 
-**Tester Signature:** __________________ **Date:** __________
+**Tester Signature:** **\*\*\*\***\_\_**\*\*\*\*** **Date:** \***\*\_\_\*\***

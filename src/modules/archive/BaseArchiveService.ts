@@ -246,10 +246,12 @@ export abstract class BaseArchiveService implements ArchiveService {
     metadata: { additionalInfo?: string } = {},
   ): Promise<void> {
     const originalUrlField = item.getField("url");
-    const originalUrl = typeof originalUrlField === "string" ? originalUrlField : "";
+    const originalUrl =
+      typeof originalUrlField === "string" ? originalUrlField : "";
 
     const titleField = item.getField("title");
-    const linkText = (typeof titleField === "string" && titleField) ? titleField : originalUrl;
+    const linkText =
+      typeof titleField === "string" && titleField ? titleField : originalUrl;
 
     // Update extra field
     const extraField = item.getField("extra");

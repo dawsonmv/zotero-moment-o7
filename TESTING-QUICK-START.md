@@ -9,17 +9,20 @@
 ## 🎯 TL;DR - Start Testing Now
 
 ### Step 1: Copy Plugin Path
+
 ```bash
 # This is the plugin file you'll install
 .scaffold/build/moment-o-7.xpi
 ```
 
 ### Step 2: Open Zotero
+
 ```bash
 open /Applications/Zotero.app
 ```
 
 ### Step 3: Install Plugin
+
 1. **Tools** → **Add-ons** → **⚙️ Gear Icon**
 2. Select **"Install Add-on From File..."**
 3. Choose: `.scaffold/build/moment-o-7.xpi`
@@ -27,12 +30,14 @@ open /Applications/Zotero.app
 5. **Restart** when prompted
 
 ### Step 4: Verify Installation
+
 - ✅ Tools menu has "Archive with Momento7"
 - ✅ Right-click item shows "Archive this Resource"
 - ✅ Preferences dialog opens
 - ✅ No console errors
 
 ### Step 5: Start Testing
+
 - Open `FUNCTIONAL-TEST-CHECKLIST.md`
 - Follow 12 testing phases
 - Mark ✅/❌ for each phase
@@ -42,20 +47,20 @@ open /Applications/Zotero.app
 
 ## 📋 Quick Phase Overview
 
-| Phase | Name | Time | Critical? | Quick Test |
-|-------|------|------|-----------|-----------|
-| 1 | Plugin Loads | 5min | 🔴 YES | Check UI, no errors |
-| 2 | Single Archiving | 15min | 🔴 YES | Archive 1 item |
-| 3 | Batch Archiving | 10min | 🟡 HIGH | Archive 10 items |
-| 4 | Traffic Monitoring | 10min | 🟡 HIGH | Watch traffic scores |
-| 5 | Service Jamming | 10min | 🟡 HIGH | Trigger jamming |
-| 6 | Fallback Chain | 10min | 🟡 HIGH | Test multiple services |
-| 7 | Robust Links | 10min | 🟢 MED | Check archive notes |
-| 8 | Preferences | 10min | 🟢 MED | Change settings |
-| 9 | Error Handling | 10min | 🔴 YES | Test error messages |
-| 10 | Performance | 15min | 🔴 YES | Archive 50 items |
-| 11 | Data Integrity | 10min | 🟢 MED | Verify metadata |
-| 12 | Stability | 15min | 🔴 YES | Multiple batches |
+| Phase | Name               | Time  | Critical? | Quick Test             |
+| ----- | ------------------ | ----- | --------- | ---------------------- |
+| 1     | Plugin Loads       | 5min  | 🔴 YES    | Check UI, no errors    |
+| 2     | Single Archiving   | 15min | 🔴 YES    | Archive 1 item         |
+| 3     | Batch Archiving    | 10min | 🟡 HIGH   | Archive 10 items       |
+| 4     | Traffic Monitoring | 10min | 🟡 HIGH   | Watch traffic scores   |
+| 5     | Service Jamming    | 10min | 🟡 HIGH   | Trigger jamming        |
+| 6     | Fallback Chain     | 10min | 🟡 HIGH   | Test multiple services |
+| 7     | Robust Links       | 10min | 🟢 MED    | Check archive notes    |
+| 8     | Preferences        | 10min | 🟢 MED    | Change settings        |
+| 9     | Error Handling     | 10min | 🔴 YES    | Test error messages    |
+| 10    | Performance        | 15min | 🔴 YES    | Archive 50 items       |
+| 11    | Data Integrity     | 10min | 🟢 MED    | Verify metadata        |
+| 12    | Stability          | 15min | 🔴 YES    | Multiple batches       |
 
 **Critical Tests (MUST PASS):** 1, 2, 9, 10, 12
 
@@ -64,12 +69,14 @@ open /Applications/Zotero.app
 ## 🚀 Testing Workflow
 
 ### Before Each Phase:
+
 1. Read the phase description
 2. Note the pass criteria
 3. Prepare test data if needed
 4. Set up debug console if using
 
 ### During Each Phase:
+
 1. Follow the steps listed
 2. Observe expected behavior
 3. Check for errors
@@ -77,6 +84,7 @@ open /Applications/Zotero.app
 5. Mark ✅ PASS or ❌ FAIL
 
 ### After Each Phase:
+
 1. Record result in checklist
 2. If FAIL: Document issue details
 3. If PASS: Move to next phase
@@ -87,23 +95,28 @@ open /Applications/Zotero.app
 ## 🔍 Key Things to Watch For
 
 ### Phase 1-2: Basic Functionality
+
 - Plugin menu items visible
 - No startup errors
 - Single item archives successfully
 - Metadata saved correctly
 
 ### Phase 3-6: Concurrency & Services
+
 - Multiple items process simultaneously
 - Traffic monitoring shows scores
 - Service jamming detected (score >= 2.0)
 - Fallback services work
 
 ### Phase 7-8: Features & Settings
+
 - Archive notes have correct format
 - Preferences persist after restart
 
 ### Phase 9: 🔴 CRITICAL - Error Handling
+
 **MUST NOT see these in debug console:**
+
 ```
 ❌ "Uncaught (in promise) undefined"
 ❌ "TypeError"
@@ -112,6 +125,7 @@ open /Applications/Zotero.app
 ```
 
 Errors should be:
+
 ```
 ✅ "[Moment-o7]" info/debug messages
 ✅ Clear user-facing error dialogs
@@ -119,12 +133,14 @@ Errors should be:
 ```
 
 ### Phase 10: 🔴 CRITICAL - Performance
+
 - Zotero stays responsive during archiving
 - No "Not Responding" message
 - Memory usage doesn't spike excessively
 - 50+ items complete successfully
 
 ### Phase 12: 🔴 CRITICAL - Stability
+
 - Multiple batches run without crashes
 - No degradation over repeated use
 - Promise errors: **ZERO**
@@ -135,6 +151,7 @@ Errors should be:
 ## 🛠️ Debug Console
 
 ### Open It:
+
 ```
 Help → Debug Output Logging
 ```
@@ -142,6 +159,7 @@ Help → Debug Output Logging
 ### What to Look For:
 
 **✅ Good:**
+
 ```
 [Moment-o7] Archiving item: https://example.com
 [Moment-o7] Successfully archived to Internet Archive
@@ -149,6 +167,7 @@ Help → Debug Output Logging
 ```
 
 **❌ Bad:**
+
 ```
 Uncaught (in promise) undefined
 TypeError: Cannot read property 'getField'
@@ -156,6 +175,7 @@ TypeError: Cannot read property 'getField'
 ```
 
 ### Search Tips:
+
 - Search for `[Moment-o7]` to find plugin messages
 - Search for `Uncaught` to find unhandled errors
 - Search for `TypeError` to find type errors
@@ -177,6 +197,7 @@ TypeError: Cannot read property 'getField'
 8. **Screenshot?** (if helpful)
 
 **Example:**
+
 ```
 Phase 9: Error Handling
 Issue: Promise rejection error in console
@@ -192,6 +213,7 @@ Error: Uncaught (in promise) undefined at ConcurrentArchiveQueue.ts:96
 ## ✅ Success Criteria
 
 ### Minimum (Must Have)
+
 - [ ] Phase 1 PASS: Plugin loads
 - [ ] Phase 2 PASS: Single archiving works
 - [ ] Phase 9 PASS: No crashes, clear errors
@@ -199,6 +221,7 @@ Error: Uncaught (in promise) undefined at ConcurrentArchiveQueue.ts:96
 - [ ] Phase 12 PASS: Stability OK (0 promise errors)
 
 ### Optimal (Should Have)
+
 - [ ] All 12 phases PASS
 - [ ] 0 issues found
 - [ ] Clean debug console (no red errors)
@@ -249,19 +272,23 @@ VERIFICATION:
 ## 🎁 Test Data Tips
 
 ### Minimal Test (15 min)
+
 - 5 simple URLs (news articles, wiki)
 - Test phases 1, 2, 9
 
 ### Standard Test (1.5 hours)
+
 - 15-20 mixed items
 - Phases 1-8, 9, 11-12
 
 ### Complete Test (3 hours)
+
 - 50+ items, variety of content
 - All 12 phases
 - Repeat batches for stability
 
 ### Test Item Ideas
+
 ```
 Simple (fast to archive):
 - https://en.wikipedia.org/wiki/Zotero
@@ -296,6 +323,7 @@ Any of these = **CRITICAL ISSUE** requiring developer attention before merge.
 ## 📞 Need Help?
 
 **If stuck:**
+
 1. Check the debug console (Help → Debug Output Logging)
 2. Restart Zotero and try again
 3. Review the phase description in FUNCTIONAL-TEST-CHECKLIST.md
@@ -303,6 +331,7 @@ Any of these = **CRITICAL ISSUE** requiring developer attention before merge.
 5. Report findings
 
 **Key Files:**
+
 - **Checklist:** `FUNCTIONAL-TEST-CHECKLIST.md`
 - **Quick Reference:** `FUNCTIONAL-TEST-QUICK-REFERENCE.md`
 - **Installation Help:** `run-functional-tests.sh`

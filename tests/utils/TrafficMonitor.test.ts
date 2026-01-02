@@ -1,9 +1,9 @@
 import { TrafficMonitor } from "../../src/utils/TrafficMonitor";
 
-describe("TrafficMonitor", () => {
+describe("TrafficMonitor", function () {
   let monitor: TrafficMonitor;
 
-  beforeEach(() => {
+  beforeEach(function () {
     jest.useFakeTimers();
     jest.clearAllTimers();
     monitor = TrafficMonitor.getInstance();
@@ -11,7 +11,7 @@ describe("TrafficMonitor", () => {
     (global as any).Zotero.debug = jest.fn();
   });
 
-  afterEach(() => {
+  afterEach(function () {
     jest.useRealTimers();
   });
 
@@ -31,23 +31,23 @@ describe("TrafficMonitor", () => {
     monitor.endRequest(requestId, success);
   }
 
-  describe("Singleton Pattern", () => {
-    it("should return same instance on multiple calls", () => {
+  describe("Singleton Pattern", function () {
+    it("should return same instance on multiple calls", function () {
       const instance1 = TrafficMonitor.getInstance();
       const instance2 = TrafficMonitor.getInstance();
       expect(instance1).toBe(instance2);
     });
   });
 
-  describe("Score Calculation", () => {
-    it("should calculate score as duration × 0.1", () => {
+  describe("Score Calculation", function () {
+    it("should calculate score as duration × 0.1", function () {
       simulateRequest("test_1", "internetarchive", 10000); // 10 seconds
 
       const mean = monitor.getMeanScore("internetarchive");
       expect(mean).toBeCloseTo(1.0, 0);
     });
 
-    it("should handle very fast requests (< 1s) as 0 score", () => {
+    it("should handle very fast requests (< 1s) as 0 score", function () {
       monitor.startRequest("fast_1", "internetarchive", "http://example.com");
       // End immediately without advancing past 1 second delay
       monitor.endRequest("fast_1", true);
@@ -56,7 +56,7 @@ describe("TrafficMonitor", () => {
       expect(mean).toBe(0);
     });
 
-    it("should calculate ~2.0 score for 20+ second requests", () => {
+    it("should calculate ~2.0 score for 20+ second requests", function () {
       simulateRequest("slow_1", "internetarchive", 20000); // 20 seconds
 
       const mean = monitor.getMeanScore("internetarchive");
@@ -64,20 +64,20 @@ describe("TrafficMonitor", () => {
     });
   });
 
-  describe("Jamming Detection", () => {
-    it("should mark service as jammed when score >= 2.0", () => {
+  describe("Jamming Detection", function () {
+    it("should mark service as jammed when score >= 2.0", function () {
       simulateRequest("jam_1", "archivetoday", 20000);
 
       expect(monitor.isServiceJammed("archivetoday")).toBe(true);
     });
 
-    it("should not mark service as jammed when score < 2.0", () => {
+    it("should not mark service as jammed when score < 2.0", function () {
       simulateRequest("ok_1", "permacc", 15000); // 1.5 score
 
       expect(monitor.isServiceJammed("permacc")).toBe(false);
     });
 
-    it("should include service in getJammedServices()", () => {
+    it("should include service in getJammedServices()", function () {
       simulateRequest("jam_1", "internetarchive", 20000);
       simulateRequest("jam_2", "archivetoday", 20000);
 
@@ -88,8 +88,8 @@ describe("TrafficMonitor", () => {
     });
   });
 
-  describe("Mean Score Calculation", () => {
-    it("should calculate mean of valid scores", () => {
+  describe("Mean Score Calculation", function () {
+    it("should calculate mean of valid scores", function () {
       simulateRequest("score_1", "internetarchive", 10000); // 1.0
       simulateRequest("score_2", "internetarchive", 20000); // 2.0 (jams)
       simulateRequest("score_3", "internetarchive", 8000); // 0.8
@@ -100,14 +100,14 @@ describe("TrafficMonitor", () => {
       expect(mean).toBeLessThan(1.4);
     });
 
-    it("should return 0 for services with no scores", () => {
+    it("should return 0 for services with no scores", function () {
       const mean = monitor.getMeanScore("unknown-service");
       expect(mean).toBe(0);
     });
   });
 
-  describe("Batch Reset", () => {
-    it("should clear all state on resetBatch()", () => {
+  describe("Batch Reset", function () {
+    it("should clear all state on resetBatch()", function () {
       simulateRequest("req_1", "internetarchive", 20000);
 
       expect(monitor.isServiceJammed("internetarchive")).toBe(true);
@@ -120,7 +120,7 @@ describe("TrafficMonitor", () => {
       expect(monitor.getJammedServices().length).toBe(0);
     });
 
-    it("should allow reuse after reset", () => {
+    it("should allow reuse after reset", function () {
       // First batch
       simulateRequest("batch1_1", "internetarchive", 10000);
       const mean1 = monitor.getMeanScore("internetarchive");
@@ -136,8 +136,8 @@ describe("TrafficMonitor", () => {
     });
   });
 
-  describe("Traffic Summary Formatting", () => {
-    it("should format summary with service short names", () => {
+  describe("Traffic Summary Formatting", function () {
+    it("should format summary with service short names", function () {
       simulateRequest("req_1", "internetarchive", 10000);
       simulateRequest("req_2", "archivetoday", 8000);
 
@@ -147,21 +147,21 @@ describe("TrafficMonitor", () => {
       expect(summary).toContain("|");
     });
 
-    it("should include JAMMED status in summary", () => {
+    it("should include JAMMED status in summary", function () {
       simulateRequest("jammed_1", "internetarchive", 20000);
 
       const summary = monitor.getTrafficSummary();
       expect(summary).toContain("IA: JAMMED");
     });
 
-    it("should return 'No traffic data' when no requests tracked", () => {
+    it("should return 'No traffic data' when no requests tracked", function () {
       const summary = monitor.getTrafficSummary();
       expect(summary).toBe("No traffic data");
     });
   });
 
-  describe("Service Stats", () => {
-    it("should calculate min, max, count for a service", () => {
+  describe("Service Stats", function () {
+    it("should calculate min, max, count for a service", function () {
       simulateRequest("stat_1", "permacc", 5000); // 0.5
       simulateRequest("stat_2", "permacc", 15000); // 1.5
       simulateRequest("stat_3", "permacc", 10000); // 1.0
@@ -173,14 +173,14 @@ describe("TrafficMonitor", () => {
       expect(stats.isJammed).toBe(false);
     });
 
-    it("should mark jammed status in stats", () => {
+    it("should mark jammed status in stats", function () {
       simulateRequest("stat_jam", "permacc", 20000);
 
       const stats = monitor.getServiceStats("permacc");
       expect(stats.isJammed).toBe(true);
     });
 
-    it("should return zero stats for unknown service", () => {
+    it("should return zero stats for unknown service", function () {
       const stats = monitor.getServiceStats("unknown");
       expect(stats.mean).toBe(0);
       expect(stats.min).toBe(0);
@@ -190,8 +190,8 @@ describe("TrafficMonitor", () => {
     });
   });
 
-  describe("Debug State Export", () => {
-    it("should export debug state", () => {
+  describe("Debug State Export", function () {
+    it("should export debug state", function () {
       simulateRequest("debug_1", "internetarchive", 10000);
       simulateRequest("debug_2", "archivetoday", 20000);
 
@@ -203,8 +203,8 @@ describe("TrafficMonitor", () => {
     });
   });
 
-  describe("Multiple Services", () => {
-    it("should track scores independently per service", () => {
+  describe("Multiple Services", function () {
+    it("should track scores independently per service", function () {
       simulateRequest("multi_1", "internetarchive", 10000);
       simulateRequest("multi_2", "archivetoday", 5000);
       simulateRequest("multi_3", "permacc", 15000);
@@ -218,7 +218,7 @@ describe("TrafficMonitor", () => {
       expect(pc).toBeCloseTo(1.5, 0);
     });
 
-    it("should jam multiple services independently", () => {
+    it("should jam multiple services independently", function () {
       simulateRequest("jam_1", "internetarchive", 20000);
       simulateRequest("ok_1", "archivetoday", 10000);
 
@@ -227,8 +227,8 @@ describe("TrafficMonitor", () => {
     });
   });
 
-  describe("Edge Cases", () => {
-    it("should handle endRequest for unknown requestId", () => {
+  describe("Edge Cases", function () {
+    it("should handle endRequest for unknown requestId", function () {
       expect(() => {
         monitor.endRequest("unknown_id", true);
       }).not.toThrow();
@@ -237,7 +237,7 @@ describe("TrafficMonitor", () => {
       expect(mean).toBe(0);
     });
 
-    it("should handle repeated resets", () => {
+    it("should handle repeated resets", function () {
       for (let i = 0; i < 5; i++) {
         simulateRequest(`req_${i}`, "internetarchive", 10000);
         monitor.resetBatch();
@@ -245,9 +245,9 @@ describe("TrafficMonitor", () => {
       }
     });
 
-    it("should handle requests with varying durations", () => {
+    it("should handle requests with varying durations", function () {
       for (let i = 0; i < 20; i++) {
-        const duration = 5000 + (Math.random() * 5000); // 5-10 seconds
+        const duration = 5000 + Math.random() * 5000; // 5-10 seconds
         simulateRequest(`req_${i}`, "internetarchive", Math.floor(duration));
       }
 

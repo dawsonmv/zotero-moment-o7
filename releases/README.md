@@ -16,9 +16,9 @@ See [releases](https://github.com/[user]/zotero-momento7-new/releases) on GitHub
 
 ## Versions
 
-| Version | Date | Plugin File | Notes |
-|---------|------|-------------|-------|
-| (Latest builds will be added here) | | | |
+| Version                            | Date | Plugin File | Notes |
+| ---------------------------------- | ---- | ----------- | ----- |
+| (Latest builds will be added here) |      |             |       |
 
 ## Build Status
 
@@ -28,4 +28,3 @@ See [releases](https://github.com/[user]/zotero-momento7-new/releases) on GitHub
 ---
 
 **For development builds**, see the `.scaffold/` directory (not tracked in git).
-

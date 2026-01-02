@@ -2,7 +2,7 @@ import { ConcurrentArchiveQueue } from "../../src/utils/ConcurrentArchiveQueue";
 import { TrafficMonitor } from "../../src/utils/TrafficMonitor";
 import { ArchiveResult } from "../../src/modules/archive/types";
 
-describe("ConcurrentArchiveQueue", () => {
+describe("ConcurrentArchiveQueue", function () {
   let queue: ConcurrentArchiveQueue;
   let trafficMonitor: TrafficMonitor;
   let mockItems: Zotero.Item[];
@@ -19,7 +19,7 @@ describe("ConcurrentArchiveQueue", () => {
     } as any as Zotero.Item;
   }
 
-  beforeEach(() => {
+  beforeEach(function () {
     queue = new ConcurrentArchiveQueue(4);
     trafficMonitor = TrafficMonitor.getInstance();
     trafficMonitor.resetBatch();
@@ -48,13 +48,13 @@ describe("ConcurrentArchiveQueue", () => {
     };
   });
 
-  describe("Initialization", () => {
-    it("should create queue with default maxConcurrency of 4", () => {
+  describe("Initialization", function () {
+    it("should create queue with default maxConcurrency of 4", function () {
       const defaultQueue = new ConcurrentArchiveQueue();
       expect(defaultQueue).toBeDefined();
     });
 
-    it("should clamp maxConcurrency between 1 and 8", () => {
+    it("should clamp maxConcurrency between 1 and 8", function () {
       const zeroQueue = new ConcurrentArchiveQueue(0);
       const nineQueue = new ConcurrentArchiveQueue(9);
       // Both should be created without error
@@ -63,8 +63,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Empty and Edge Cases", () => {
-    it("should handle empty item array", async () => {
+  describe("Empty and Edge Cases", function () {
+    it("should handle empty item array", async function () {
       const result = await queue.process([], async () => ({
         item: mockItems[0],
         success: true,
@@ -73,7 +73,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(result).toEqual([]);
     });
 
-    it("should handle items with no title", async () => {
+    it("should handle items with no title", async function () {
       const item = {
         id: 99,
         getField: () => null,
@@ -90,8 +90,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Sequential Processing", () => {
-    it("should archive single item successfully", async () => {
+  describe("Sequential Processing", function () {
+    it("should archive single item successfully", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -106,7 +106,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(archiveFn).toHaveBeenCalledTimes(1);
     });
 
-    it("should maintain item order in results", async () => {
+    it("should maintain item order in results", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -123,7 +123,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(result[2].item.id).toBe(items[2].id);
     });
 
-    it("should handle errors per item", async () => {
+    it("should handle errors per item", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         if (item.id === 2) {
           return {
@@ -148,8 +148,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Concurrency Control", () => {
-    it("should process multiple items successfully", async () => {
+  describe("Concurrency Control", function () {
+    it("should process multiple items successfully", async function () {
       const callOrder: number[] = [];
 
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
@@ -173,7 +173,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(archiveFn).toHaveBeenCalledTimes(10);
     });
 
-    it("should process items in parallel for different services", async () => {
+    it("should process items in parallel for different services", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -191,7 +191,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(archiveFn).toHaveBeenCalledTimes(8);
     });
 
-    it("should continue processing after item completion", async () => {
+    it("should continue processing after item completion", async function () {
       const completionTimes: number[] = [];
       let completionCount = 0;
 
@@ -214,8 +214,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Result Handling", () => {
-    it("should return successful archive results", async () => {
+  describe("Result Handling", function () {
+    it("should return successful archive results", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -230,7 +230,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(result[0].service).toBe("InternetArchive");
     });
 
-    it("should handle missing archive URLs", async () => {
+    it("should handle missing archive URLs", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: false,
@@ -244,7 +244,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(result[0].archivedUrl).toBeUndefined();
     });
 
-    it("should handle thrown errors in archiveFn", async () => {
+    it("should handle thrown errors in archiveFn", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         if (item.id === 2) {
           throw new Error("Network timeout");
@@ -265,8 +265,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Traffic Monitoring Integration", () => {
-    it("should reset traffic monitor at start", async () => {
+  describe("Traffic Monitoring Integration", function () {
+    it("should reset traffic monitor at start", async function () {
       const resetSpy = jest.spyOn(trafficMonitor, "resetBatch");
 
       await queue.process([mockItems[0]], async (item) => ({
@@ -278,8 +278,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Queue Exhaustion", () => {
-    it("should process all items even with errors", async () => {
+  describe("Queue Exhaustion", function () {
+    it("should process all items even with errors", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         // Every other item fails
         if (item.id! % 2 === 0) {
@@ -299,7 +299,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(result.filter((r) => !r.success)).toHaveLength(2);
     });
 
-    it("should handle large item batches", async () => {
+    it("should handle large item batches", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -318,8 +318,8 @@ describe("ConcurrentArchiveQueue", () => {
     });
   });
 
-  describe("Progress Updates", () => {
-    it("should create progress window for batch", async () => {
+  describe("Progress Updates", function () {
+    it("should create progress window for batch", async function () {
       const ProgressWindowMock = (global as any).Zotero.ProgressWindow;
 
       await queue.process([mockItems[0]], async (item) => ({
@@ -330,7 +330,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(ProgressWindowMock).toHaveBeenCalled();
     });
 
-    it("should create progress window for batch", async () => {
+    it("should track progress updates for multiple items", async function () {
       const ProgressWindowMock = (global as any).Zotero.ProgressWindow;
       const initialCallCount = ProgressWindowMock.mock.calls.length;
 
@@ -342,12 +342,14 @@ describe("ConcurrentArchiveQueue", () => {
       });
 
       // ProgressWindow should have been created
-      expect(ProgressWindowMock.mock.calls.length).toBeGreaterThan(initialCallCount);
+      expect(ProgressWindowMock.mock.calls.length).toBeGreaterThan(
+        initialCallCount,
+      );
     });
   });
 
-  describe("Race Condition Safety", () => {
-    it("should handle many item completions", async () => {
+  describe("Race Condition Safety", function () {
+    it("should handle many item completions", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -364,7 +366,7 @@ describe("ConcurrentArchiveQueue", () => {
       expect(result.every((r) => r.success)).toBe(true);
     });
 
-    it("should maintain result order consistently", async () => {
+    it("should maintain result order consistently", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         return {
           item,

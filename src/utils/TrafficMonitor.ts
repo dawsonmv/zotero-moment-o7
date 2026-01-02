@@ -144,7 +144,9 @@ export class TrafficMonitor {
       }
     }
 
-    return summaryParts.length > 0 ? summaryParts.join(" | ") : "No traffic data";
+    return summaryParts.length > 0
+      ? summaryParts.join(" | ")
+      : "No traffic data";
   }
 
   /**

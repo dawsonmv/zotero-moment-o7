@@ -71,7 +71,9 @@ export class ArchiveCoordinator {
    * Archive a single item within batch context
    * Wraps archiveItem to integrate with concurrent queue and traffic monitoring
    */
-  private async archiveItemWithContext(item: Zotero.Item): Promise<ArchiveResult> {
+  private async archiveItemWithContext(
+    item: Zotero.Item,
+  ): Promise<ArchiveResult> {
     try {
       return await this.archiveItem(item, this.requestedServiceId);
     } catch (error) {
@@ -292,10 +294,7 @@ export class ArchiveCoordinator {
     const fallbackOrder = this.getFallbackOrder();
 
     // Sort available services according to fallback order
-    let orderedServices = this.orderServices(
-      availableServices,
-      fallbackOrder,
-    );
+    let orderedServices = this.orderServices(availableServices, fallbackOrder);
 
     // Filter out jammed services from traffic monitoring
     if (this.currentTrafficMonitor) {

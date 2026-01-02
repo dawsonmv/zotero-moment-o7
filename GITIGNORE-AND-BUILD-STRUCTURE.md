@@ -15,6 +15,7 @@ The .gitignore has been improved to properly handle all generated files while ma
 ## 🗂️ Directory Structure
 
 ### Build Directories (NOT tracked)
+
 ```
 .scaffold/              ← Development builds (auto-generated)
 ├── build/
@@ -25,6 +26,7 @@ The .gitignore has been improved to properly handle all generated files while ma
 ```
 
 ### Public Directories (TRACKED with content ignored)
+
 ```
 releases/               ← Official release builds (structure tracked)
 ├── README.md          ✅ (tracked - documents releases)
@@ -41,6 +43,7 @@ dist/                  ← Public distribution builds (structure tracked)
 ## 🎯 What Gets Tracked vs. Ignored
 
 ### ✅ WILL BE TRACKED (in git)
+
 ```
 - releases/README.md       (explains release process)
 - releases/.gitkeep        (keeps directory structure)
@@ -52,6 +55,7 @@ dist/                  ← Public distribution builds (structure tracked)
 ```
 
 ### ❌ WILL NOT BE TRACKED (ignored)
+
 ```
 - .scaffold/              (entire directory auto-generated)
 - .scaffold/build/*.xpi   (plugin builds)
@@ -70,6 +74,7 @@ dist/                  ← Public distribution builds (structure tracked)
 ## 📝 .gitignore Rules
 
 ### Build Artifacts
+
 ```
 .scaffold/              # Development build directory
 build/                  # Build output
@@ -80,6 +85,7 @@ releases/*              # Release files
 ```
 
 ### Node.js
+
 ```
 node_modules            # Dependencies
 pnpm-lock.yaml          # Lock file
@@ -88,12 +94,14 @@ npm-debug.log*          # Debug logs
 ```
 
 ### Test Coverage
+
 ```
 coverage                # Coverage reports
 .nyc_output             # NYC coverage output
 ```
 
 ### IDE & OS
+
 ```
 .vscode/                # VS Code settings
 .idea/                  # IntelliJ settings
@@ -103,6 +111,7 @@ Thumbs.db               # Windows
 ```
 
 ### Generated Reports
+
 ```
 EXECUTIVE-SUMMARY.md
 METRICS-DASHBOARD.md
@@ -117,6 +126,7 @@ DEPENDENCY-HEALTH-REPORT.md
 ## 🔄 Development Workflow
 
 ### Building (Development)
+
 ```bash
 npm run build
 # Creates: .scaffold/build/moment-o-7.xpi
@@ -125,6 +135,7 @@ npm run build
 ```
 
 ### Creating Release (Production)
+
 ```bash
 # After functional testing passes:
 1. Copy plugin from: .scaffold/build/moment-o-7.xpi
@@ -136,6 +147,7 @@ npm run build
 ```
 
 ### Distribution
+
 ```
 Public builds:
 releases/v1.0.0/moment-o-7.xpi     ← Tracked in git
@@ -148,22 +160,26 @@ dist/                               ← May be used for other builds
 ## ✅ Benefits of This Structure
 
 **Clean Repository:**
+
 - Only source code and documentation tracked
 - No auto-generated files cluttering git history
 - Smaller repository size
 - Cleaner `git status` output
 
 **Clear Separation:**
+
 - Development builds: `.scaffold/` (local only)
 - Public releases: `releases/` (tracked in git)
 - Distribution: `dist/` (flexible use)
 
 **Proper Release Management:**
+
 - Versioned builds tracked in `releases/`
 - Easy to find historical versions
 - Clear download path for users
 
 **Git Hygiene:**
+
 - `git status` shows only actual changes
 - No confusion about what's tracked
 - Smaller diffs for commits
@@ -173,6 +189,7 @@ dist/                               ← May be used for other builds
 ## 🚀 Example Workflow
 
 ### 1. During Development
+
 ```bash
 # Run build (creates .scaffold/build/moment-o-7.xpi)
 npm run build
@@ -183,6 +200,7 @@ git status
 ```
 
 ### 2. After Testing Passes
+
 ```bash
 # Create release directory
 mkdir -p releases/v1.0.0
@@ -200,6 +218,7 @@ git push origin main --tags
 ```
 
 ### 3. User Downloads
+
 ```
 User visits: https://github.com/[user]/zotero-momento7-new/releases
 Downloads: moment-o-7.xpi (from GitHub Release)
@@ -228,6 +247,7 @@ Git Status:
 ## 🔍 Verification
 
 ### Check What's Tracked
+
 ```bash
 git ls-files | grep -E "releases|dist"
 # Shows:
@@ -237,6 +257,7 @@ git ls-files | grep -E "releases|dist"
 ```
 
 ### Check What's Ignored
+
 ```bash
 # These don't appear in git
 .scaffold/build/moment-o-7.xpi
@@ -245,6 +266,7 @@ dist/moment-o-7.xpi
 ```
 
 ### View Active Rules
+
 ```bash
 cat .gitignore
 # Shows comprehensive ignore patterns
@@ -255,12 +277,15 @@ cat .gitignore
 ## 📋 Maintenance
 
 ### Keep .gitignore Updated
+
 If new auto-generated files appear:
+
 1. Add pattern to `.gitignore`
 2. Run: `git rm --cached <file>` (if already tracked)
 3. Commit: `git add .gitignore && git commit`
 
 ### Monitor for Untracked Files
+
 ```bash
 # Check for anything that shouldn't be there
 git status
@@ -273,14 +298,14 @@ git status
 
 ## 🎯 Summary
 
-| Item | Status | Notes |
-|------|--------|-------|
-| .gitignore | ✅ Fixed | Comprehensive ignore patterns |
-| releases/ | ✅ Created | For versioned releases |
-| dist/ | ✅ Created | For public distribution |
-| .scaffold/ | ✅ Ignored | Development builds only |
-| Clean status | ✅ Achieved | No untracked generated files |
-| Release path | ✅ Ready | releases/vX.Y.Z/moment-o7.xpi |
+| Item         | Status      | Notes                         |
+| ------------ | ----------- | ----------------------------- |
+| .gitignore   | ✅ Fixed    | Comprehensive ignore patterns |
+| releases/    | ✅ Created  | For versioned releases        |
+| dist/        | ✅ Created  | For public distribution       |
+| .scaffold/   | ✅ Ignored  | Development builds only       |
+| Clean status | ✅ Achieved | No untracked generated files  |
+| Release path | ✅ Ready    | releases/vX.Y.Z/moment-o7.xpi |
 
 ---
 

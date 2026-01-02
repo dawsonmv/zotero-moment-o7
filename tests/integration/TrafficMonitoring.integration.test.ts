@@ -14,7 +14,10 @@ import { ArchiveResult } from "../../src/modules/archive/types";
 import { ServiceRegistry } from "../../src/modules/archive/ServiceRegistry";
 
 // Create mock Zotero Item
-function createMockItem(id: number, url: string = `https://example${id}.com`): Zotero.Item {
+function createMockItem(
+  id: number,
+  url: string = `https://example${id}.com`,
+): Zotero.Item {
   return {
     id,
     key: `KEY${id}`,
@@ -37,13 +40,13 @@ function createMockItem(id: number, url: string = `https://example${id}.com`): Z
   } as any as Zotero.Item;
 }
 
-describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
+describe("Traffic Monitoring & Concurrent Archiving Integration", function () {
   let queue: ConcurrentArchiveQueue;
   let trafficMonitor: TrafficMonitor;
   let coordinator: ArchiveCoordinator;
   let registry: ServiceRegistry;
 
-  beforeEach(() => {
+  beforeEach(function () {
     jest.useFakeTimers();
     queue = new ConcurrentArchiveQueue(4);
     trafficMonitor = TrafficMonitor.getInstance();
@@ -91,7 +94,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     };
   });
 
-  afterEach(() => {
+  afterEach(function () {
     jest.useRealTimers();
     trafficMonitor.resetBatch();
     (ArchiveCoordinator as any).instance = undefined;
@@ -99,12 +102,16 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     registry.clear();
   });
 
-  describe("Traffic Monitoring - HTTP Request Tracking", () => {
-    it("should start monitoring after 1 second delay", async () => {
+  describe("Traffic Monitoring - HTTP Request Tracking", function () {
+    it("should start monitoring after 1 second delay", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         // Simulate request starting
         const requestId = `test_${item.id}`;
-        trafficMonitor.startRequest(requestId, "test-service", "http://example.com");
+        trafficMonitor.startRequest(
+          requestId,
+          "test-service",
+          "http://example.com",
+        );
 
         // Advance time: 1s delay for monitoring start + 5s request duration
         jest.advanceTimersByTime(1000);
@@ -129,7 +136,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
       expect(meanScore).toBeGreaterThan(0); // 5 seconds of monitoring = 0.5 score
     });
 
-    it("should not record score for fast responses under 1 second", async () => {
+    it("should not record score for fast responses under 1 second", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         const requestId = `test_${item.id}`;
 
@@ -137,7 +144,11 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
         let monitoringStarted = false;
         const timerHandle = setTimeout(() => {
           monitoringStarted = true;
-          trafficMonitor.startRequest(requestId, "test-service", "http://example.com");
+          trafficMonitor.startRequest(
+            requestId,
+            "test-service",
+            "http://example.com",
+          );
         }, 1000);
 
         // Advance only 500ms (less than 1s delay for monitoring start)
@@ -167,11 +178,15 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     });
   });
 
-  describe("Traffic Monitoring - Jamming Detection", () => {
-    it("should detect service jamming when score >= 2.0", async () => {
+  describe("Traffic Monitoring - Jamming Detection", function () {
+    it("should detect service jamming when score >= 2.0", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         const requestId = `test_${item.id}`;
-        trafficMonitor.startRequest(requestId, "slow-service", "http://example.com");
+        trafficMonitor.startRequest(
+          requestId,
+          "slow-service",
+          "http://example.com",
+        );
 
         // Simulate request taking 21 seconds (>= 20s delay threshold)
         // Score = (21000ms - 1000ms) / 1000 * 0.1 = 2.0
@@ -194,10 +209,14 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
       expect(trafficMonitor.isServiceJammed("slow-service")).toBe(true);
     });
 
-    it("should not mark service as jammed for scores < 2.0", async () => {
+    it("should not mark service as jammed for scores < 2.0", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         const requestId = `test_${item.id}`;
-        trafficMonitor.startRequest(requestId, "normal-service", "http://example.com");
+        trafficMonitor.startRequest(
+          requestId,
+          "normal-service",
+          "http://example.com",
+        );
 
         // Simulate request taking 10 seconds
         // Score = (10000ms - 1000ms) / 1000 * 0.1 = 0.9
@@ -221,8 +240,8 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     });
   });
 
-  describe("Concurrent Queue - Multiple Items Processing", () => {
-    it("should process up to 4 items concurrently", async () => {
+  describe("Concurrent Queue - Multiple Items Processing", function () {
+    it("should process up to 4 items concurrently", async function () {
       const processOrder: number[] = [];
       let activeCount = 0;
       let maxConcurrent = 0;
@@ -259,7 +278,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
       expect(results.map((r) => r.item.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     });
 
-    it("should maintain result order regardless of completion order", async () => {
+    it("should maintain result order regardless of completion order", async function () {
       const completionTimes: number[] = [];
 
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
@@ -289,7 +308,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
       expect(results[3].item.id).toBe(1);
     });
 
-    it("should continue processing after failures", async () => {
+    it("should continue processing after failures", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         // Every other item fails
         if ((item.id as number) % 2 === 0) {
@@ -321,8 +340,8 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     });
   });
 
-  describe("Batch Reset & Isolation", () => {
-    it("should reset traffic scores between batches", async () => {
+  describe("Batch Reset & Isolation", function () {
+    it("should reset traffic scores between batches", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -351,7 +370,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
         archiveFn(item).then((result) => ({
           ...result,
           service: "different-service",
-        }))
+        })),
       );
 
       const stats1 = trafficMonitor.getServiceStats("test-service");
@@ -362,8 +381,8 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     });
   });
 
-  describe("Performance - Large Batch Processing", () => {
-    it("should handle 100-item batch efficiently", async () => {
+  describe("Performance - Large Batch Processing", function () {
+    it("should handle 100-item batch efficiently", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => ({
         item,
         success: true,
@@ -371,7 +390,9 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
         service: "test-service",
       }));
 
-      const items = Array.from({ length: 100 }, (_, i) => createMockItem(i + 1));
+      const items = Array.from({ length: 100 }, (_, i) =>
+        createMockItem(i + 1),
+      );
 
       const startTime = Date.now();
       const results = await queue.process(items, archiveFn);
@@ -383,7 +404,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
       expect(duration).toBeLessThan(5000);
     });
 
-    it("should process large batch with traffic monitoring", async () => {
+    it("should process large batch with traffic monitoring", async function () {
       let requestCount = 0;
 
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
@@ -391,7 +412,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
         trafficMonitor.startRequest(
           requestId,
           "test-service",
-          `http://example${item.id}.com`
+          `http://example${item.id}.com`,
         );
 
         // Simulate some requests taking longer
@@ -423,8 +444,8 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     });
   });
 
-  describe("Traffic Summary Display", () => {
-    it("should generate traffic summary for progress window", async () => {
+  describe("Traffic Summary Display", function () {
+    it("should generate traffic summary for progress window", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         const requestId = `test_${item.id}`;
 
@@ -432,7 +453,11 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
         let monitoringStarted = false;
         const timerHandle = setTimeout(() => {
           monitoringStarted = true;
-          trafficMonitor.startRequest(requestId, "internetarchive", "http://example.com");
+          trafficMonitor.startRequest(
+            requestId,
+            "internetarchive",
+            "http://example.com",
+          );
         }, 1000);
 
         // Simulate request taking 5 seconds
@@ -461,7 +486,7 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
       expect(summary).toContain("IA");
     });
 
-    it("should indicate jammed services in summary", async () => {
+    it("should indicate jammed services in summary", async function () {
       const archiveFn = jest.fn(async (item: Zotero.Item) => {
         const requestId = `test_${item.id}`;
 
@@ -469,7 +494,11 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
         let monitoringStarted = false;
         const timerHandle = setTimeout(() => {
           monitoringStarted = true;
-          trafficMonitor.startRequest(requestId, "jammed-service", "http://example.com");
+          trafficMonitor.startRequest(
+            requestId,
+            "jammed-service",
+            "http://example.com",
+          );
         }, 1000);
 
         // Simulate request taking 25 seconds (long enough to trigger jamming >= 2.0)
@@ -498,38 +527,40 @@ describe("Traffic Monitoring & Concurrent Archiving Integration", () => {
     });
   });
 
-  describe("End-to-End Archiving Flow", () => {
-    it("should complete a full archiving batch with all components", async () => {
-      const archiveFn = jest.fn(async (item: Zotero.Item): Promise<ArchiveResult> => {
-        const requestId = `archive_${item.id}_${Date.now()}_${Math.random()}`;
+  describe("End-to-End Archiving Flow", function () {
+    it("should complete a full archiving batch with all components", async function () {
+      const archiveFn = jest.fn(
+        async (item: Zotero.Item): Promise<ArchiveResult> => {
+          const requestId = `archive_${item.id}_${Date.now()}_${Math.random()}`;
 
-        // Simulate delayed timer start (like BaseArchiveService does)
-        let monitoringStarted = false;
-        const timerHandle = setTimeout(() => {
-          monitoringStarted = true;
-          trafficMonitor.startRequest(
-            requestId,
-            "test-service",
-            item.getField("url") as string
-          );
-        }, 1000);
+          // Simulate delayed timer start (like BaseArchiveService does)
+          let monitoringStarted = false;
+          const timerHandle = setTimeout(() => {
+            monitoringStarted = true;
+            trafficMonitor.startRequest(
+              requestId,
+              "test-service",
+              item.getField("url") as string,
+            );
+          }, 1000);
 
-        // Simulate HTTP request: 1s delay for monitoring start + 3s request duration
-        jest.advanceTimersByTime(1000); // Trigger monitoring start
-        jest.advanceTimersByTime(3000); // Request duration
+          // Simulate HTTP request: 1s delay for monitoring start + 3s request duration
+          jest.advanceTimersByTime(1000); // Trigger monitoring start
+          jest.advanceTimersByTime(3000); // Request duration
 
-        clearTimeout(timerHandle);
-        if (monitoringStarted) {
-          trafficMonitor.endRequest(requestId, true);
-        }
+          clearTimeout(timerHandle);
+          if (monitoringStarted) {
+            trafficMonitor.endRequest(requestId, true);
+          }
 
-        return {
-          item,
-          success: true,
-          archivedUrl: `http://archive.org/${item.id}`,
-          service: "test-service",
-        };
-      });
+          return {
+            item,
+            success: true,
+            archivedUrl: `http://archive.org/${item.id}`,
+            service: "test-service",
+          };
+        },
+      );
 
       // Create batch of items
       const items = Array.from({ length: 5 }, (_, i) => createMockItem(i + 1));
