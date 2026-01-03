@@ -1,0 +1,126 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-fix-item-persistence"
+  sequence: 2
+  name: "Fix BaseArchiveService item persistence and tagging"
+  epic: "EPIC-archive-resilience"
+  created: "2026-01-02T21:35:00Z"
+  updated: "2026-01-02T21:35:00Z"
+  assignee: "Dawson Valdes"
+  labels:
+    component: "archive-services"
+    type: "bug"
+    effort: "medium"
+    priority: "high"
+
+spec:
+  description: |
+    BaseArchiveService.saveToItem() method mutates the item's extra field and should add
+    an "archived" tag, but the changes are never persisted to the Zotero database. This
+    causes archive metadata to be lost on reload, and items never get tagged as archived.
+
+    The note content is saved correctly, but item changes (extra field mutations) and tags
+    are not persisted, making the archiving operation incomplete and metadata unrecoverable.
+
+    Location: src/modules/archive/BaseArchiveService.ts (lines 243-283)
+
+    Impact:
+    - Archive metadata is lost when Zotero reloads or plugin is restarted
+    - Items cannot be tracked as archived for future operations
+    - User cannot visually identify which items have been archived
+    - Breaking change from expected behavior - users expect archiving to persist
+
+  type: "bug"
+  status: "backlog"
+  priority: "high"
+
+  acceptance_criteria:
+    - [ ] Item.save() is called after mutating item.extra with archive metadata
+    - [ ] Item.addTag("archived") is called and persisted to database
+    - [ ] Archive metadata survives reload (test with Zotero restart)
+    - [ ] Items appear tagged as "archived" in Zotero UI
+    - [ ] All existing tests pass with new implementation
+    - [ ] New tests verify persistence of extra field and tags
+
+  tasks:
+    - [ ] Analyze BaseArchiveService.saveToItem() implementation (lines 243-283)
+    - [ ] Identify why item.save() is not being called for extra field mutations
+    - [ ] Add item.save() call after extra field mutation
+    - [ ] Add item.addTag("archived") and verify persistence
+    - [ ] Write unit tests for item persistence scenario
+    - [ ] Write integration test with item reload
+    - [ ] Verify no regressions in archiving workflow
+    - [ ] Test with multiple archive services (IA, Perma.cc, Arquivo.pt, etc.)
+
+  technical_notes: |
+    The saveToItem() method currently:
+    1. Creates a note with archive metadata
+    2. Saves the note via item.addNote() (which persists to database)
+    3. Mutates item.extra with service-specific archive URL
+    4. BUT: Does not call item.save() to persist extra field changes
+    5. Does not add "archived" tag to item
+
+    Required fixes:
+    - Call item.save() after modifying item.extra
+    - Call item.addTag("archived") to mark item as archived
+    - Ensure both changes are persisted before method returns
+    - Consider tag color/formatting for UI visibility
+
+    Related to config-driven services implementation - ensure all config services
+    properly persist metadata through BaseArchiveService.saveToItem().
+
+  dependencies:
+    - "TICKET-implement-circuit-breaker"
+
+  estimation:
+    story_points: 3
+    tshirt_size: "M"
+    hours: 4
+
+  testing_strategy: |
+    Unit Tests:
+    - Mock Zotero.Item and verify save() is called
+    - Verify item.extra is mutated correctly
+    - Verify item.addTag("archived") is called
+
+    Integration Tests:
+    - Create real item in test database
+    - Archive to multiple services
+    - Reload items and verify metadata persists
+    - Check tags appear in Zotero UI
+
+    Regression Tests:
+    - Run full test suite with changes
+    - Verify archiving still works for all 5 services
+    - Check performance impact is minimal
+
+  risk_assessment: |
+    Risk Level: Medium
+
+    Risks:
+    - Potential issue with item.save() not returning/completing properly
+    - Race condition if multiple archives in parallel
+    - Zotero API compatibility issues with save() behavior
+
+    Mitigations:
+    - Check existing patterns in codebase for item.save() usage
+    - Add proper async handling and error management
+    - Test with concurrent archive operations
+    - Verify against zotero-types API documentation
+
+  success_metrics:
+    - Archive metadata persists through Zotero reload
+    - Items properly tagged as "archived"
+    - No performance regression in archiving speed
+    - 100% of test cases pass
+    - No new issues reported in tracking metadata
+
+  notes: |
+    This bug was identified during recent refactoring and config-driven services
+    implementation. It affects all archive services (both TypeScript and config-driven).
+
+    Priority is HIGH because data persistence is critical - users expect their archiving
+    operations to be durable and recoverable.
+
+    Should be completed before v0.1.0 release to ensure data integrity for end users.
