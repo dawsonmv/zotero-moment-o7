@@ -929,6 +929,84 @@ export class AlertManager {
   }
 
   /**
+   * Get comprehensive monitoring summary for dashboard
+   */
+  getMonitoringSummary(): {
+    timestamp: string;
+    health: {
+      totalAlerts: number;
+      criticalAlerts: number;
+      unacknowledgedAlerts: number;
+      alertsByLevel: Record<string, number>;
+    };
+    services: {
+      totalMonitored: number;
+      activeIssues: Array<{ serviceId: string; alertCount: number }>;
+    };
+    activity: {
+      totalActivities: number;
+      successRate: number;
+      recentActivityCount: number;
+    };
+    circuitBreaker: {
+      openServices: number;
+      halfOpenServices: number;
+      closedServices: number;
+    };
+    metrics: {
+      last24hSuccessRate: number;
+      totalArchives: number;
+    };
+  } {
+    const metrics24h = this.getMetricsByPeriod(86400000); // 24 hours
+    const cbStats = this.getCircuitBreakerStats();
+    const allAlerts = this.getHistory();
+    const criticalAlerts = this.getCriticalAlerts();
+    const stats = this.getActivityStatistics();
+    const alertsByLevel = this.countAlertsByLevel();
+
+    // Get services with active issues
+    const serviceIssues = new Map<string, number>();
+    for (const service of this.getAllServiceStatistics()) {
+      if (service.activeAlerts > 0) {
+        serviceIssues.set(service.serviceId, service.activeAlerts);
+      }
+    }
+
+    const recentActivities = this.getActivityHistory(50);
+
+    return {
+      timestamp: new Date().toISOString(),
+      health: {
+        totalAlerts: allAlerts.length,
+        criticalAlerts: criticalAlerts.length,
+        unacknowledgedAlerts: this.getUnacknowledgedAlerts().length,
+        alertsByLevel,
+      },
+      services: {
+        totalMonitored: cbStats.totalServices,
+        activeIssues: Array.from(serviceIssues.entries())
+          .map(([serviceId, alertCount]) => ({ serviceId, alertCount }))
+          .sort((a, b) => b.alertCount - a.alertCount),
+      },
+      activity: {
+        totalActivities: stats.totalActivities,
+        successRate: metrics24h.successRate,
+        recentActivityCount: recentActivities.length,
+      },
+      circuitBreaker: {
+        openServices: cbStats.openServices,
+        halfOpenServices: cbStats.halfOpenServices,
+        closedServices: cbStats.closedServices,
+      },
+      metrics: {
+        last24hSuccessRate: metrics24h.successRate,
+        totalArchives: metrics24h.totalAttempts,
+      },
+    };
+  }
+
+  /**
    * Export audit report with current system state
    */
   exportAuditReport(): {
