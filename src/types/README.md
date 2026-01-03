@@ -13,11 +13,13 @@ This directory contains type definitions organized by their purpose and origin.
 ### When to Add Augmentations
 
 Add to `augmentations/` when:
+
 - Zotero 7 has an API that's not in zotero-types
 - You've verified the API exists in the Zotero source code
 - The type is needed for production code (not tests)
 
 Before adding, check if it exists:
+
 ```bash
 grep -r "your-type-name" node_modules/zotero-types/types/
 ```
@@ -25,6 +27,7 @@ grep -r "your-type-name" node_modules/zotero-types/types/
 ### When to Add Plugin Types
 
 Add to `plugin/` when:
+
 - The type is specific to this plugin's domain
 - The type is used across multiple modules
 - The type represents plugin configuration or state
@@ -32,6 +35,7 @@ Add to `plugin/` when:
 ### When NOT to Add Types
 
 Don't add types that:
+
 - Already exist in zotero-types (check first!)
 - Are only used in tests (add to tests/types/ instead)
 - Are one-off interfaces (keep them local to the module)
@@ -49,6 +53,7 @@ The project extends `zotero-types@4.1.0-beta.4` via tsconfig.json:
 ```
 
 This provides:
+
 - `Zotero.*` namespace with all Zotero APIs
 - `_ZoteroTypes.*` namespace for type augmentations
 - `XUL.*` namespace for XUL elements
@@ -57,6 +62,7 @@ This provides:
 ### From This Project
 
 Augmentations and project-specific types provide:
+
 - Missing Zotero 7 APIs (augmentations/)
 - Build-time globals (build/)
 - Plugin configuration types (plugin/)

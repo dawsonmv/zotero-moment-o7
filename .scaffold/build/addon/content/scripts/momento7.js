@@ -3625,14 +3625,130 @@ html {
     }
   }
 
+  // src/utils/SecureCredentialStorage.ts
+  var SecureCredentialStorage = class {
+    static ORIGIN = "chrome://zotero";
+    static REALM = "Momento7 Credentials";
+    /**
+     * Store credential securely using nsILoginManager
+     * Creates or updates a credential in the OS keychain
+     */
+    static async set(key, value) {
+      if (!key || !value) {
+        throw new Error("Credential key and value are required");
+      }
+      try {
+        const loginInfo = Components.classes["@mozilla.org/login-manager/loginInfo;1"].createInstance(Components.interfaces.nsILoginInfo);
+        loginInfo.init(
+          this.ORIGIN,
+          // origin: identifies the storage location
+          null,
+          // formActionOrigin: not used for generic credentials
+          this.REALM,
+          // httpRealm: identifies the credential set
+          key,
+          // username: credential key (e.g., "iaAccessKey")
+          value,
+          // password: credential value (the actual API key)
+          "",
+          // usernameField: not used
+          ""
+          // passwordField: not used
+        );
+        const existing = await this.get(key);
+        if (existing !== void 0) {
+          const oldLogins = await Services.logins.searchLoginsAsync({
+            origin: this.ORIGIN,
+            httpRealm: this.REALM
+          });
+          const oldLogin = oldLogins.find((login) => login.username === key);
+          if (oldLogin) {
+            Services.logins.modifyLogin(oldLogin, loginInfo);
+            Zotero.debug(`MomentO7: Updated credential ${key} in secure storage`);
+            return;
+          }
+        }
+        await Services.logins.addLoginAsync(loginInfo);
+        Zotero.debug(`MomentO7: Stored credential ${key} in secure storage`);
+      } catch (error) {
+        Zotero.debug(`MomentO7: Failed to store credential ${key}: ${error}`);
+        throw new Error(
+          `Failed to store credential: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+    /**
+     * Retrieve credential from nsILoginManager
+     * Returns undefined if credential not found
+     */
+    static async get(key) {
+      if (!key) return void 0;
+      try {
+        const logins = await Services.logins.searchLoginsAsync({
+          origin: this.ORIGIN,
+          httpRealm: this.REALM
+        });
+        const login = logins.find((login2) => login2.username === key);
+        return login?.password;
+      } catch (error) {
+        Zotero.debug(`MomentO7: Failed to retrieve credential ${key}: ${error}`);
+        return void 0;
+      }
+    }
+    /**
+     * Delete credential from nsILoginManager
+     * Removes the credential from the OS keychain
+     */
+    static async delete(key) {
+      if (!key) return;
+      try {
+        const logins = await Services.logins.searchLoginsAsync({
+          origin: this.ORIGIN,
+          httpRealm: this.REALM
+        });
+        const login = logins.find((login2) => login2.username === key);
+        if (login) {
+          Services.logins.removeLogin(login);
+          Zotero.debug(`MomentO7: Deleted credential ${key} from secure storage`);
+        }
+      } catch (error) {
+        Zotero.debug(`MomentO7: Failed to delete credential ${key}: ${error}`);
+      }
+    }
+    /**
+     * Clear all Momento7 credentials from nsILoginManager
+     * Removes all credentials in the Momento7 Credentials set
+     */
+    static async clear() {
+      try {
+        const logins = await Services.logins.searchLoginsAsync({
+          origin: this.ORIGIN,
+          httpRealm: this.REALM
+        });
+        for (const login of logins) {
+          Services.logins.removeLogin(login);
+        }
+        Zotero.debug(
+          `MomentO7: Cleared all ${logins.length} credentials from secure storage`
+        );
+      } catch (error) {
+        Zotero.debug(`MomentO7: Failed to clear credentials: ${error}`);
+      }
+    }
+    /**
+     * Check if any credentials exist
+     * Useful for determining if credentials have been set up
+     */
+    static async exists(key) {
+      const credential = await this.get(key);
+      return credential !== void 0;
+    }
+  };
+
   // src/utils/CredentialManager.ts
   var CredentialManager = class _CredentialManager {
     static instance;
-    encryptionKey = null;
-    ALGORITHM = "AES-GCM";
-    KEY_PREFIX = "encrypted:";
-    encryptionAvailable = false;
-    initWarningShown = false;
+    migrationComplete = false;
     constructor() {
     }
     static getInstance() {
@@ -3642,14 +3758,138 @@ html {
       return _CredentialManager.instance;
     }
     /**
-     * Initialize encryption key derived from profile-specific data
+     * Get a profile-specific identifier for key derivation
+     * Used only for migration of old encrypted credentials
      */
-    async init() {
-      if (this.encryptionKey) return;
+    getProfileIdentifier() {
       try {
-        if (typeof crypto === "undefined" || !crypto.subtle) {
-          throw new Error("Web Crypto API not available");
+        const zotero = Zotero;
+        const profileDir = zotero.Profile?.dir || zotero.DataDirectory?.dir || "unknown";
+        return `momento7:${profileDir}`;
+      } catch {
+        return "momento7:fallback-profile";
+      }
+    }
+    /**
+     * Store a credential securely using nsILoginManager
+     * Replaces old encrypted storage with OS-native keychain
+     */
+    async set(key, value) {
+      if (!key || !value) {
+        throw new Error("Credential key and value are required");
+      }
+      await SecureCredentialStorage.set(key, value);
+      this.cleanupLegacyStorage(key);
+    }
+    /**
+     * Retrieve a credential from nsILoginManager
+     * Attempts to read from old storage for backward compatibility
+     */
+    async get(key) {
+      if (!key) return void 0;
+      return await SecureCredentialStorage.get(key);
+    }
+    /**
+     * Delete a credential from nsILoginManager
+     */
+    async delete(key) {
+      if (!key) return;
+      await SecureCredentialStorage.delete(key);
+      this.cleanupLegacyStorage(key);
+    }
+    /**
+     * Clear all credentials from nsILoginManager
+     */
+    async clear() {
+      await SecureCredentialStorage.clear();
+      const legacyKeys = [
+        "iaAccessKey",
+        "iaSecretKey",
+        "permaCCApiKey",
+        "orcidApiKey"
+      ];
+      for (const key of legacyKeys) {
+        this.cleanupLegacyStorage(key);
+      }
+    }
+    /**
+     * Check if a credential exists
+     */
+    async exists(key) {
+      const value = await this.get(key);
+      return value !== void 0;
+    }
+    /**
+     * Compatibility method for old API
+     */
+    async storeCredential(key, value) {
+      return this.set(key, value);
+    }
+    /**
+     * Compatibility method for old API
+     */
+    async getCredential(key) {
+      return this.get(key);
+    }
+    /**
+     * Compatibility method for old API
+     */
+    async hasCredential(key) {
+      return this.exists(key);
+    }
+    /**
+     * Migrate credentials from old storage (Zotero.Prefs) to nsILoginManager
+     * Handles all legacy formats: plaintext, base64 obfuscated, and encrypted
+     */
+    async migrateIfNeeded() {
+      if (this.migrationComplete) return;
+      const credentialKeys = [
+        "iaAccessKey",
+        "iaSecretKey",
+        "permaCCApiKey",
+        "orcidApiKey"
+      ];
+      for (const key of credentialKeys) {
+        const prefKey = `extensions.momento7.${key}`;
+        const storedValue = Zotero.Prefs.get(prefKey);
+        if (!storedValue || typeof storedValue !== "string") continue;
+        try {
+          let decryptedValue;
+          if (storedValue.startsWith("encrypted:")) {
+            const encrypted = storedValue.substring(10);
+            decryptedValue = await this.attemptDecryption(encrypted);
+            if (!decryptedValue) {
+              Zotero.debug(
+                `MomentO7: Cannot decrypt credential ${key} - user must re-enter`
+              );
+              continue;
+            }
+          } else if (storedValue.startsWith("b64:")) {
+            const obfuscated = storedValue.substring(4);
+            decryptedValue = this.deobfuscateBase64(obfuscated);
+          } else {
+            decryptedValue = storedValue;
+          }
+          if (decryptedValue) {
+            await SecureCredentialStorage.set(key, decryptedValue);
+            Zotero.Prefs.clear(prefKey);
+            Zotero.debug(
+              `MomentO7: Migrated credential ${key} to secure storage`
+            );
+          }
+        } catch (error) {
+          Zotero.debug(`MomentO7: Failed to migrate credential ${key}: ${error}`);
         }
+      }
+      this.migrationComplete = true;
+    }
+    /**
+     * Attempt to decrypt old Web Crypto encrypted credentials
+     * Uses profile-based key derivation (same as old implementation)
+     * Returns undefined if decryption fails
+     */
+    async attemptDecryption(encryptedData) {
+      try {
         const profileId = this.getProfileIdentifier();
         const salt = new TextEncoder().encode("momento7-credential-salt-v1");
         const keyMaterial = await crypto.subtle.importKey(
@@ -3659,7 +3899,7 @@ html {
           false,
           ["deriveBits", "deriveKey"]
         );
-        this.encryptionKey = await crypto.subtle.deriveKey(
+        const key = await crypto.subtle.deriveKey(
           {
             name: "PBKDF2",
             salt,
@@ -3667,170 +3907,32 @@ html {
             hash: "SHA-256"
           },
           keyMaterial,
-          { name: this.ALGORITHM, length: 256 },
+          { name: "AES-GCM", length: 256 },
           false,
-          ["encrypt", "decrypt"]
+          ["decrypt"]
         );
-        this.encryptionAvailable = true;
-        Zotero.debug(
-          "MomentO7: CredentialManager initialized with AES-GCM encryption"
+        const decoded = atob(encryptedData);
+        const bytes = new Uint8Array(decoded.length);
+        for (let i = 0; i < decoded.length; i++) {
+          bytes[i] = decoded.charCodeAt(i);
+        }
+        const iv = bytes.slice(0, 12);
+        const ciphertext = bytes.slice(12);
+        const decrypted = await crypto.subtle.decrypt(
+          { name: "AES-GCM", iv },
+          key,
+          ciphertext
         );
+        return new TextDecoder().decode(decrypted);
       } catch (error) {
-        Zotero.debug(
-          `MomentO7: CredentialManager encryption init failed: ${error}`
-        );
-        Zotero.debug(
-          "MomentO7: WARNING - Credentials will use insecure base64 encoding"
-        );
-        this.encryptionKey = null;
-        this.encryptionAvailable = false;
+        Zotero.debug(`MomentO7: Decryption attempt failed: ${error}`);
+        return void 0;
       }
     }
     /**
-     * Check if secure encryption is available
+     * Deobfuscate old base64-encoded credentials for migration
      */
-    isEncryptionAvailable() {
-      return this.encryptionAvailable;
-    }
-    /**
-     * Get a profile-specific identifier for key derivation
-     */
-    getProfileIdentifier() {
-      try {
-        const zotero = Zotero;
-        const profileDir = zotero.Profile?.dir || zotero.DataDirectory?.dir || "default-profile";
-        return `momento7:${profileDir}`;
-      } catch {
-        return "momento7:fallback-profile";
-      }
-    }
-    /**
-     * Store a credential securely
-     */
-    async storeCredential(key, value) {
-      if (!value) {
-        Zotero.Prefs.clear(`extensions.momento7.${key}`);
-        return;
-      }
-      await this.init();
-      if (this.encryptionKey) {
-        try {
-          const encrypted = await this.encrypt(value);
-          Zotero.Prefs.set(
-            `extensions.momento7.${key}`,
-            this.KEY_PREFIX + encrypted
-          );
-          return;
-        } catch (error) {
-          Zotero.debug(`MomentO7: Encryption failed for ${key}: ${error}`);
-        }
-      }
-      if (!this.initWarningShown) {
-        Zotero.debug(
-          "MomentO7: SECURITY WARNING - Storing credentials with base64 encoding (NOT encrypted)"
-        );
-        Zotero.debug(
-          "MomentO7: API keys are stored insecurely. Consider not storing them if encryption is unavailable."
-        );
-        this.initWarningShown = true;
-      }
-      const obfuscated = this.obfuscate(value);
-      Zotero.Prefs.set(
-        `extensions.momento7.${key}`,
-        this.KEY_PREFIX + "b64:" + obfuscated
-      );
-    }
-    /**
-     * Retrieve a credential
-     */
-    async getCredential(key) {
-      const stored = Zotero.Prefs.get(`extensions.momento7.${key}`);
-      if (!stored) return void 0;
-      if (typeof stored === "string" && stored.startsWith(this.KEY_PREFIX)) {
-        const encrypted = stored.substring(this.KEY_PREFIX.length);
-        if (encrypted.startsWith("b64:")) {
-          return this.deobfuscate(encrypted.substring(4));
-        }
-        await this.init();
-        if (this.encryptionKey) {
-          try {
-            return await this.decrypt(encrypted);
-          } catch (error) {
-            Zotero.debug(`MomentO7: Decryption failed for ${key}: ${error}`);
-            return void 0;
-          }
-        }
-      }
-      return typeof stored === "string" ? stored : void 0;
-    }
-    /**
-     * Check if a credential exists
-     */
-    async hasCredential(key) {
-      const value = await this.getCredential(key);
-      return !!value;
-    }
-    /**
-     * Migrate plaintext credentials to encrypted storage
-     */
-    async migrateIfNeeded() {
-      const credentialKeys = [
-        "iaAccessKey",
-        "iaSecretKey",
-        "permaccApiKey",
-        "orcidApiKey"
-      ];
-      for (const key of credentialKeys) {
-        const stored = Zotero.Prefs.get(`extensions.momento7.${key}`);
-        if (stored && typeof stored === "string" && !stored.startsWith(this.KEY_PREFIX)) {
-          Zotero.debug(`MomentO7: Migrating plaintext credential: ${key}`);
-          await this.storeCredential(key, stored);
-        }
-      }
-    }
-    /**
-     * Encrypt a string using AES-GCM
-     */
-    async encrypt(plaintext) {
-      if (!this.encryptionKey) throw new Error("Encryption key not initialized");
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encoded = new TextEncoder().encode(plaintext);
-      const ciphertext = await crypto.subtle.encrypt(
-        { name: this.ALGORITHM, iv },
-        this.encryptionKey,
-        encoded
-      );
-      const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-      combined.set(iv, 0);
-      combined.set(new Uint8Array(ciphertext), iv.length);
-      return this.arrayBufferToBase64(combined);
-    }
-    /**
-     * Decrypt a string using AES-GCM
-     */
-    async decrypt(encrypted) {
-      if (!this.encryptionKey) throw new Error("Encryption key not initialized");
-      const combined = this.base64ToArrayBuffer(encrypted);
-      const iv = combined.slice(0, 12);
-      const ciphertext = combined.slice(12);
-      const decrypted = await crypto.subtle.decrypt(
-        { name: this.ALGORITHM, iv },
-        this.encryptionKey,
-        ciphertext
-      );
-      return new TextDecoder().decode(decrypted);
-    }
-    /**
-     * Basic obfuscation fallback (base64 with reversal)
-     */
-    obfuscate(value) {
-      const reversed = value.split("").reverse().join("");
-      return btoa(reversed);
-    }
-    /**
-     * Deobfuscate basic obfuscation
-     */
-    deobfuscate(value) {
+    deobfuscateBase64(value) {
       try {
         const decoded = atob(value);
         return decoded.split("").reverse().join("");
@@ -3839,25 +3941,13 @@ html {
       }
     }
     /**
-     * Convert ArrayBuffer to base64 string
+     * Remove legacy credential storage from Zotero.Prefs
      */
-    arrayBufferToBase64(buffer) {
-      let binary = "";
-      for (let i = 0; i < buffer.length; i++) {
-        binary += String.fromCharCode(buffer[i]);
+    cleanupLegacyStorage(key) {
+      const prefKey = `extensions.momento7.${key}`;
+      if (Zotero.Prefs.get(prefKey)) {
+        Zotero.Prefs.clear(prefKey);
       }
-      return btoa(binary);
-    }
-    /**
-     * Convert base64 string to Uint8Array
-     */
-    base64ToArrayBuffer(base64) {
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return bytes;
     }
   };
 
@@ -3906,7 +3996,6 @@ html {
         }
       }
       const credManager = CredentialManager.getInstance();
-      await credManager.init();
       await credManager.migrateIfNeeded();
     }
     /**
@@ -7853,7 +7942,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     const doc = _window.document;
     if (!doc) return;
     const credManager = CredentialManager.getInstance();
-    await credManager.init();
+    await credManager.migrateIfNeeded();
     const hasIACredentials = await credManager.hasCredential("iaAccessKey");
     if (hasIACredentials) {
       const accessKeyInput = doc.querySelector(

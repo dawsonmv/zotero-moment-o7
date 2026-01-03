@@ -68,9 +68,8 @@ export class PreferencesManager {
       }
     }
 
-    // Initialize credential manager
+    // Migrate legacy credentials to secure storage
     const credManager = CredentialManager.getInstance();
-    await credManager.init();
     await credManager.migrateIfNeeded();
   }
 

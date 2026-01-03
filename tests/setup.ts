@@ -42,6 +42,24 @@ const mockCrypto = {
 };
 (global as any).crypto = mockCrypto;
 
+// Mock Components for nsILoginManager
+(global as any).Components = {
+  classes: {
+    "@mozilla.org/login-manager/loginInfo;1": {
+      createInstance: jest.fn().mockImplementation(() => {
+        return {
+          init: jest.fn(),
+          username: "",
+          password: "",
+        };
+      }),
+    },
+  },
+  interfaces: {
+    nsILoginInfo: {},
+  },
+} as any;
+
 // Mock Zotero global
 (global as any).Zotero = {
   debug: jest.fn(),
@@ -118,6 +136,12 @@ const mockCrypto = {
   scriptloader: {
     loadSubScript: jest.fn(),
   },
+  logins: {
+    addLoginAsync: jest.fn().mockResolvedValue(undefined),
+    removeLogin: jest.fn(),
+    modifyLogin: jest.fn(),
+    searchLoginsAsync: jest.fn().mockResolvedValue([]),
+  } as any,
 } as any;
 
 // Mock ztoolkit (from zotero-plugin-toolkit)

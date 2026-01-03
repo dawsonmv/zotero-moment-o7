@@ -92,7 +92,7 @@ addon/                    # Static addon files
     └── en-US/
         └── addon.ftl
 
-tests/                    # Jest unit tests (738 tests, 88% coverage)
+tests/                    # Jest unit tests (739 tests, 88% coverage)
 ├── archive/
 ├── memento/
 ├── monitoring/
@@ -152,7 +152,7 @@ The project uses three type definition sources:
    - To check if type exists: `grep -r "type-name" node_modules/zotero-types/types/`
 
 3. **Project Types** (src/types/)
-   - **build/** - Build tool globals injected during build (ztoolkit, addon, __env__)
+   - **build/** - Build tool globals injected during build (ztoolkit, addon, **env**)
    - **plugin/** - Plugin-specific types
      - preferences.d.ts - Zotero preference type augmentation with plugin prefs
      - i18n.d.ts - i18n/Fluent message ID definitions
@@ -160,12 +160,14 @@ The project uses three type definition sources:
 ### Type Usage Guidelines
 
 **DO:**
+
 - Use types from zotero-types directly: `Zotero.Item`, `_ZoteroTypes.ZoteroPane`
 - Use zotero-types classes directly as types: `Zotero.ProgressWindow` (not `InstanceType<typeof ...>`)
-- Augment _ZoteroTypes namespace for missing Zotero 7 APIs
+- Augment \_ZoteroTypes namespace for missing Zotero 7 APIs
 - Check zotero-types before adding augmentations
 
 **DON'T:**
+
 - Re-declare types that exist in zotero-types
 - Use workaround interfaces when the real type exists
 - Mix test types (tests/types/mocks.d.ts) with production types
@@ -199,6 +201,7 @@ const autoArchive: boolean = Zotero.Prefs.get('extensions.momento7.autoArchive')
 ### Test Types
 
 Test-only type mocks are in `tests/types/mocks.d.ts`:
+
 - Minimal Zotero API mocks for Node.js/jsdom environment
 - Intentionally different from production types (test doubles, not real APIs)
 - Provided by tests/setup.ts at runtime
@@ -234,7 +237,7 @@ Test-only type mocks are in `tests/types/mocks.d.ts`:
 2. **Robust Links format** - `<a href="..." data-originalurl="..." data-versionurl="..." data-versiondate="...">`.
 3. **Extra field format** - `{serviceId}Archived: {url}` appended to existing content.
 4. **Preferences stored** - Via `Zotero.Prefs` with `extensions.momento7.` prefix.
-5. **Credentials stored** - Via CredentialManager with encryption.
+5. **Credentials stored** - Via Firefox's `nsILoginManager` (OS-native secure storage via Keychain/Credential Manager/Secret Service).
 6. **Rate limiting** - 1 second minimum between requests per service.
 
 ### HTTP Request Pattern
@@ -258,7 +261,7 @@ const response = await Zotero.HTTP.request(url, {
 
 - Uses Jest with jsdom environment
 - Comprehensive Zotero mocks in `tests/setup.ts`
-- 644 tests with 88% coverage
+- 739 tests with 88% coverage
 - Run with `npm test` or `npm run test:coverage`
 
 ## Gotchas
@@ -272,7 +275,51 @@ const response = await Zotero.HTTP.request(url, {
 
 ## Security
 
-- **Credential storage**: Encrypted via CredentialManager
+### Credential Storage (nsILoginManager)
+
+Credentials are stored securely using Firefox's `nsILoginManager` API, which provides OS-native encryption:
+
+- **Storage Backend**:
+  - **macOS**: Keychain integration
+  - **Windows**: Windows Credential Manager
+  - **Linux**: Secret Service API / GNOME Keyring
+- **Implementation**: `SecureCredentialStorage` class wraps the `nsILoginManager` API
+- **Usage**: `CredentialManager` delegates all credential operations to `SecureCredentialStorage`
+- **Encrypted Fields**: Origin (`chrome://zotero`), Realm (`Momento7 Credentials`), credentials stored as username/password pairs
+- **Migration**: Automatic migration from legacy storage on first use
+  - **Plaintext** credentials (legacy) → nsILoginManager
+  - **Base64 obfuscated** credentials (previous fallback) → nsILoginManager
+  - **Web Crypto AES-GCM encrypted** credentials → Decryption attempted using profile-based key derivation; if successful, migrated to nsILoginManager
+
+**Credential Keys Stored**:
+
+- `iaAccessKey` - Internet Archive S3 Access Key
+- `iaSecretKey` - Internet Archive S3 Secret Key
+- `permaCCApiKey` - Perma.cc API Key
+- `orcidApiKey` - ORCID API Key (future use)
+
+**API Usage**:
+
+```typescript
+// Store credential
+const credManager = CredentialManager.getInstance();
+await credManager.set("iaAccessKey", "my-access-key");
+
+// Retrieve credential
+const key = await credManager.get("iaAccessKey");
+
+// Check if credential exists
+const exists = await credManager.exists("iaAccessKey");
+
+// Delete credential
+await credManager.delete("iaAccessKey");
+
+// Migrate legacy credentials (automatic on first use)
+await credManager.migrateIfNeeded();
+```
+
+### Additional Security Measures
+
 - **Header injection prevention**: Credentials validated before HTTP headers
 - **XSS prevention**: HtmlUtils.escape() for all user-provided HTML content
 - **Input validation**: URLs validated before archiving

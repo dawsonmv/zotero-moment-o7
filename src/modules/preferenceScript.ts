@@ -151,7 +151,7 @@ async function initPrefsUI(_window: Window): Promise<void> {
 
   // Load existing credentials (masked)
   const credManager = CredentialManager.getInstance();
-  await credManager.init();
+  await credManager.migrateIfNeeded();
 
   // Check if IA credentials exist and show masked indicator
   const hasIACredentials = await credManager.hasCredential("iaAccessKey");
