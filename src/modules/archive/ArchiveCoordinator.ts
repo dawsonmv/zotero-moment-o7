@@ -281,8 +281,14 @@ export class ArchiveCoordinator {
         error: "No result returned from service",
       };
 
-      // Track failure if service didn't return a result
+      // Track outcome
       if (!results[0]) {
+        this.alertManager.trackFailure(serviceId);
+      } else if (result.success) {
+        // Reset failure tracker on successful archive
+        this.alertManager.resetFailureTracker(serviceId);
+      } else {
+        // Track failure if result indicates failure
         this.alertManager.trackFailure(serviceId);
       }
 
