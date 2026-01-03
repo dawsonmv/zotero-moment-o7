@@ -3,21 +3,55 @@
  */
 
 import { ConfigurableArchiveService } from "../../src/modules/archive/ConfigurableArchiveService";
-import { ServiceConfig } from "../../src/modules/archive/types";
+import { ServiceConfig, ArchiveErrorType } from "../../src/modules/archive/types";
 import { CredentialManager } from "../../src/utils/CredentialManager";
+import { CircuitBreakerManager } from "../../src/utils/CircuitBreaker";
+import { TrafficMonitor } from "../../src/utils/TrafficMonitor";
 
 // Mock CredentialManager
 jest.mock("../../src/utils/CredentialManager");
+jest.mock("../../src/utils/CircuitBreaker");
+jest.mock("../../src/utils/TrafficMonitor");
 
 describe("ConfigurableArchiveService", function () {
   let service: ConfigurableArchiveService;
   let mockConfig: ServiceConfig;
+  let mockBreaker: any;
 
   beforeEach(function () {
     jest.clearAllMocks();
+
+    // Mock CredentialManager
     (CredentialManager.getInstance as jest.Mock).mockReturnValue({
       get: jest.fn(),
     });
+
+    // Mock CircuitBreakerManager
+    mockBreaker = {
+      execute: jest.fn((operation) => operation()),
+    };
+    (CircuitBreakerManager.getInstance as jest.Mock).mockReturnValue({
+      getBreaker: jest.fn().mockReturnValue(mockBreaker),
+    });
+
+    // Mock TrafficMonitor
+    (TrafficMonitor.getInstance as jest.Mock).mockReturnValue({
+      startRequest: jest.fn(),
+      endRequest: jest.fn(),
+    });
+
+    // Mock Zotero globals
+    (global.Zotero as any) = {
+      ...((global as any).Zotero || {}),
+      HTTP: {
+        request: jest.fn(),
+      },
+      setTimeout: jest.fn((fn: () => void) => {
+        return 1; // Mock handle
+      }),
+      clearTimeout: jest.fn(),
+      debug: jest.fn(),
+    };
   });
 
   describe("Constructor and Validation", function () {
@@ -435,6 +469,617 @@ describe("ConfigurableArchiveService", function () {
 
       service = new ConfigurableArchiveService(mockConfig);
       expect(service.id).toBe("test");
+    });
+  });
+
+  describe("archiveUrl - Successful Archiving", function () {
+    beforeEach(function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            bodyTemplate: '{"url":"{{url}}"}',
+            timeout: 60000,
+          },
+          responseParser: {
+            type: "json",
+            path: "archiveUrl",
+            urlPrefix: "https://archive.example.com/",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+    });
+
+    it("should successfully archive URL and return archive URL", async function () {
+      const testUrl = "https://example.com/page";
+      const archiveResponse = JSON.stringify({
+        archiveUrl: "20231201120000/https://example.com/page",
+      });
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: archiveResponse,
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl(testUrl);
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe(
+        "https://archive.example.com/20231201120000/https://example.com/page",
+      );
+      expect(result.metadata).toBeDefined();
+      expect(result.metadata?.originalUrl).toBe(testUrl);
+      expect(result.metadata?.service).toBe("Test Service");
+    });
+
+    it("should interpolate URL with special characters", async function () {
+      const testUrl = "https://example.com?param=value&other=test";
+      const archiveResponse = JSON.stringify({ archiveUrl: "archive123" });
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: archiveResponse,
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl(testUrl);
+
+      // Verify HTTP request was called with URL-encoded version in body
+      expect(global.Zotero.HTTP.request).toHaveBeenCalled();
+      const callArgs = (global.Zotero.HTTP.request as jest.Mock).mock.calls[0];
+      const options = callArgs[1];
+      expect(options.body).toContain(encodeURIComponent(testUrl));
+    });
+
+    it("should include request body with interpolated URL", async function () {
+      const testUrl = "https://example.com/page";
+      const archiveResponse = JSON.stringify({ archiveUrl: "archive123" });
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: archiveResponse,
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl(testUrl);
+
+      expect(result.success).toBe(true);
+      const callArgs = (global.Zotero.HTTP.request as jest.Mock).mock.calls[0];
+      const options = callArgs[1];
+      expect(options.body).toBeDefined();
+      expect(options.body).toContain(encodeURIComponent(testUrl));
+    });
+
+    it("should include authentication header if configured", async function () {
+      mockConfig.runtime!.auth = {
+        type: "header",
+        credentialKey: "apiKey",
+        headerName: "Authorization",
+        template: "Bearer {{credential}}",
+      };
+
+      service = new ConfigurableArchiveService(mockConfig);
+
+      const mockCredManager = {
+        get: jest.fn().mockResolvedValue("secret-token"),
+      };
+      (CredentialManager.getInstance as jest.Mock).mockReturnValue(
+        mockCredManager,
+      );
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: JSON.stringify({ archiveUrl: "archive123" }),
+        status: 200,
+      });
+
+      await (service as any).archiveUrl("https://example.com");
+
+      const callArgs = (global.Zotero.HTTP.request as jest.Mock).mock.calls[0];
+      const options = callArgs[1];
+      expect(options.headers.Authorization).toBe("Bearer secret-token");
+    });
+
+    it("should handle progress callbacks", async function () {
+      const mockProgress = {
+        onStatusUpdate: jest.fn(),
+      };
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: JSON.stringify({ archiveUrl: "archive123" }),
+        status: 200,
+      });
+
+      await (service as any).archiveUrl(
+        "https://example.com",
+        mockProgress,
+      );
+
+      expect(mockProgress.onStatusUpdate).toHaveBeenCalledWith(
+        expect.stringContaining("Submitting"),
+      );
+    });
+  });
+
+  describe("archiveUrl - URL Validation", function () {
+    beforeEach(function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          urlValidator: {
+            type: "regex",
+            pattern: "^https://",
+            errorMessage: "Must be HTTPS URL",
+          },
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "url",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+    });
+
+    it("should reject invalid URL", async function () {
+      const result = await (service as any).archiveUrl(
+        "http://example.com",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Must be HTTPS URL");
+    });
+
+    it("should accept valid URL", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: JSON.stringify({ url: "archive123" }),
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl(
+        "https://example.com",
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should return error for invalid regex pattern", async function () {
+      mockConfig.runtime!.urlValidator!.pattern = "[invalid(";
+      service = new ConfigurableArchiveService(mockConfig);
+
+      const result = await (service as any).archiveUrl(
+        "https://example.com",
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid regex pattern");
+    });
+  });
+
+  describe("archiveUrl - Check Endpoint (Existing Archives)", function () {
+    beforeEach(function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "url",
+          },
+          checkEndpoint: {
+            url: "https://api.example.com/search?url={{url}}",
+            method: "GET",
+            parser: {
+              type: "json",
+              path: "archiveUrl",
+            },
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+    });
+
+    it("should return existing archive if check endpoint finds one", async function () {
+      const testUrl = "https://example.com";
+
+      // Mock check endpoint response
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValueOnce({
+        responseText: JSON.stringify({ archiveUrl: "existing-archive-123" }),
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl(testUrl);
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe("existing-archive-123");
+      // Should NOT call archive endpoint since existing archive was found
+      expect(global.Zotero.HTTP.request).toHaveBeenCalledTimes(1);
+    });
+
+    it("should proceed to archiving if check endpoint returns nothing", async function () {
+      const testUrl = "https://example.com";
+
+      // First call: check endpoint returns no result
+      (global.Zotero.HTTP.request as jest.Mock)
+        .mockResolvedValueOnce({
+          responseText: "{}",
+          status: 200,
+        })
+        // Second call: archive endpoint
+        .mockResolvedValueOnce({
+          responseText: JSON.stringify({ url: "new-archive-123" }),
+          status: 200,
+        });
+
+      const result = await (service as any).archiveUrl(testUrl);
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe("new-archive-123");
+      // Should call both check and archive endpoints
+      expect(global.Zotero.HTTP.request).toHaveBeenCalledTimes(2);
+    });
+
+    it("should handle check endpoint failure gracefully", async function () {
+      const testUrl = "https://example.com";
+
+      // Check endpoint fails
+      (global.Zotero.HTTP.request as jest.Mock)
+        .mockRejectedValueOnce(new Error("Check failed"))
+        // Archive endpoint succeeds
+        .mockResolvedValueOnce({
+          responseText: JSON.stringify({ url: "archive-123" }),
+          status: 200,
+        });
+
+      const result = await (service as any).archiveUrl(testUrl);
+
+      // Should still succeed by falling back to archive
+      expect(result.success).toBe(true);
+      expect(result.url).toBe("archive-123");
+    });
+  });
+
+  describe("archiveUrl - Response Parsing", function () {
+    it("should parse JSON response with nested path", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "data.result.archiveUrl",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: JSON.stringify({
+          data: {
+            result: {
+              archiveUrl: "https://archive.example.com/page",
+            },
+          },
+        }),
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe("https://archive.example.com/page");
+    });
+
+    it("should parse JSON response with array index", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "urls.0", // Note: direct property access, not array syntax
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: JSON.stringify({
+          urls: {
+            "0": "https://archive.example.com/page",
+          },
+        }),
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe("https://archive.example.com/page");
+    });
+
+    it("should prepend URL prefix to extracted value", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "archiveId",
+            urlPrefix: "https://archive.example.com/",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: JSON.stringify({ archiveId: "abc123" }),
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe("https://archive.example.com/abc123");
+    });
+
+    it("should fail if JSON parsing fails", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "url",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: "invalid json {{{",
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
+        "Could not extract archive URL from service response",
+      );
+    });
+
+    it("should parse regex response with full match", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "regex",
+            pattern: "https://archive\\.example\\.com/\\d{14}/[^\"\\s>]+",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText:
+          '<html><a href="https://archive.example.com/20231201120000/https://example.com">Link</a></html>',
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe(
+        "https://archive.example.com/20231201120000/https://example.com",
+      );
+    });
+
+    it("should parse regex response with capture group", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "regex",
+            pattern: "/wayback/(\\d{14})/",
+            captureGroup: 1,
+            urlPrefix: "https://archive.example.com/",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: '<a href="/wayback/20231201120000/page.html">Link</a>',
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(true);
+      expect(result.url).toBe(
+        "https://archive.example.com/20231201120000",
+      );
+    });
+
+    it("should fail if regex pattern does not match", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "regex",
+            pattern: "https://archive\\.example\\.com/\\d{14}/[^\\s]+",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: "No matching archive link found",
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
+        "Could not extract archive URL from service response",
+      );
+    });
+
+    it("should handle empty response", async function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "url",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+
+      (global.Zotero.HTTP.request as jest.Mock).mockResolvedValue({
+        responseText: "",
+        status: 200,
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("archiveUrl - Error Handling", function () {
+    beforeEach(function () {
+      mockConfig = {
+        id: "test",
+        name: "Test Service",
+        runtime: {
+          archiveEndpoint: {
+            url: "https://api.example.com/archive",
+            method: "POST",
+          },
+          responseParser: {
+            type: "json",
+            path: "url",
+          },
+        },
+      };
+      service = new ConfigurableArchiveService(mockConfig);
+    });
+
+    it("should handle 401 Unauthorized as AuthRequired error", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockRejectedValue({
+        status: 401,
+        message: "Unauthorized",
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should handle 429 Rate Limit as RateLimit error", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockRejectedValue({
+        status: 429,
+        message: "Too many requests",
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle 404 Not Found error", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockRejectedValue({
+        status: 404,
+        message: "Not found",
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle 500+ Server errors", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockRejectedValue({
+        status: 500,
+        message: "Internal server error",
+      });
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle network timeout", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockRejectedValue(
+        new Error("Connection timeout"),
+      );
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Connection timeout");
+    });
+
+    it("should catch and handle unexpected errors", async function () {
+      (global.Zotero.HTTP.request as jest.Mock).mockRejectedValue(
+        new Error("Unexpected error"),
+      );
+
+      const result = await (service as any).archiveUrl("https://example.com");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });

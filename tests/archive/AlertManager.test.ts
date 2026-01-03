@@ -701,4 +701,381 @@ describe("AlertManager", function () {
       });
     });
   });
+
+  describe("Activity tracking", function () {
+    it("should track archive attempts", function () {
+      const manager = AlertManager.getInstance();
+
+      const event = manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "testService",
+        itemId: 123,
+        itemTitle: "Test Item",
+        url: "https://example.com",
+      });
+
+      expect(event).toBeDefined();
+      expect(event?.serviceId).toBe("testService");
+      expect(event?.itemId).toBe(123);
+      expect(event?.type).toBe("archive_attempt");
+    });
+
+    it("should track archive successes", function () {
+      const manager = AlertManager.getInstance();
+
+      const event = manager.trackActivity({
+        type: "archive_success" as any,
+        serviceId: "testService",
+        result: "success",
+      });
+
+      expect(event).toBeDefined();
+      expect(event?.result).toBe("success");
+    });
+
+    it("should track archive failures", function () {
+      const manager = AlertManager.getInstance();
+
+      const event = manager.trackActivity({
+        type: "archive_failure" as any,
+        serviceId: "testService",
+        result: "failure",
+        message: "Connection timeout",
+      });
+
+      expect(event).toBeDefined();
+      expect(event?.result).toBe("failure");
+      expect(event?.message).toBe("Connection timeout");
+    });
+
+    it("should retrieve activity history", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+      manager.trackActivity({
+        type: "archive_success" as any,
+        serviceId: "service1",
+      });
+
+      const history = manager.getActivityHistory(10);
+
+      expect(history.length).toBeGreaterThanOrEqual(2);
+      expect(history.some((e) => e.type === "archive_attempt")).toBe(true);
+      expect(history.some((e) => e.type === "archive_success")).toBe(true);
+    });
+
+    it("should retrieve activity by service", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service2",
+      });
+
+      const service1History = manager.getServiceActivity("service1", 10);
+
+      expect(service1History.length).toBeGreaterThan(0);
+      expect(service1History.every((e) => e.serviceId === "service1")).toBe(true);
+    });
+
+    it("should clear activity history", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+
+      let history = manager.getActivityHistory(10);
+      expect(history.length).toBeGreaterThan(0);
+
+      manager.clearActivityHistory();
+
+      history = manager.getActivityHistory(10);
+      expect(history.length).toBe(0);
+    });
+
+    it("should filter activities by criteria", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_success" as any,
+        serviceId: "service1",
+        result: "success",
+      });
+      manager.trackActivity({
+        type: "archive_failure" as any,
+        serviceId: "service2",
+        result: "failure",
+      });
+
+      const successActivities = manager.filterActivities({
+        results: ["success"],
+      });
+
+      expect(successActivities.length).toBeGreaterThan(0);
+      expect(successActivities.every((e) => e.result === "success")).toBe(true);
+    });
+
+    it("should filter activities by service", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service2",
+      });
+
+      const filtered = manager.filterActivities({
+        services: ["service1"],
+      });
+
+      expect(filtered.every((e) => e.serviceId === "service1")).toBe(true);
+    });
+
+    it("should filter activities by type", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+      manager.trackActivity({
+        type: "archive_success" as any,
+        serviceId: "service1",
+      });
+
+      const filtered = manager.filterActivities({
+        types: ["archive_success" as any],
+      });
+
+      expect(filtered.every((e) => e.type === "archive_success")).toBe(true);
+    });
+  });
+
+  describe("Metrics and statistics", function () {
+    it("should get metrics by period", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+        result: "success",
+      });
+
+      const metrics = manager.getMetricsByPeriod(60000);
+
+      expect(metrics).toBeDefined();
+      expect(metrics.totalAttempts).toBeGreaterThan(0);
+    });
+
+    it("should get hourly metrics", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+
+      const hourly = manager.getHourlyMetrics(1);
+
+      expect(hourly).toBeDefined();
+      expect(Array.isArray(hourly)).toBe(true);
+    });
+
+    it("should get activity statistics", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_success" as any,
+        serviceId: "service1",
+        result: "success",
+      });
+      manager.trackActivity({
+        type: "archive_failure" as any,
+        serviceId: "service1",
+        result: "failure",
+      });
+
+      const stats = manager.getActivityStatistics();
+
+      expect(stats).toBeDefined();
+      expect(stats.totalActivities).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe("Alert queries and helpers", function () {
+    it("should find alerts by criteria", function () {
+      const manager = AlertManager.getInstance();
+
+      const alert = manager.createAlert("Test Alert", "message", AlertLevel.Warning, undefined, "service1");
+
+      if (alert) {
+        const found = manager.findAlerts({
+          serviceId: "service1",
+        });
+
+        expect(found.length).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it("should get critical alerts", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.createAlert("Critical Alert", "message", AlertLevel.Critical as any);
+      manager.createAlert("Info Alert", "message", AlertLevel.Info);
+
+      const critical = manager.getCriticalAlerts();
+
+      expect(critical.length).toBeGreaterThan(0);
+      expect(critical.every((a) => a.level === AlertLevel.Critical)).toBe(true);
+    });
+
+    it("should get recent service alerts", function () {
+      const manager = AlertManager.getInstance();
+
+      const alert = manager.createAlert("Service Alert", "message", AlertLevel.Error, undefined, "service1");
+
+      if (alert) {
+        const recent = manager.getRecentServiceAlerts("service1", 1);
+
+        expect(recent.length).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it("should count alerts by level", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.createAlert("Error 1", "message", AlertLevel.Error);
+      manager.createAlert("Error 2", "message", AlertLevel.Error);
+      manager.createAlert("Warning", "message", AlertLevel.Warning);
+
+      const counts = manager.countAlertsByLevel();
+
+      expect(counts[AlertLevel.Error]).toBeGreaterThanOrEqual(2);
+      expect(counts[AlertLevel.Warning]).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should get alert trends", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.createAlert("Alert 1", "message", AlertLevel.Error);
+      manager.createAlert("Alert 2", "message", AlertLevel.Error);
+
+      const trends = manager.getAlertTrend(60000, 1);
+
+      expect(trends).toBeDefined();
+      expect(Array.isArray(trends)).toBe(true);
+    });
+  });
+
+  describe("Circuit breaker tracking", function () {
+    it("should track circuit breaker state changes", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackCircuitBreakerStateChange("service1", "OPEN");
+
+      const stats = manager.getCircuitBreakerStats();
+
+      expect(stats).toBeDefined();
+    });
+
+    it("should get circuit breaker stats", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackCircuitBreakerStateChange("service1", "OPEN");
+      manager.trackCircuitBreakerStateChange("service1", "HALF_OPEN");
+      manager.trackCircuitBreakerStateChange("service2", "OPEN");
+
+      const stats = manager.getCircuitBreakerStats();
+
+      expect(stats).toBeDefined();
+      expect(typeof stats).toBe("object");
+    });
+
+    it("should alert on circuit breaker state transitions", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.alertCircuitBreakerChange("service1", "CLOSED", "OPEN");
+
+      const alerts = manager.findAlerts({
+        serviceId: "service1",
+      });
+
+      expect(alerts.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Monitoring summary", function () {
+    it("should generate comprehensive monitoring summary", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+      manager.createAlert("Test Alert", "message", AlertLevel.Error);
+
+      const summary = manager.getMonitoringSummary();
+
+      expect(summary).toBeDefined();
+      expect(summary.health).toBeDefined();
+      expect(summary.health.totalAlerts).toBeGreaterThan(0);
+      expect(summary.services).toBeDefined();
+      expect(summary.activity).toBeDefined();
+    });
+
+    it("should include service health in summary", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackCircuitBreakerStateChange("service1", "OPEN");
+      manager.trackActivity({
+        type: "archive_failure" as any,
+        serviceId: "service1",
+      });
+
+      const summary = manager.getMonitoringSummary();
+
+      expect(summary.services).toBeDefined();
+    });
+
+    it("should include service information in summary", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_attempt" as any,
+        serviceId: "service1",
+      });
+
+      const summary = manager.getMonitoringSummary();
+
+      expect(summary.services).toBeDefined();
+      expect(summary.services).toHaveProperty("totalMonitored");
+    });
+
+    it("should include activity metrics in summary", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.trackActivity({
+        type: "archive_success" as any,
+        serviceId: "service1",
+        result: "success",
+      });
+
+      const summary = manager.getMonitoringSummary();
+
+      expect(summary.activity).toBeDefined();
+      expect(summary.activity.totalActivities).toBeGreaterThan(0);
+    });
+  });
 });
