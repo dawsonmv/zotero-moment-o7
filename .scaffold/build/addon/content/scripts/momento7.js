@@ -8157,6 +8157,447 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     );
   }
 
+  // src/modules/archive/ConfigurableArchiveService.ts
+  var ConfigurableArchiveService = class extends BaseArchiveService {
+    constructor(config2) {
+      if (!config2.runtime) {
+        throw new Error(
+          `ConfigurableArchiveService requires runtime configuration for service ${config2.id}`
+        );
+      }
+      super(config2);
+    }
+    async isAvailable() {
+      if (this.config.runtime?.auth) {
+        const credManager = CredentialManager.getInstance();
+        try {
+          const credential = await credManager.get(
+            this.config.runtime.auth.credentialKey
+          );
+          return !!credential;
+        } catch {
+          return false;
+        }
+      }
+      return true;
+    }
+    async archiveUrl(url, progress) {
+      const runtime = this.config.runtime;
+      try {
+        if (runtime.urlValidator) {
+          const validationResult = this.validateUrl(url);
+          if (!validationResult.valid) {
+            return {
+              success: false,
+              error: validationResult.error
+            };
+          }
+        }
+        if (runtime.checkEndpoint) {
+          progress?.onStatusUpdate?.(
+            `Checking for existing archives on ${this.name}...`
+          );
+          const existingUrl = await this.checkExisting(url);
+          if (existingUrl) {
+            return {
+              success: true,
+              url: existingUrl,
+              metadata: {
+                originalUrl: url,
+                archiveDate: (/* @__PURE__ */ new Date()).toISOString(),
+                service: this.name
+              }
+            };
+          }
+        }
+        progress?.onStatusUpdate?.(
+          `Submitting ${url.substring(0, 50)}... to ${this.name}...`
+        );
+        await this.checkRateLimit();
+        const requestUrl = this.interpolate(runtime.archiveEndpoint.url, {
+          url
+        });
+        const requestBody = runtime.archiveEndpoint.bodyTemplate ? this.interpolate(runtime.archiveEndpoint.bodyTemplate, { url }) : void 0;
+        const headers = await this.buildHeaders(
+          runtime.archiveEndpoint.headers
+        );
+        const response = await this.makeHttpRequest(requestUrl, {
+          method: runtime.archiveEndpoint.method,
+          headers,
+          body: requestBody,
+          timeout: runtime.archiveEndpoint.timeout
+        });
+        this.updateLastRequest();
+        if (!response.success) {
+          const errorType = this.mapHttpErrorToArchiveError(response.status);
+          throw new ArchiveError(
+            errorType,
+            response.error || "Archive request failed",
+            response.status
+          );
+        }
+        const archivedUrl = this.parseResponse(
+          response.data,
+          runtime.responseParser
+        );
+        if (!archivedUrl) {
+          return {
+            success: false,
+            error: "Could not extract archive URL from service response"
+          };
+        }
+        return {
+          success: true,
+          url: archivedUrl,
+          metadata: {
+            originalUrl: url,
+            archiveDate: (/* @__PURE__ */ new Date()).toISOString(),
+            service: this.name
+          }
+        };
+      } catch (error) {
+        if (error instanceof ArchiveError) {
+          return {
+            success: false,
+            error: error.message
+          };
+        }
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error"
+        };
+      }
+    }
+    /**
+     * Validate URL against configured patterns
+     */
+    validateUrl(url) {
+      const validator = this.config.runtime.urlValidator;
+      if (validator.type === "regex") {
+        try {
+          const regex = new RegExp(validator.pattern);
+          if (!regex.test(url)) {
+            return {
+              valid: false,
+              error: validator.errorMessage || `URL does not match required pattern for ${this.name}`
+            };
+          }
+        } catch (error) {
+          return {
+            valid: false,
+            error: `Invalid regex pattern: ${validator.pattern}`
+          };
+        }
+      }
+      return { valid: true };
+    }
+    /**
+     * Check if URL already has an archive
+     */
+    async checkExisting(url) {
+      const checkConfig = this.config.runtime.checkEndpoint;
+      try {
+        const requestUrl = this.interpolate(checkConfig.url, { url });
+        const headers = await this.buildHeaders(checkConfig.headers);
+        const response = await this.makeHttpRequest(requestUrl, {
+          method: checkConfig.method,
+          headers,
+          timeout: 3e4
+        });
+        if (!response.success) {
+          return null;
+        }
+        return this.parseResponse(response.data, checkConfig.parser);
+      } catch {
+        return null;
+      }
+    }
+    /**
+     * Parse response to extract archive URL
+     */
+    parseResponse(data, parser) {
+      if (!data) {
+        return null;
+      }
+      try {
+        if (parser.type === "json") {
+          const json = JSON.parse(data);
+          const value = this.getNestedValue(json, parser.path || "");
+          if (!value) {
+            return null;
+          }
+          return parser.urlPrefix ? `${parser.urlPrefix}${value}` : String(value);
+        }
+        if (parser.type === "regex") {
+          if (!parser.pattern) {
+            return null;
+          }
+          const regex = new RegExp(parser.pattern);
+          const match = data.match(regex);
+          if (!match) {
+            return null;
+          }
+          const captured = parser.captureGroup !== void 0 ? match[parser.captureGroup] : match[0];
+          if (!captured) {
+            return null;
+          }
+          return parser.urlPrefix ? `${parser.urlPrefix}${captured}` : captured;
+        }
+      } catch {
+        return null;
+      }
+      return null;
+    }
+    /**
+     * Template string interpolation
+     * Replaces {{url}} with encoded URL value
+     */
+    interpolate(template, vars) {
+      return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+        const value = vars[key];
+        return value ? encodeURIComponent(value) : "";
+      });
+    }
+    /**
+     * Get nested value from object using dot notation
+     */
+    getNestedValue(obj, path) {
+      if (!path) {
+        return obj;
+      }
+      return path.split(".").reduce((current, key) => {
+        if (current == null) {
+          return void 0;
+        }
+        return current[key];
+      }, obj);
+    }
+    /**
+     * Build HTTP headers including authentication if configured
+     */
+    async buildHeaders(baseHeaders) {
+      const headers = { ...baseHeaders };
+      if (this.config.runtime?.auth?.type === "header") {
+        const auth = this.config.runtime.auth;
+        const credManager = CredentialManager.getInstance();
+        try {
+          const credential = await credManager.get(auth.credentialKey);
+          if (credential) {
+            const headerValue = auth.template ? auth.template.replace("{{credential}}", credential) : credential;
+            headers[auth.headerName] = headerValue;
+          }
+        } catch {
+        }
+      }
+      return headers;
+    }
+    /**
+     * Map HTTP status code to ArchiveErrorType
+     */
+    mapHttpErrorToArchiveError(status) {
+      if (!status) {
+        return "UNKNOWN" /* Unknown */;
+      }
+      if (status === 401 || status === 403) {
+        return "AUTH_REQUIRED" /* AuthRequired */;
+      }
+      if (status === 429) {
+        return "RATE_LIMIT" /* RateLimit */;
+      }
+      if (status === 404) {
+        return "NOT_FOUND" /* NotFound */;
+      }
+      if (status >= 500) {
+        return "SERVER_ERROR" /* ServerError */;
+      }
+      if (status >= 400) {
+        return "BLOCKED" /* Blocked */;
+      }
+      return "UNKNOWN" /* Unknown */;
+    }
+  };
+
+  // src/config/services/permacc.config.ts
+  var permaCCConfig = {
+    id: "permacc",
+    name: "Perma.cc",
+    homepage: "https://perma.cc",
+    capabilities: {
+      acceptsUrl: true,
+      returnsUrl: true,
+      preservesJavaScript: true,
+      preservesInteractiveElements: true,
+      requiresAuthentication: true,
+      hasQuota: true,
+      regionRestricted: false
+    },
+    runtime: {
+      // Archive submission endpoint
+      archiveEndpoint: {
+        url: "https://api.perma.cc/v1/archives/",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        bodyTemplate: '{"url":"{{url}}"}',
+        timeout: 12e4
+      },
+      // Extract archive URL from response
+      // Response format: {"guid":"XXXXX-XXXXX","url":"https://perma.cc/XXXXX-XXXXX", ...}
+      responseParser: {
+        type: "json",
+        path: "guid",
+        urlPrefix: "https://perma.cc/"
+      },
+      // Authenticate with API key
+      auth: {
+        type: "header",
+        credentialKey: "permaCCApiKey",
+        headerName: "Authorization",
+        template: "ApiKey {{credential}}"
+      }
+    }
+  };
+
+  // src/config/services/arquivopt.config.ts
+  var arquivoPtConfig = {
+    id: "arquivopt",
+    name: "Arquivo.pt",
+    homepage: "https://arquivo.pt",
+    capabilities: {
+      acceptsUrl: true,
+      returnsUrl: true,
+      preservesJavaScript: false,
+      preservesInteractiveElements: false,
+      requiresAuthentication: false,
+      hasQuota: false,
+      regionRestricted: true
+    },
+    runtime: {
+      // Check for existing archives first
+      // Query wayback machine: GET /wayback/*/url
+      // Response contains redirect with timestamp if exists
+      checkEndpoint: {
+        url: "https://arquivo.pt/wayback/*/{{url}}",
+        method: "GET",
+        parser: {
+          type: "regex",
+          pattern: "/wayback/(\\d{14})/",
+          captureGroup: 1,
+          urlPrefix: "https://arquivo.pt/wayback/"
+        }
+      },
+      // Submit URL for archiving
+      archiveEndpoint: {
+        url: "https://arquivo.pt/save",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        bodyTemplate: "url={{url}}",
+        timeout: 12e4
+      },
+      // Extract archive URL from HTML response using regex
+      // Response contains: <a href="https://arquivo.pt/wayback/20231201120000/example.com">
+      responseParser: {
+        type: "regex",
+        pattern: `https?://arquivo\\.pt/wayback/\\d{14}/[^\\s"'<>]+`,
+        captureGroup: 0
+      }
+    }
+  };
+
+  // src/config/services/ukwebarchive.config.ts
+  var ukWebArchiveConfig = {
+    id: "ukwebarchive",
+    name: "UK Web Archive",
+    homepage: "https://www.webarchive.org.uk",
+    capabilities: {
+      acceptsUrl: true,
+      returnsUrl: false,
+      preservesJavaScript: true,
+      preservesInteractiveElements: true,
+      requiresAuthentication: false,
+      hasQuota: false,
+      regionRestricted: true
+    },
+    runtime: {
+      // Validate UK domain
+      urlValidator: {
+        type: "regex",
+        pattern: "\\.uk$|\\.co\\.uk$|\\.org\\.uk$|\\.ac\\.uk$|\\.gov\\.uk$",
+        errorMessage: "UK Web Archive primarily accepts UK domains (.uk, .co.uk, .org.uk, etc.)"
+      },
+      // Check for existing archives
+      checkEndpoint: {
+        url: "https://www.webarchive.org.uk/en/ukwa/search?q={{url}}",
+        method: "GET",
+        parser: {
+          type: "regex",
+          pattern: `https://www\\.webarchive\\.org\\.uk/[^/]+/\\d{14}/[^\\s"'<>]+`,
+          captureGroup: 0
+        }
+      },
+      // Submit nomination for archiving
+      archiveEndpoint: {
+        url: "https://www.webarchive.org.uk/en/ukwa/nominate",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        bodyTemplate: "url={{url}}&nomination_reason=Academic research resource&your_name=Zotero User",
+        timeout: 6e4
+      },
+      // Parse confirmation from response
+      responseParser: {
+        type: "regex",
+        pattern: "Thank you for your nomination|successfully nominated|We will consider your nomination",
+        captureGroup: 0,
+        urlPrefix: "https://www.webarchive.org.uk/en/ukwa/nominate"
+      }
+    }
+  };
+
+  // src/modules/archive/ServiceConfigLoader.ts
+  var ServiceConfigLoader = class {
+    /**
+     * Load and register all archive services
+     */
+    static loadAllServices() {
+      const registry = ServiceRegistry.getInstance();
+      registry.init();
+      try {
+        registry.register("internetarchive", new InternetArchiveService());
+        Zotero.debug("MomentO7: Registered InternetArchiveService");
+      } catch (error) {
+        Zotero.debug(
+          `MomentO7: Failed to register InternetArchiveService: ${error}`
+        );
+      }
+      try {
+        registry.register("archivetoday", new ArchiveTodayService());
+        Zotero.debug("MomentO7: Registered ArchiveTodayService");
+      } catch (error) {
+        Zotero.debug(
+          `MomentO7: Failed to register ArchiveTodayService: ${error}`
+        );
+      }
+      const configs = [permaCCConfig, arquivoPtConfig, ukWebArchiveConfig];
+      for (const config2 of configs) {
+        try {
+          const service = new ConfigurableArchiveService(config2);
+          registry.register(config2.id, service);
+          Zotero.debug(`MomentO7: Registered config-driven service: ${config2.id}`);
+        } catch (error) {
+          Zotero.debug(
+            `MomentO7: Failed to load service ${config2.id}: ${error}`
+          );
+        }
+      }
+      Zotero.debug("MomentO7: Archive services initialization complete");
+    }
+  };
+
   // src/modules/memento/MementoProtocol.ts
   var MementoProtocol = class {
     static LINK_HEADER = "Link";
@@ -9145,305 +9586,6 @@ ${errors.join("\n")}`);
     }
   };
 
-  // src/modules/archive/ArquivoPtService.ts
-  var ArquivoPtService = class _ArquivoPtService extends BaseArchiveService {
-    static API_BASE = "https://arquivo.pt";
-    static SAVE_URL = "https://arquivo.pt/save";
-    constructor() {
-      super({
-        id: "arquivopt",
-        name: "Arquivo.pt",
-        homepage: "https://arquivo.pt",
-        capabilities: {
-          acceptsUrl: true,
-          returnsUrl: true,
-          preservesJavaScript: false,
-          preservesInteractiveElements: false,
-          regionRestricted: true
-          // Portuguese Web Archive
-        }
-      });
-    }
-    async isAvailable() {
-      return true;
-    }
-    async archiveUrl(url, progress) {
-      try {
-        progress?.onStatusUpdate(`Submitting ${url} to Arquivo.pt...`);
-        const timeout = PreferencesManager.getTimeout();
-        const existingArchive = await this.findExistingArchive(url);
-        if (existingArchive) {
-          return {
-            success: true,
-            url: existingArchive,
-            metadata: {
-              originalUrl: url,
-              archiveDate: (/* @__PURE__ */ new Date()).toISOString(),
-              service: this.config.name,
-              status: "existing"
-            }
-          };
-        }
-        const response = await this.makeHttpRequest(_ArquivoPtService.SAVE_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          body: `url=${encodeURIComponent(url)}`,
-          timeout
-        });
-        if (!response.success) {
-          return {
-            success: false,
-            error: response.error || "Failed to submit to Arquivo.pt"
-          };
-        }
-        const archivedUrl = this.extractArchivedUrl(response.data, url);
-        if (archivedUrl) {
-          return {
-            success: true,
-            url: archivedUrl,
-            metadata: {
-              originalUrl: url,
-              archiveDate: (/* @__PURE__ */ new Date()).toISOString(),
-              service: this.config.name
-            }
-          };
-        }
-        return {
-          success: true,
-          url: `${_ArquivoPtService.API_BASE}/wayback/*/${url}`,
-          metadata: {
-            originalUrl: url,
-            archiveDate: (/* @__PURE__ */ new Date()).toISOString(),
-            service: this.config.name,
-            note: "Archive submitted. Full URL will be available after processing."
-          }
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred"
-        };
-      }
-    }
-    extractArchivedUrl(html, originalUrl) {
-      const patterns = [
-        /https?:\/\/arquivo\.pt\/wayback\/\d{14}\/[^"'\s]+/i,
-        new RegExp(
-          `https?://arquivo\\.pt/wayback/\\d{14}/${this.escapeRegExp(originalUrl)}`,
-          "i"
-        ),
-        /<a[^>]+href="(\/wayback\/\d{14}\/[^"]+)"/i
-      ];
-      for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match && match.length > 1 && match[1]) {
-          const url = match[1];
-          if (url.startsWith("/")) {
-            return `${_ArquivoPtService.API_BASE}${url}`;
-          }
-          return url;
-        }
-        if (match && match[0]) {
-          const url = match[0];
-          if (url.startsWith("/")) {
-            return `${_ArquivoPtService.API_BASE}${url}`;
-          }
-          return url;
-        }
-      }
-      return null;
-    }
-    escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }
-    async findExistingArchive(url) {
-      try {
-        const checkUrl = `${_ArquivoPtService.API_BASE}/wayback/*/${url}`;
-        const response = await this.makeHttpRequest(checkUrl, {
-          method: "GET",
-          timeout: 3e4
-        });
-        if (response.success && response.status === 200) {
-          const timestampPattern = /\/wayback\/(\d{14})\//g;
-          const matches = [...response.data.matchAll(timestampPattern)];
-          if (matches.length > 0) {
-            const timestamps = matches.filter((m) => m && m.length > 1 && m[1]).map((m) => m[1]).sort().reverse();
-            const mostRecent = timestamps[0];
-            return `${_ArquivoPtService.API_BASE}/wayback/${mostRecent}/${url}`;
-          }
-        }
-      } catch (error) {
-        console.warn("Failed to check existing Arquivo.pt archive:", error);
-      }
-      return null;
-    }
-    async checkAvailability(url) {
-      try {
-        const response = await this.makeHttpRequest(_ArquivoPtService.API_BASE, {
-          method: "GET",
-          timeout: 3e4
-        });
-        if (!response.success) {
-          return { available: false };
-        }
-        const existingArchive = await this.findExistingArchive(url);
-        if (existingArchive) {
-          return { available: true, existingUrl: existingArchive };
-        }
-        return { available: true };
-      } catch (error) {
-        return { available: false };
-      }
-    }
-  };
-
-  // src/modules/archive/UKWebArchiveService.ts
-  var UKWebArchiveService = class _UKWebArchiveService extends BaseArchiveService {
-    static API_BASE = "https://www.webarchive.org.uk";
-    static NOMINATION_URL = "https://www.webarchive.org.uk/en/ukwa/nominate";
-    constructor() {
-      super({
-        id: "ukwebarchive",
-        name: "UK Web Archive",
-        homepage: "https://www.webarchive.org.uk",
-        capabilities: {
-          acceptsUrl: true,
-          returnsUrl: false,
-          // Nomination only, doesn't immediately return archived URL
-          preservesJavaScript: true,
-          preservesInteractiveElements: true,
-          regionRestricted: true
-          // Primarily for UK domains
-        }
-      });
-    }
-    async isAvailable() {
-      return true;
-    }
-    async archiveUrl(url, progress) {
-      try {
-        if (!this.isUKDomain(url)) {
-          return {
-            success: false,
-            error: "UK Web Archive primarily accepts UK domains (.uk, .co.uk, .org.uk, etc.)"
-          };
-        }
-        progress?.onStatusUpdate(`Nominating ${url} to UK Web Archive...`);
-        const timeout = PreferencesManager.getTimeout();
-        const response = await this.makeHttpRequest(
-          _UKWebArchiveService.NOMINATION_URL,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: this.buildNominationForm(url),
-            timeout
-          }
-        );
-        if (!response.success) {
-          return {
-            success: false,
-            error: response.error || "Failed to submit nomination"
-          };
-        }
-        if (response.data.includes("Thank you for your nomination") || response.data.includes("successfully nominated")) {
-          const existingArchive = await this.findExistingArchive(url);
-          return {
-            success: true,
-            url: existingArchive || _UKWebArchiveService.NOMINATION_URL,
-            metadata: {
-              originalUrl: url,
-              archiveDate: (/* @__PURE__ */ new Date()).toISOString(),
-              service: this.config.name,
-              status: existingArchive ? "archived" : "nominated",
-              note: existingArchive ? "Found existing archive" : "URL nominated for archiving. Archive will be created during next crawl."
-            }
-          };
-        }
-        return {
-          success: false,
-          error: "Nomination may have failed. Please check manually."
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred"
-        };
-      }
-    }
-    isUKDomain(url) {
-      try {
-        const urlObj = new URL(url);
-        const domain = urlObj.hostname.toLowerCase();
-        const ukPatterns = [
-          /\.uk$/,
-          /\.co\.uk$/,
-          /\.org\.uk$/,
-          /\.ac\.uk$/,
-          /\.gov\.uk$/,
-          /\.nhs\.uk$/,
-          /\.police\.uk$/,
-          /\.mod\.uk$/,
-          /\.sch\.uk$/,
-          /\.me\.uk$/,
-          /\.ltd\.uk$/,
-          /\.plc\.uk$/,
-          /\.net\.uk$/
-        ];
-        return ukPatterns.some((pattern) => pattern.test(domain));
-      } catch {
-        return false;
-      }
-    }
-    buildNominationForm(url) {
-      const params = new URLSearchParams();
-      params.append("url", url);
-      params.append("nomination_reason", "Academic research resource");
-      params.append("your_email", "");
-      params.append("your_name", "Zotero User");
-      return params.toString();
-    }
-    async findExistingArchive(url) {
-      try {
-        const searchUrl = `${_UKWebArchiveService.API_BASE}/en/ukwa/search?q=${encodeURIComponent(url)}`;
-        const response = await this.makeHttpRequest(searchUrl, {
-          method: "GET",
-          timeout: 3e4
-        });
-        if (response.success) {
-          const archivePattern = new RegExp(
-            `https://www\\.webarchive\\.org\\.uk/[^/]+/\\d{14}/[^"'\\s]+`,
-            "i"
-          );
-          const match = response.data.match(archivePattern);
-          if (match) {
-            return match[0];
-          }
-        }
-      } catch (error) {
-        console.warn("Failed to search for existing UK Web Archive:", error);
-      }
-      return null;
-    }
-    async checkAvailability(url) {
-      try {
-        if (!this.isUKDomain(url)) {
-          return { available: false };
-        }
-        const existingArchive = await this.findExistingArchive(url);
-        if (existingArchive) {
-          return { available: true, existingUrl: existingArchive };
-        }
-        return { available: true };
-      } catch (error) {
-        return { available: false };
-      }
-    }
-  };
-
   // src/modules/archive/RobustLinkCreator.ts
   var RobustLinkCreator = class _RobustLinkCreator {
     static DEFAULT_TEMPLATE = `
@@ -9970,13 +10112,7 @@ ${archiveField}` : archiveField;
     ztoolkit.log("Moment-o7 initialized successfully");
   }
   function initializeServices() {
-    const registry = ServiceRegistry.getInstance();
-    registry.init();
-    registry.register("internetarchive", new InternetArchiveService());
-    registry.register("archivetoday", new ArchiveTodayService());
-    registry.register("arquivopt", new ArquivoPtService());
-    registry.register("permacc", new PermaCCService());
-    registry.register("ukwebarchive", new UKWebArchiveService());
+    ServiceConfigLoader.loadAllServices();
     ztoolkit.log("Archive services registered");
   }
   async function onMainWindowLoad(win) {

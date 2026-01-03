@@ -2,6 +2,53 @@
  * Service type definitions
  */
 
+// Configuration for config-driven archive services
+export interface ResponseParser {
+  type: "json" | "regex";
+  path?: string; // JSONPath like "data.url"
+  pattern?: string; // Regex pattern
+  captureGroup?: number; // For regex patterns
+  urlPrefix?: string; // Prepend to extracted URL
+}
+
+export interface HttpEndpoint {
+  url: string; // Template: "https://api.example.com/save?url={{url}}"
+  method: "GET" | "POST";
+  headers?: Record<string, string>;
+  bodyTemplate?: string; // Template: '{"url":"{{url}}"}'
+  timeout?: number;
+}
+
+export interface AuthConfig {
+  type: "header"; // Future: "query", "body"
+  credentialKey: string; // Key in CredentialManager (e.g., "permaCCApiKey")
+  headerName: string; // Header name (e.g., "Authorization")
+  template: string; // Template: "ApiKey {{credential}}"
+}
+
+export interface ServiceRuntime {
+  // URL validation (optional)
+  urlValidator?: {
+    type: "regex";
+    pattern: string;
+    errorMessage?: string;
+  };
+
+  // Archive submission endpoint (required)
+  archiveEndpoint: HttpEndpoint;
+
+  // Response parsing (required)
+  responseParser: ResponseParser;
+
+  // Check existing archives (optional)
+  checkEndpoint?: HttpEndpoint & {
+    parser: ResponseParser;
+  };
+
+  // Authentication (optional)
+  auth?: AuthConfig;
+}
+
 export interface ServiceConfig {
   name: string;
   id: string;
@@ -15,6 +62,9 @@ export interface ServiceConfig {
     hasQuota?: boolean;
     regionRestricted?: boolean;
   };
+
+  // Configuration for config-driven services (optional)
+  runtime?: ServiceRuntime;
 }
 
 export interface ArchiveResult {

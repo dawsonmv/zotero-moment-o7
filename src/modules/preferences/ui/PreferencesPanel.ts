@@ -12,7 +12,6 @@ import { HealthChecker } from "../../monitoring/HealthChecker";
 import { HealthStatus } from "../../monitoring/types";
 import { ServiceRegistry } from "../../archive/ServiceRegistry";
 import { InternetArchiveService } from "../../archive/InternetArchiveService";
-import { PermaCCService } from "../../archive/PermaCCService";
 import { ArchiveTodayService } from "../../archive/ArchiveTodayService";
 import { CredentialManager } from "../../../utils/CredentialManager";
 import type { ArchiveService } from "../../archive/types";
@@ -361,12 +360,8 @@ export class PreferencesPanel {
       }
       return true;
     } else if (serviceId === "permacc") {
-      const result = await PermaCCService.testCredentials({
-        apiKey: credentials.apiKey as string | undefined,
-      });
-      if (!result.success) {
-        throw new Error(result.message);
-      }
+      // Perma.cc is now a config-driven service. Credential testing happens during archiving.
+      // Skip explicit credential testing for config-driven services.
       return true;
     } else if (serviceId === "archivetoday") {
       const result = await ArchiveTodayService.testCredentials({
@@ -375,6 +370,10 @@ export class PreferencesPanel {
       if (!result.success) {
         throw new Error(result.message);
       }
+      return true;
+    } else if (serviceId === "arquivopt" || serviceId === "ukwebarchive") {
+      // Config-driven services without explicit credential testing
+      // Credential validation happens during archiving
       return true;
     }
 

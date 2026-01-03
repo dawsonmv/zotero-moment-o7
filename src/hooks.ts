@@ -3,13 +3,8 @@ import { registerPrefsScripts } from "./modules/preferenceScript";
 import { createZToolkit } from "./utils/ztoolkit";
 
 // Domain logic imports
-import { ServiceRegistry } from "./modules/archive/ServiceRegistry";
+import { ServiceConfigLoader } from "./modules/archive/ServiceConfigLoader";
 import { ArchiveCoordinator } from "./modules/archive/ArchiveCoordinator";
-import { InternetArchiveService } from "./modules/archive/InternetArchiveService";
-import { ArchiveTodayService } from "./modules/archive/ArchiveTodayService";
-import { ArquivoPtService } from "./modules/archive/ArquivoPtService";
-import { PermaCCService } from "./modules/archive/PermaCCService";
-import { UKWebArchiveService } from "./modules/archive/UKWebArchiveService";
 import { MementoChecker } from "./modules/memento/MementoChecker";
 import { RobustLinkCreator } from "./modules/archive/RobustLinkCreator";
 import { PreferencesManager } from "./modules/preferences/PreferencesManager";
@@ -63,16 +58,7 @@ async function onStartup() {
  * Initialize archive services in the registry
  */
 function initializeServices(): void {
-  const registry = ServiceRegistry.getInstance();
-  registry.init();
-
-  // Register all archive services
-  registry.register("internetarchive", new InternetArchiveService());
-  registry.register("archivetoday", new ArchiveTodayService());
-  registry.register("arquivopt", new ArquivoPtService());
-  registry.register("permacc", new PermaCCService());
-  registry.register("ukwebarchive", new UKWebArchiveService());
-
+  ServiceConfigLoader.loadAllServices();
   ztoolkit.log("Archive services registered");
 }
 

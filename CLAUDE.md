@@ -39,10 +39,18 @@ src/
 ├── index.ts              # Entry point
 ├── addon.ts              # Addon class
 ├── hooks.ts              # Lifecycle hooks
+├── config/               # Service configurations (declarative)
+│   ├── index.ts          # Export all configs
+│   └── services/
+│       ├── permacc.config.ts
+│       ├── arquivopt.config.ts
+│       └── ukwebarchive.config.ts
 ├── modules/
 │   ├── archive/          # Archive service implementations
-│   │   ├── types.ts      # Shared interfaces
+│   │   ├── types.ts      # Shared interfaces (including ServiceConfig)
 │   │   ├── BaseArchiveService.ts
+│   │   ├── ConfigurableArchiveService.ts  # Generic config-driven service
+│   │   ├── ServiceConfigLoader.ts  # Loads and registers all services
 │   │   ├── InternetArchiveService.ts
 │   │   ├── ArchiveTodayService.ts
 │   │   ├── PermaCCService.ts
@@ -210,26 +218,327 @@ Test-only type mocks are in `tests/types/mocks.d.ts`:
 
 ### Adding a New Archive Service
 
+There are two approaches to adding archive services:
+
+#### Option 1: Configuration-Driven Service (Recommended for Simple Services)
+
+Use this approach for services with straightforward request/response patterns:
+
+1. Create a configuration file `src/config/services/yourservice.config.ts`:
+
+```typescript
+import { ServiceConfig } from "../../modules/archive/types";
+
+export const yourServiceConfig: ServiceConfig = {
+  id: "yourservice",
+  name: "Your Service",
+  homepage: "https://your-service.com",
+
+  capabilities: {
+    acceptsUrl: true,
+    returnsUrl: true,
+    preservesJavaScript: true,
+    preservesInteractiveElements: false,
+    requiresAuthentication: false,
+    hasQuota: false,
+    regionRestricted: false,
+  },
+
+  runtime: {
+    // Optional: Validate URLs before submission
+    urlValidator: {
+      type: "regex",
+      pattern: "^https?://.*",
+      errorMessage: "Must be a valid HTTP URL",
+    },
+
+    // Required: Archive submission endpoint
+    archiveEndpoint: {
+      url: "https://api.your-service.com/archive?url={{url}}",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      bodyTemplate: '{"url":"{{url}}"}',  // {{url}} interpolated with URL encoding
+      timeout: 120000,
+    },
+
+    // Required: Parse the response to extract archive URL
+    responseParser: {
+      type: "json",  // "json" uses JSONPath, "regex" uses regex patterns
+      path: "archiveUrl",  // JSONPath like "data.urls[0]"
+      urlPrefix: "https://archive.your-service.com/",  // Optional: prepend to result
+    },
+
+    // Optional: Authentication with credentials
+    auth: {
+      type: "header",
+      credentialKey: "yourServiceApiKey",  // Key in CredentialManager
+      headerName: "Authorization",
+      template: "Bearer {{credential}}",  // {{credential}} replaced with stored value
+    },
+
+    // Optional: Check for existing archives before submission
+    checkEndpoint: {
+      url: "https://api.your-service.com/search?url={{url}}",
+      method: "GET",
+      parser: {
+        type: "regex",
+        pattern: "https://archive\\.your-service\\.com/\\d+/.*",
+      },
+    },
+  },
+};
+```
+
+2. Export from `src/config/index.ts`:
+
+```typescript
+export { yourServiceConfig } from "./services/yourservice.config";
+```
+
+3. The `ServiceConfigLoader` automatically loads and registers the service.
+
+**When to use configuration-driven services:**
+- Simple HTTP request/response patterns
+- Response extraction via JSON or regex
+- No complex state management or polling
+- Examples: Perma.cc, Arquivo.pt, UK Web Archive
+
+#### Option 2: TypeScript Service (For Complex Logic)
+
+Use this approach for services with complex behavior:
+
 1. Create `src/modules/archive/YourService.ts` extending `BaseArchiveService`
-2. Implement `isAvailable()` and `archiveUrl()`
+2. Implement `isAvailable()` and `archiveUrl()` methods
 3. Register in `ServiceRegistry` initialization
 4. Add to fallback order in `PreferencesManager.defaults`
+
+**When to use TypeScript services:**
+- Async polling or job tracking
+- Complex HTML/response parsing
+- Authentication with multiple steps
+- Conditional logic based on response state
+- Examples: Internet Archive (SPN2 API, polling), Archive.Today (Cloudflare proxy)
 
 ### Key Abstractions
 
 - **BaseArchiveService**: Handles progress windows, URL validation, metadata saving, error mapping. Subclasses only implement `archiveUrl()`.
+- **ConfigurableArchiveService**: Generic implementation driven by configuration files. Handles templating, response parsing, and HTTP interactions without custom code.
 - **MementoProtocol**: Stateless utility for RFC 7089 Link header parsing. Use `parseLinkHeader()`, `parseTimeMap()`, `findBestMemento()`.
 - **Cache<T>**: Generic LRU cache with TTL.
 - **CircuitBreaker**: Wrap external calls with `execute(operation, fallback)`.
 
+### Configuration-Driven Archive Services
+
+The system supports defining archive services through TypeScript configuration files, eliminating the need for custom service classes for simple services.
+
+#### How ConfigurableArchiveService Works
+
+1. **Configuration Loading**: `ServiceConfigLoader.loadAllServices()` is called during initialization
+   - Instantiates hardcoded services (Internet Archive, Archive.Today)
+   - Loads config files from `src/config/services/*.config.ts`
+   - Registers all services with `ServiceRegistry`
+
+2. **Service Lifecycle**:
+   - Configuration passed to `ConfigurableArchiveService` constructor
+   - `isAvailable()` checks if service is configured and credentials exist
+   - `archive(items)` delegates to `archiveUrl(url)` for each URL
+   - `archiveUrl(url)` orchestrates: validation → check existing → submit → parse response
+
+3. **URL Validation** (`urlValidator`):
+   - Optional regex-based pre-submission validation
+   - Throws `ArchiveErrorType.InvalidUrl` if pattern doesn't match
+   - Enables early rejection of incompatible URLs
+
+4. **Checking Existing Archives** (`checkEndpoint`):
+   - Optional endpoint to query for previously archived versions
+   - Used to avoid duplicate submissions and find existing URLs
+   - If successful, returns archive URL directly without submission
+   - Failure to check doesn't block subsequent submission attempt
+
+5. **Archive Submission** (`archiveEndpoint`):
+   - Sends HTTP request to archiving service
+   - URL interpolation: `{{url}}` replaced with URL-encoded user URL
+   - Body template: JSON/form data with interpolated values
+   - Headers: Static headers + optional auth headers
+
+6. **Authentication** (`auth`):
+   - Header-based authentication (currently only type supported)
+   - Credential retrieved from `CredentialManager` using `credentialKey`
+   - Template string: `{{credential}}` replaced with stored credential
+   - Example: `"Bearer {{credential}}"` becomes `"Bearer secret-token-xyz"`
+
+7. **Response Parsing** (`responseParser`):
+   - **JSON Parser**: Uses JSONPath to extract value from JSON response
+     - `path: "data.archiveUrl"` → Extract `response.data.archiveUrl`
+     - Useful for JSON APIs that return archive URL directly
+   - **Regex Parser**: Uses regex patterns to extract URL from text/HTML response
+     - `pattern: "https://archive\\.example\\.com/\\d+/.*"` → Extract matching URL
+     - `captureGroup: 1` → Use capture group instead of full match (optional)
+     - Useful for HTML responses with archive links embedded
+   - `urlPrefix`: Optionally prepend string to result (e.g., base URL for relative paths)
+
+8. **Template Interpolation**:
+   - Supports `{{url}}` placeholders in:
+     - `archiveEndpoint.url` (for query parameters)
+     - `archiveEndpoint.bodyTemplate` (for request body)
+     - `checkEndpoint.url` (for search queries)
+   - Values are automatically URL-encoded to prevent injection
+   - Example: `"https://example.com?search={{url}}"` with URL `"https://test.com/page?id=1"` becomes `"https://example.com?search=https%3A%2F%2Ftest.com%2Fpage%3Fid%3D1"`
+
+#### Example: Arquivo.pt Configuration
+
+```typescript
+export const arquivoPtConfig: ServiceConfig = {
+  id: "arquivopt",
+  name: "Arquivo.pt",
+  runtime: {
+    // Check endpoint - search for existing archives
+    checkEndpoint: {
+      url: "https://arquivo.pt/wayback/*/{{url}}",
+      method: "GET",
+      parser: {
+        type: "regex",
+        pattern: "/wayback/(\\d{14})/",
+        captureGroup: 1,
+        urlPrefix: "https://arquivo.pt/wayback/",
+      },
+    },
+
+    // Submit URL for archiving
+    archiveEndpoint: {
+      url: "https://arquivo.pt/save",
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      bodyTemplate: "url={{url}}",
+      timeout: 120000,
+    },
+
+    // Extract archive URL from HTML response
+    responseParser: {
+      type: "regex",
+      pattern: "https?://arquivo\\.pt/wayback/\\d{14}/[^\\s\"'<>]+",
+      captureGroup: 0,
+    },
+  },
+};
+```
+
+#### Testing Configuration-Driven Services
+
+Test files should verify:
+- Configuration creates valid service instance
+- URL validation works as expected
+- Response parsing extracts correct values
+- Authentication headers are properly formatted
+- Template interpolation handles URL encoding correctly
+
+Example test pattern:
+```typescript
+it("should parse JSON response with JSONPath", () => {
+  const response = JSON.stringify({ data: { url: "archive123" } });
+  const parser: ResponseParser = { type: "json", path: "data.url" };
+  // Verify parsing logic extracts "archive123"
+});
+
+it("should extract URL from regex pattern", () => {
+  const response = '<a href="https://archive.example.com/20231201/page">Link</a>';
+  const parser: ResponseParser = {
+    type: "regex",
+    pattern: "https://archive\\.example\\.com/\\d+/[^\"]+",
+  };
+  // Verify regex extracts "https://archive.example.com/20231201/page"
+});
+```
+
+#### ServiceConfig Interface
+
+The `ServiceConfig` interface extends the core service metadata with optional runtime configuration:
+
+```typescript
+interface ServiceConfig {
+  // Core metadata
+  id: string;  // Unique identifier (used in preferences, registry)
+  name: string;  // Display name
+  homepage?: string;  // Service website
+
+  capabilities: {
+    acceptsUrl: boolean;  // Service can submit URLs for archiving
+    returnsUrl: boolean;  // Service returns archive URL immediately
+    preservesJavaScript: boolean;  // Archive executes JavaScript
+    preservesInteractiveElements: boolean;  // Archive preserves interactive elements
+    requiresAuthentication: boolean;  // Requires API credentials
+    hasQuota: boolean;  // Service has rate limits or usage quotas
+    regionRestricted: boolean;  // Only works for certain regions/domains
+  };
+
+  // Optional: Configuration-driven service (replaces custom TypeScript class)
+  runtime?: ServiceRuntime;
+}
+
+interface ServiceRuntime {
+  // Optional: URL validation before submission
+  urlValidator?: {
+    type: "regex";
+    pattern: string;  // Regex pattern URLs must match
+    errorMessage?: string;  // Custom error message
+  };
+
+  // Required: Where to submit URLs for archiving
+  archiveEndpoint: HttpEndpoint;
+
+  // Required: How to parse the archive response
+  responseParser: ResponseParser;
+
+  // Optional: Check for existing archives before submitting
+  checkEndpoint?: HttpEndpoint & {
+    parser: ResponseParser;
+  };
+
+  // Optional: Authentication configuration
+  auth?: AuthConfig;
+}
+
+interface HttpEndpoint {
+  url: string;  // Supports {{url}} template interpolation
+  method: "GET" | "POST";
+  headers?: Record<string, string>;
+  bodyTemplate?: string;  // For POST requests, supports {{url}}
+  timeout?: number;  // Request timeout in milliseconds
+}
+
+interface ResponseParser {
+  type: "json" | "regex";
+  path?: string;  // For JSON: JSONPath like "data.urls[0]"
+  pattern?: string;  // For regex: regex pattern to match
+  captureGroup?: number;  // For regex: capture group index (default: 0)
+  urlPrefix?: string;  // Optional: prepend to extracted value
+}
+
+interface AuthConfig {
+  type: "header";  // Only header auth currently supported
+  credentialKey: string;  // Key in CredentialManager to retrieve
+  headerName: string;  // HTTP header name (e.g., "Authorization")
+  template: string;  // Template with {{credential}} placeholder
+}
+```
+
+**Important Notes:**
+- `runtime` field is **optional** - allows gradual migration from TypeScript services to configs
+- `archiveEndpoint` and `responseParser` are **required** in `runtime`
+- All other `runtime` fields are **optional**
+- Configuration files are TypeScript modules (not JSON) for type safety and flexibility
+
 ### Naming Conventions
 
-| Type        | Convention              | Example                           |
-| ----------- | ----------------------- | --------------------------------- |
-| Services    | `*Service.ts`           | `InternetArchiveService.ts`       |
-| Types       | Interface in `types.ts` | `ArchiveResult`                   |
-| Preferences | `extensions.momento7.*` | `extensions.momento7.autoArchive` |
-| Tags        | `archived`              | Item tag after archiving          |
+| Type                    | Convention                           | Example                           |
+| ----------------------- | ------------------------------------ | --------------------------------- |
+| TypeScript Services     | `*Service.ts`                        | `InternetArchiveService.ts`       |
+| Config-driven Services  | `*.config.ts` in `src/config/services/` | `permacc.config.ts`               |
+| Service Config Export   | `*Config` variable                   | `permaCCConfig`                   |
+| Types                   | Interface in `types.ts`              | `ArchiveResult`                   |
+| Preferences             | `extensions.momento7.*`              | `extensions.momento7.autoArchive` |
+| Credential Keys         | Descriptive, service-specific        | `permaCCApiKey`, `iaAccessKey`   |
+| Tags                    | `archived`                           | Item tag after archiving          |
 
 ### Non-Obvious Behaviors
 
@@ -239,6 +548,10 @@ Test-only type mocks are in `tests/types/mocks.d.ts`:
 4. **Preferences stored** - Via `Zotero.Prefs` with `extensions.momento7.` prefix.
 5. **Credentials stored** - Via Firefox's `nsILoginManager` (OS-native secure storage via Keychain/Credential Manager/Secret Service).
 6. **Rate limiting** - 1 second minimum between requests per service.
+7. **Config-driven services require `runtime` field** - Without it, `ConfigurableArchiveService` throws an error. TypeScript services don't need `runtime`.
+8. **Template interpolation is automatic** - All `{{url}}` placeholders are URL-encoded automatically. Don't manually encode URLs in config templates.
+9. **Response parsing is service-specific** - Some services return JSON, others return HTML. Use appropriate `responseParser` type (json vs regex).
+10. **Check endpoint is optional but recommended** - Including a `checkEndpoint` avoids duplicate submissions and can provide immediate results.
 
 ### HTTP Request Pattern
 
