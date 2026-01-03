@@ -23,14 +23,14 @@ describe("PreferencesPanel", function () {
     // Create container
     container = document.createElement("div");
     container.id = "momento7-preferences";
-    document.body.appendChild(container);
+    document.body!.appendChild(container);
 
     panel = new PreferencesPanel();
   });
 
   afterEach(function () {
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    if (document.body!.contains(container)) {
+      document.body!.removeChild(container);
     }
   });
 
@@ -41,8 +41,8 @@ describe("PreferencesPanel", function () {
     });
 
     it("should throw error if container not found", async function () {
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
+      if (document.body!.contains(container)) {
+        document.body!.removeChild(container);
       }
 
       await expect(panel.initialize()).rejects.toThrow(
@@ -116,14 +116,14 @@ describe("ServiceConfigSection", function () {
     healthChecker = HealthChecker.getInstance();
 
     container = document.createElement("div");
-    document.body.appendChild(container);
+    document.body!.appendChild(container);
 
     section = new ServiceConfigSection(healthChecker);
   });
 
   afterEach(function () {
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    if (document.body!.contains(container)) {
+      document.body!.removeChild(container);
     }
   });
 
@@ -186,14 +186,14 @@ describe("CredentialsSection", function () {
 
   beforeEach(function () {
     container = document.createElement("div");
-    document.body.appendChild(container);
+    document.body!.appendChild(container);
 
     section = new CredentialsSection();
   });
 
   afterEach(function () {
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    if (document.body!.contains(container)) {
+      document.body!.removeChild(container);
     }
   });
 
@@ -237,14 +237,14 @@ describe("PreferencesSection", function () {
 
   beforeEach(function () {
     container = document.createElement("div");
-    document.body.appendChild(container);
+    document.body!.appendChild(container);
 
     section = new PreferencesSection();
   });
 
   afterEach(function () {
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    if (document.body!.contains(container)) {
+      document.body!.removeChild(container);
     }
   });
 
