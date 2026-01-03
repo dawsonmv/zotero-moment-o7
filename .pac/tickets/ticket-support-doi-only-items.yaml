@@ -45,24 +45,24 @@ spec:
   priority: "high"
 
   acceptance_criteria:
-    - [ ] Items with DOI but no URL can be submitted to archive services
-    - [ ] Services receive DOI-derived URL via getBestUrl() method
-    - [ ] RobustLinkCreator uses proper URL (DOI or direct) for robust links
-    - [ ] Robust links created for DOI-only items have correct "original" URL
-    - [ ] All archive services successfully archive DOI-only items
-    - [ ] Error message is only shown if both URL and DOI are missing
-    - [ ] No regression in archiving items with direct URLs
+    - "[ ] Items with DOI but no URL can be submitted to archive services"
+    - "[ ] Services receive DOI-derived URL via getBestUrl() method"
+    - "[ ] RobustLinkCreator uses proper URL (DOI or direct) for robust links"
+    - "[ ] Robust links created for DOI-only items have correct original URL"
+    - "[ ] All archive services successfully archive DOI-only items"
+    - "[ ] Error message is only shown if both URL and DOI are missing"
+    - "[ ] No regression in archiving items with direct URLs"
 
   tasks:
-    - [ ] Analyze ArchiveCoordinator.archiveItem() precheck logic (lines 97-101)
-    - [ ] Change precheck to allow items with DOI even if URL field is empty
-    - [ ] Use getBestUrl() in ArchiveCoordinator to get effective URL for validation
-    - [ ] Update RobustLinkCreator to use getBestUrl() for item's effective URL
-    - [ ] Update error message to indicate both URL and DOI are required
-    - [ ] Write unit tests for DOI-only archiving scenario
-    - [ ] Write integration tests with DOI-only items across all services
-    - [ ] Verify robust links have correct original URL for DOI items
-    - [ ] Test edge cases (DOI without https://doi.org/, malformed DOI, etc.)
+    - "[ ] Analyze ArchiveCoordinator.archiveItem() precheck logic (lines 97-101)"
+    - "[ ] Change precheck to allow items with DOI even if URL field is empty"
+    - "[ ] Use getBestUrl() in ArchiveCoordinator to get effective URL for validation"
+    - "[ ] Update RobustLinkCreator to use getBestUrl() for item's effective URL"
+    - "[ ] Update error message to indicate both URL and DOI are required"
+    - "[ ] Write unit tests for DOI-only archiving scenario"
+    - "[ ] Write integration tests with DOI-only items across all services"
+    - "[ ] Verify robust links have correct original URL for DOI items"
+    - "[ ] Test edge cases (DOI without https://doi.org/, malformed DOI, etc.)"
 
   technical_notes: |
     Current Problem:

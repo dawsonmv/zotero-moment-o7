@@ -53,28 +53,28 @@ spec:
   priority: "critical"
 
   acceptance_criteria:
-    - [ ] Extra field format is consistent between writer and all readers
-    - [ ] BaseArchiveService.saveToItem() writes standardized format
-    - [ ] RobustLinkCreator.createFromItem() reads all service formats
-    - [ ] MementoChecker.findExistingMementos() reads all service formats
-    - [ ] Config-driven services (arquivopt, ukwebarchive) are supported
-    - [ ] No duplicate archiving for already-archived URLs
-    - [ ] Skip-before-archive checks find existing archives correctly
-    - [ ] Robust links correctly identify all previously archived versions
+    - "[ ] Extra field format is consistent between writer and all readers"
+    - "[ ] BaseArchiveService.saveToItem() writes standardized format"
+    - "[ ] RobustLinkCreator.createFromItem() reads all service formats"
+    - "[ ] MementoChecker.findExistingMementos() reads all service formats"
+    - "[ ] Config-driven services (arquivopt, ukwebarchive) are supported"
+    - "[ ] No duplicate archiving for already-archived URLs"
+    - "[ ] Skip-before-archive checks find existing archives correctly"
+    - "[ ] Robust links correctly identify all previously archived versions"
 
   tasks:
-    - [ ] Analyze current extra field format across all services
-    - [ ] Document the inconsistency with concrete examples
-    - [ ] Create unified extra field format specification
-    - [ ] Update BaseArchiveService.saveToItem() to use standard format
-    - [ ] Create helper function to parse extra field (DRY principle)
-    - [ ] Update RobustLinkCreator.createFromItem() to use standard parser
-    - [ ] Update MementoChecker.findExistingMementos() to use standard parser
-    - [ ] Add support for all 5 service types in readers
-    - [ ] Write unit tests for format writer
-    - [ ] Write unit tests for format readers with all services
-    - [ ] Write integration tests for round-trip consistency
-    - [ ] Test duplicate detection works for all services
+    - "[ ] Analyze current extra field format across all services"
+    - "[ ] Document the inconsistency with concrete examples"
+    - "[ ] Create unified extra field format specification"
+    - "[ ] Update BaseArchiveService.saveToItem() to use standard format"
+    - "[ ] Create helper function to parse extra field (DRY principle)"
+    - "[ ] Update RobustLinkCreator.createFromItem() to use standard parser"
+    - "[ ] Update MementoChecker.findExistingMementos() to use standard parser"
+    - "[ ] Add support for all 5 service types in readers"
+    - "[ ] Write unit tests for format writer"
+    - "[ ] Write unit tests for format readers with all services"
+    - "[ ] Write integration tests for round-trip consistency"
+    - "[ ] Test duplicate detection works for all services"
 
   technical_notes: |
     Current Problems:
