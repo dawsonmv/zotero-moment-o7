@@ -6,6 +6,17 @@
  * conflicts with test type declarations.
  */
 
+// XUL namespace for preference script elements
+declare namespace XUL {
+  interface Checkbox extends Element {
+    checked: boolean;
+  }
+
+  interface MenuList extends Element {
+    value: string;
+  }
+}
+
 // Augment the HTTP interface to support the 2-argument form of request()
 // Zotero 7 supports: request(url, options) where method is in options
 declare namespace _ZoteroTypes {
@@ -56,4 +67,20 @@ declare namespace _ZoteroTypes {
     setText(text: string): void;
     setError(): void;
   }
+
+  // Zotero pane interface for getting selected items
+  interface ZoteroPane {
+    getSelectedItems(asIDs?: boolean): Zotero.Item[] | number[];
+  }
+
+  // Zotero Libraries interface
+  interface ZoteroLibraries {
+    userLibraryID: number;
+  }
 }
+
+// Extend global Zotero variable with missing methods
+declare const Zotero: {
+  getActiveZoteroPane(): _ZoteroTypes.ZoteroPane | null;
+  Libraries: _ZoteroTypes.ZoteroLibraries;
+} & any;
