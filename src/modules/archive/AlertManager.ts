@@ -11,6 +11,7 @@ import {
   AlertThresholds,
   ActivityEvent,
   ActivityEventType,
+  ActivityFilterOptions,
 } from "./types";
 
 export class AlertManager {
@@ -450,6 +451,110 @@ export class AlertManager {
    */
   clearActivityHistory(): void {
     this.activityHistory.clear();
+  }
+
+  /**
+   * Filter activities by advanced criteria
+   */
+  filterActivities(options: ActivityFilterOptions): ActivityEvent[] {
+    let activities = Array.from(this.activityHistory.values());
+
+    // Filter by time range
+    if (options.startTime) {
+      activities = activities.filter(
+        (a) => new Date(a.timestamp).getTime() >= options.startTime!,
+      );
+    }
+    if (options.endTime) {
+      activities = activities.filter(
+        (a) => new Date(a.timestamp).getTime() <= options.endTime!,
+      );
+    }
+
+    // Filter by event types
+    if (options.types && options.types.length > 0) {
+      activities = activities.filter((a) => options.types!.includes(a.type));
+    }
+
+    // Filter by services
+    if (options.services && options.services.length > 0) {
+      activities = activities.filter(
+        (a) => a.serviceId && options.services!.includes(a.serviceId),
+      );
+    }
+
+    // Filter by result status
+    if (options.results && options.results.length > 0) {
+      activities = activities.filter(
+        (a) => a.result && options.results!.includes(a.result),
+      );
+    }
+
+    // Search by text
+    if (options.searchText) {
+      const searchLower = options.searchText.toLowerCase();
+      activities = activities.filter((a) => {
+        const message = (a.message || "").toLowerCase();
+        const itemTitle = (a.itemTitle || "").toLowerCase();
+        const url = (a.url || "").toLowerCase();
+        return (
+          message.includes(searchLower) ||
+          itemTitle.includes(searchLower) ||
+          url.includes(searchLower)
+        );
+      });
+    }
+
+    // Sort by timestamp (newest first)
+    activities.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+
+    // Apply limit
+    if (options.limit) {
+      activities = activities.slice(0, options.limit);
+    }
+
+    return activities;
+  }
+
+  /**
+   * Get activity statistics
+   */
+  getActivityStatistics(): {
+    totalActivities: number;
+    byType: Record<string, number>;
+    byService: Record<string, number>;
+    byResult: Record<string, number>;
+  } {
+    const activities = Array.from(this.activityHistory.values());
+    const byType: Record<string, number> = {};
+    const byService: Record<string, number> = {};
+    const byResult: Record<string, number> = {};
+
+    for (const activity of activities) {
+      // Count by type
+      byType[activity.type] = (byType[activity.type] || 0) + 1;
+
+      // Count by service
+      if (activity.serviceId) {
+        byService[activity.serviceId] =
+          (byService[activity.serviceId] || 0) + 1;
+      }
+
+      // Count by result
+      if (activity.result) {
+        byResult[activity.result] = (byResult[activity.result] || 0) + 1;
+      }
+    }
+
+    return {
+      totalActivities: activities.length,
+      byType,
+      byService,
+      byResult,
+    };
   }
 
   /**

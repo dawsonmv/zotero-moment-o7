@@ -273,3 +273,13 @@ export interface ActivityEvent {
   message?: string;
   details?: Record<string, any>;
 }
+
+export interface ActivityFilterOptions {
+  startTime?: number; // Timestamp in milliseconds
+  endTime?: number; // Timestamp in milliseconds
+  types?: ActivityEventType[];
+  services?: string[];
+  results?: ("success" | "failure" | "skipped")[];
+  searchText?: string; // Search in message, itemTitle, url
+  limit?: number;
+}
