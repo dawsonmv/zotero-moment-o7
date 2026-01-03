@@ -181,3 +181,28 @@ export interface HTTPRequestOptions {
   successCodes?: number[];
   [key: string]: unknown; // Allow additional Zotero-specific options
 }
+
+// Health check types
+export enum HealthStatus {
+  Healthy = "healthy",
+  Degraded = "degraded",
+  Unhealthy = "unhealthy",
+  Unknown = "unknown",
+}
+
+export interface HealthCheckResult {
+  serviceId: string;
+  serviceName: string;
+  status: HealthStatus;
+  responseTime?: number; // milliseconds
+  lastChecked: string; // ISO 8601 timestamp
+  message?: string;
+  details?: {
+    [key: string]: any;
+  };
+}
+
+export interface HealthCheckOptions {
+  timeout?: number; // milliseconds, default 30000
+  includeDetails?: boolean; // Include detailed diagnostics
+}
