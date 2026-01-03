@@ -453,6 +453,167 @@ export class AlertManager {
   }
 
   /**
+   * Get metrics aggregated by time period
+   */
+  getMetricsByPeriod(periodMs: number): {
+    period: { start: string; end: string };
+    successCount: number;
+    failureCount: number;
+    skippedCount: number;
+    totalAttempts: number;
+    successRate: number;
+    byService: Record<
+      string,
+      {
+        attempts: number;
+        successes: number;
+        failures: number;
+        successRate: number;
+      }
+    >;
+  } {
+    const now = Date.now();
+    const startTime = now - periodMs;
+    const activities = Array.from(this.activityHistory.values()).filter(
+      (a) => new Date(a.timestamp).getTime() >= startTime,
+    );
+
+    const byService: Record<
+      string,
+      {
+        attempts: number;
+        successes: number;
+        failures: number;
+        successRate: number;
+      }
+    > = {};
+    let successCount = 0;
+    let failureCount = 0;
+    let skippedCount = 0;
+
+    for (const activity of activities) {
+      // Only count actual archive activities
+      if (
+        activity.type !== ActivityEventType.ArchiveAttempt &&
+        activity.type !== ActivityEventType.ArchiveSuccess &&
+        activity.type !== ActivityEventType.ArchiveFailure
+      ) {
+        continue;
+      }
+
+      if (activity.serviceId) {
+        if (!byService[activity.serviceId]) {
+          byService[activity.serviceId] = {
+            attempts: 0,
+            successes: 0,
+            failures: 0,
+            successRate: 0,
+          };
+        }
+        byService[activity.serviceId].attempts += 1;
+      }
+
+      if (activity.result === "success") {
+        successCount += 1;
+        if (activity.serviceId) {
+          byService[activity.serviceId].successes += 1;
+        }
+      } else if (activity.result === "failure") {
+        failureCount += 1;
+        if (activity.serviceId) {
+          byService[activity.serviceId].failures += 1;
+        }
+      } else if (activity.result === "skipped") {
+        skippedCount += 1;
+      }
+    }
+
+    // Calculate success rates
+    const totalAttempts = successCount + failureCount;
+    const successRate =
+      totalAttempts > 0 ? (successCount / totalAttempts) * 100 : 0;
+
+    for (const serviceId in byService) {
+      const service = byService[serviceId];
+      const serviceTotal = service.successes + service.failures;
+      service.successRate =
+        serviceTotal > 0 ? (service.successes / serviceTotal) * 100 : 0;
+    }
+
+    return {
+      period: {
+        start: new Date(startTime).toISOString(),
+        end: new Date(now).toISOString(),
+      },
+      successCount,
+      failureCount,
+      skippedCount,
+      totalAttempts,
+      successRate,
+      byService,
+    };
+  }
+
+  /**
+   * Get hourly metrics for dashboard trends
+   */
+  getHourlyMetrics(hoursBack: number = 24): Array<{
+    hour: string;
+    successCount: number;
+    failureCount: number;
+    totalAttempts: number;
+    successRate: number;
+  }> {
+    const hourMetrics: Record<
+      string,
+      { successCount: number; failureCount: number }
+    > = {};
+    const now = Date.now();
+
+    // Initialize all hours
+    for (let i = hoursBack - 1; i >= 0; i--) {
+      const hourStart = now - (i + 1) * 3600000;
+      const date = new Date(hourStart);
+      const hourKey = date.toISOString().substring(0, 13); // Format: YYYY-MM-DDTHH
+      hourMetrics[hourKey] = { successCount: 0, failureCount: 0 };
+    }
+
+    // Aggregate activities by hour
+    const activities = Array.from(this.activityHistory.values());
+    for (const activity of activities) {
+      if (
+        activity.type !== ActivityEventType.ArchiveSuccess &&
+        activity.type !== ActivityEventType.ArchiveFailure
+      ) {
+        continue;
+      }
+
+      const date = new Date(activity.timestamp);
+      const hourKey = date.toISOString().substring(0, 13);
+
+      if (hourMetrics[hourKey]) {
+        if (activity.result === "success") {
+          hourMetrics[hourKey].successCount += 1;
+        } else if (activity.result === "failure") {
+          hourMetrics[hourKey].failureCount += 1;
+        }
+      }
+    }
+
+    // Convert to array and calculate rates
+    return Object.entries(hourMetrics).map(([hour, metrics]) => {
+      const total = metrics.successCount + metrics.failureCount;
+      return {
+        hour,
+        successCount: metrics.successCount,
+        failureCount: metrics.failureCount,
+        totalAttempts: total,
+        successRate: total > 0 ? (metrics.successCount / total) * 100 : 0,
+      };
+    });
+  }
+
+  /**
    * Export audit report with current system state
    */
   exportAuditReport(): {
