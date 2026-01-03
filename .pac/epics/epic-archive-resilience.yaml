@@ -70,6 +70,7 @@ spec:
 
   tickets:
     - "TICKET-fix-item-persistence"
+    - "TICKET-support-doi-only-items"
     - "TICKET-implement-circuit-breaker"
     - "TICKET-add-health-checks"
     - "TICKET-fallback-strategy"
@@ -78,9 +79,11 @@ spec:
     - "TICKET-update-documentation"
 
   acceptance_criteria:
-    - "[ ] All 7 tickets completed and merged"
+    - "[ ] All 8 tickets completed and merged"
     - "[ ] Item persistence bug fixed with archive metadata surviving reload"
     - "[ ] Items properly tagged as archived after successful archiving"
+    - "[ ] DOI-only items can be archived successfully"
+    - "[ ] Robust links for DOI items have correct original URL"
     - "[ ] Architecture review approved"
     - "[ ] End-to-end testing validates failover scenarios"
     - "[ ] Performance testing shows no degradation"

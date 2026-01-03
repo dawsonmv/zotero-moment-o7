@@ -1,0 +1,166 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-support-doi-only-items"
+  sequence: 3
+  name: "Support archiving DOI-only items without URLs"
+  epic: "EPIC-archive-resilience"
+  created: "2026-01-02T21:40:00Z"
+  updated: "2026-01-02T21:40:00Z"
+  assignee: "Dawson Valdes"
+  labels:
+    component: "archive-coordinator"
+    type: "bug"
+    effort: "medium"
+    priority: "high"
+
+spec:
+  description: |
+    ArchiveCoordinator.archiveItem() preemptively rejects items without a URL field
+    before delegating to archive services, even when the item has a DOI. This prevents
+    archiving of legitimate DOI-only items that services could handle via getBestUrl().
+
+    The precheck at lines 97-101 in ArchiveCoordinator.ts:
+    ```typescript
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
+    if (!url) {
+      throw new Error("Item has no URL to archive");
+    }
+    ```
+
+    This blocks services from using their getBestUrl() method which converts DOI to
+    https://doi.org/{DOI}. Additionally, RobustLinkCreator later reads item.getField("url")
+    directly for the "original" URL in robust links, which would be empty/incorrect for
+    DOI-only items even if they could somehow be archived.
+
+    Impact:
+    - Users cannot archive journal articles with only DOI (no direct URL)
+    - DOI-only items appear broken in the UI with "no URL to archive" error
+    - Common scenario for academic research items
+    - Reduces plugin utility for academic users (primary use case)
+
+  type: "bug"
+  status: "backlog"
+  priority: "high"
+
+  acceptance_criteria:
+    - [ ] Items with DOI but no URL can be submitted to archive services
+    - [ ] Services receive DOI-derived URL via getBestUrl() method
+    - [ ] RobustLinkCreator uses proper URL (DOI or direct) for robust links
+    - [ ] Robust links created for DOI-only items have correct "original" URL
+    - [ ] All archive services successfully archive DOI-only items
+    - [ ] Error message is only shown if both URL and DOI are missing
+    - [ ] No regression in archiving items with direct URLs
+
+  tasks:
+    - [ ] Analyze ArchiveCoordinator.archiveItem() precheck logic (lines 97-101)
+    - [ ] Change precheck to allow items with DOI even if URL field is empty
+    - [ ] Use getBestUrl() in ArchiveCoordinator to get effective URL for validation
+    - [ ] Update RobustLinkCreator to use getBestUrl() for item's effective URL
+    - [ ] Update error message to indicate both URL and DOI are required
+    - [ ] Write unit tests for DOI-only archiving scenario
+    - [ ] Write integration tests with DOI-only items across all services
+    - [ ] Verify robust links have correct original URL for DOI items
+    - [ ] Test edge cases (DOI without https://doi.org/, malformed DOI, etc.)
+
+  technical_notes: |
+    Current Problem:
+    - ArchiveCoordinator rejects DOI-only items at line 99 without checking DOI
+    - BaseArchiveService.getBestUrl() properly converts DOI to URL (lines 109-118)
+    - But this never runs because item is rejected before reaching services
+    - RobustLinkCreator.createRobustLink() uses item.getField("url") directly
+    - Would store empty/incorrect "original" URL even if archiving succeeded
+
+    Required Changes:
+    1. Modify ArchiveCoordinator.archiveItem() precheck:
+       - Import BaseArchiveService or extract getBestUrl() logic
+       - Use getBestUrl() to get effective URL for validation
+       - Only throw error if both url AND DOI are empty
+
+    2. Update RobustLinkCreator:
+       - Change from item.getField("url") to getBestUrl()
+       - Ensures robust links always have correct original URL
+       - Consistent with archive service behavior
+
+    3. Consider creating utility function:
+       - Extract getBestUrl() to shared utility (ZoteroItemHandler?)
+       - Avoid code duplication across multiple consumers
+       - Single source of truth for "effective URL" logic
+
+    Files to Modify:
+    - src/modules/archive/ArchiveCoordinator.ts (lines 97-101)
+    - src/modules/archive/RobustLinkCreator.ts (search for item.getField("url"))
+    - src/modules/archive/BaseArchiveService.ts (consider moving getBestUrl)
+
+  dependencies:
+    - "TICKET-fix-item-persistence"
+
+  estimation:
+    story_points: 5
+    tshirt_size: "M"
+    hours: 6
+
+  testing_strategy: |
+    Unit Tests:
+    - Mock item with DOI but no URL, verify archiving allowed
+    - Test getBestUrl() with various DOI formats
+    - Test robust link creation with DOI-only items
+    - Test error case: items with neither URL nor DOI
+
+    Integration Tests:
+    - Create item with only DOI in test database
+    - Archive to each service (IA, Perma.cc, Arquivo.pt, Archive.today, UKArchive)
+    - Verify each service receives https://doi.org/{DOI}
+    - Verify robust links store correct original URL
+    - Test with real DOIs from test dataset
+
+    Edge Cases:
+    - DOI without https://doi.org/ prefix
+    - Malformed DOI
+    - DOI with special characters
+    - Item with both URL and DOI (URL should take precedence)
+    - Empty/null DOI field
+
+    Regression Tests:
+    - Verify URL-only items still work
+    - Verify URL+DOI items prefer URL over DOI
+    - Check performance impact is minimal
+    - Verify no new exceptions in logs
+
+  risk_assessment: |
+    Risk Level: Low-Medium
+
+    Risks:
+    - Changes to URL resolution logic affect all archiving
+    - Some DOIs may be malformed or non-standard
+    - Services might not accept all DOI formats
+    - Robust link generation becomes dependent on getBestUrl()
+
+    Mitigations:
+    - Extensive testing across service providers
+    - Validate DOI format before using
+    - Keep fallback to empty URL if DOI is invalid
+    - Maintain backward compatibility with URL-based items
+    - Document DOI URL format in code comments
+
+  success_metrics:
+    - DOI-only items can be archived successfully
+    - Archive success rate for DOI items ≥ URL items
+    - Robust links for DOI items have correct original URL
+    - No regressions in existing URL-based archiving
+    - User reports of DOI archiving working in releases
+
+  notes: |
+    This is a common real-world scenario for academic users:
+    - Journal articles often tracked by DOI without direct URL
+    - DOI serves as persistent identifier
+    - Should be supported for better user experience
+
+    Related to config-driven services - all services now properly support this
+    once coordinator allows DOI-only items through.
+
+    May improve plugin adoption among academic/research communities using Zotero
+    for reference management.
+
+    Consider documenting DOI support in release notes and user guide.
