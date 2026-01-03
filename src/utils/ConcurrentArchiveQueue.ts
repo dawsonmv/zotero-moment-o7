@@ -262,7 +262,7 @@ export class ConcurrentArchiveQueue {
       closeOnClick: false,
     });
 
-    this.progressWindow.changeHeadline(
+    this.progressWindow!.changeHeadline(
       `Archiving (0/${itemCount}) | Loading...`,
     );
 
@@ -270,12 +270,12 @@ export class ConcurrentArchiveQueue {
     for (const [, itemProgress] of this.itemProgress) {
       const itemTitle = itemProgress.item.getField("title") || "Untitled";
       const truncatedTitle = itemTitle.substring(0, 50);
-      itemProgress.lineHandle = this.progressWindow.addDescription(
+      itemProgress.lineHandle = this.progressWindow!.addDescription(
         `⏳ ${truncatedTitle}`,
       );
     }
 
-    this.progressWindow.show();
+    this.progressWindow!.show();
   }
 
   /**
