@@ -21,6 +21,10 @@ export class AlertManager {
   private failureTracker: Map<string, number[]> = new Map(); // Timestamps of failures
   private activityHistory: Map<string, ActivityEvent> = new Map(); // Activity audit trail
   private maxActivityHistorySize: number = 500; // Keep recent activities for audit
+  private circuitBreakerEvents: Map<
+    string,
+    { timestamp: number; state: string }
+  > = new Map(); // CB state tracking
   private preferences: AlertPreferences = {
     enabled: true,
     channels: [AlertChannel.Log, AlertChannel.Zotero],
@@ -554,6 +558,114 @@ export class AlertManager {
       byType,
       byService,
       byResult,
+    };
+  }
+
+  /**
+   * Track circuit breaker state change for a service
+   */
+  trackCircuitBreakerStateChange(serviceId: string, newState: string): void {
+    const key = `${serviceId}:state`;
+    this.circuitBreakerEvents.set(key, {
+      timestamp: Date.now(),
+      state: newState,
+    });
+
+    // Also track as activity event
+    this.trackActivity({
+      type:
+        newState === "OPEN"
+          ? ActivityEventType.CircuitBreakerTripped
+          : ActivityEventType.CircuitBreakerRecovered,
+      serviceId,
+      result: "success",
+      message: `Circuit breaker transitioned to ${newState}`,
+      details: { newState },
+    });
+  }
+
+  /**
+   * Get circuit breaker recovery statistics
+   */
+  getCircuitBreakerStats(): {
+    totalServices: number;
+    openServices: number;
+    halfOpenServices: number;
+    closedServices: number;
+    averageRecoveryTime: number; // in milliseconds
+    recentEvents: Array<{
+      serviceId: string;
+      state: string;
+      lastStateChange: string; // ISO timestamp
+      timeSinceStateChange: number; // milliseconds
+    }>;
+  } {
+    const serviceIds = new Set<string>();
+    let openServices = 0;
+    let halfOpenServices = 0;
+    let closedServices = 0;
+    const recoveryTimes: number[] = [];
+
+    // Collect unique service IDs and their current states
+    for (const key of this.circuitBreakerEvents.keys()) {
+      const [serviceId, type] = key.split(":");
+      if (type === "state") {
+        serviceIds.add(serviceId);
+        const event = this.circuitBreakerEvents.get(key);
+        if (event) {
+          if (event.state === "OPEN") openServices += 1;
+          else if (event.state === "HALF_OPEN") halfOpenServices += 1;
+          else if (event.state === "CLOSED") closedServices += 1;
+        }
+      }
+    }
+
+    // Calculate recovery times from CB recovery activities
+    const cbRecoveryActivities = this.filterActivities({
+      types: [ActivityEventType.CircuitBreakerRecovered],
+      limit: 100,
+    });
+
+    for (let i = 0; i < cbRecoveryActivities.length; i++) {
+      if (i + 1 < cbRecoveryActivities.length) {
+        const current = new Date(cbRecoveryActivities[i].timestamp).getTime();
+        const previous = new Date(
+          cbRecoveryActivities[i + 1].timestamp,
+        ).getTime();
+        const recoveryTime = current - previous;
+        if (recoveryTime > 0 && recoveryTime < 3600000) {
+          // Ignore outliers > 1 hour
+          recoveryTimes.push(recoveryTime);
+        }
+      }
+    }
+
+    const averageRecoveryTime =
+      recoveryTimes.length > 0
+        ? recoveryTimes.reduce((a, b) => a + b, 0) / recoveryTimes.length
+        : 0;
+
+    // Build recent events list
+    const recentEvents = Array.from(serviceIds).map((serviceId) => {
+      const key = `${serviceId}:state`;
+      const event = this.circuitBreakerEvents.get(key);
+      const now = Date.now();
+      const lastChange = event?.timestamp || now;
+      return {
+        serviceId,
+        state: event?.state || "UNKNOWN",
+        lastStateChange: new Date(lastChange).toISOString(),
+        timeSinceStateChange: now - lastChange,
+      };
+    });
+
+    return {
+      totalServices: serviceIds.size,
+      openServices,
+      halfOpenServices,
+      closedServices,
+      averageRecoveryTime,
+      recentEvents,
     };
   }
 
