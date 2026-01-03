@@ -107,6 +107,8 @@ describe("InternetArchiveService", function () {
         return "";
       }),
       setField: jest.fn(),
+      addTag: jest.fn(),
+      getTags: jest.fn().mockReturnValue([]),
       saveTx: jest.fn().mockResolvedValue(undefined),
     } as unknown as Zotero.Item;
   });

@@ -316,6 +316,9 @@ export abstract class BaseArchiveService implements ArchiveService {
       item.setField("extra", updatedExtra);
     }
 
+    // Add archived tag for visual tracking
+    item.addTag("archived");
+
     // Create note with robust link
     const robustLinkHTML = this.createRobustLinkHTML(
       originalUrl,
@@ -334,6 +337,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     note.setNote(noteContent);
     note.parentID = item.id;
     await note.saveTx();
+
+    // Persist item changes to database (extra field and tag)
+    await item.saveTx();
   }
 
   /**

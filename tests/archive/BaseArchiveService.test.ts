@@ -106,6 +106,8 @@ describe("BaseArchiveService", function () {
       id: 123,
       getField: jest.fn(),
       setField: jest.fn(),
+      addTag: jest.fn(),
+      getTags: jest.fn().mockReturnValue([]),
       saveTx: jest.fn().mockResolvedValue(undefined),
     } as unknown as Zotero.Item;
   });
@@ -415,6 +417,8 @@ describe("BaseArchiveService", function () {
           return "";
         }),
         setField: jest.fn(),
+        addTag: jest.fn(),
+        getTags: jest.fn().mockReturnValue([]),
         saveTx: jest.fn().mockResolvedValue(undefined),
       } as unknown as Zotero.Item;
 
