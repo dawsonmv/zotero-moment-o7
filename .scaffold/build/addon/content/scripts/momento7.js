@@ -6388,6 +6388,7 @@ ${archiveField}` : archiveField;
       if (updatedExtra !== extra) {
         item.setField("extra", updatedExtra);
       }
+      item.addTag("archived");
       const robustLinkHTML = this.createRobustLinkHTML(
         originalUrl,
         archivedUrl,
@@ -6404,6 +6405,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       note.setNote(noteContent);
       note.parentID = item.id;
       await note.saveTx();
+      await item.saveTx();
     }
     /**
      * Create progress window wrapper

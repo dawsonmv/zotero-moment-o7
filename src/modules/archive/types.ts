@@ -206,3 +206,47 @@ export interface HealthCheckOptions {
   timeout?: number; // milliseconds, default 30000
   includeDetails?: boolean; // Include detailed diagnostics
 }
+
+// Alert types
+export enum AlertLevel {
+  Info = "info",
+  Warning = "warning",
+  Error = "error",
+  Critical = "critical",
+}
+
+export enum AlertChannel {
+  Log = "log",
+  Zotero = "zotero",
+  UI = "ui",
+}
+
+export interface Alert {
+  id: string;
+  timestamp: string; // ISO 8601
+  level: AlertLevel;
+  channel: AlertChannel;
+  title: string;
+  message: string;
+  serviceId?: string;
+  serviceName?: string;
+  details?: {
+    [key: string]: any;
+  };
+  acknowledged?: boolean;
+}
+
+export interface AlertThresholds {
+  failureCount?: number; // Number of failures before alert
+  failureWindow?: number; // Time window in milliseconds
+  circuitBreakerStateChange?: boolean; // Alert on state change
+  minAlertInterval?: number; // Minimum time between alerts for same issue
+}
+
+export interface AlertPreferences {
+  enabled: boolean;
+  channels: AlertChannel[];
+  level: AlertLevel;
+  thresholds: AlertThresholds;
+  maxHistorySize?: number; // Number of alerts to keep in history
+}
