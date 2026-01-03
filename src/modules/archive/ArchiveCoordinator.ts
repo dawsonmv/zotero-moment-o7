@@ -12,6 +12,7 @@ import { ZoteroItemHandler } from "./ZoteroItemHandler";
 import { ConcurrentArchiveQueue } from "../../utils/ConcurrentArchiveQueue";
 import { TrafficMonitor } from "../../utils/TrafficMonitor";
 import { AlertManager } from "./AlertManager";
+import { HealthChecker } from "./HealthChecker";
 import {
   CircuitBreakerManager,
   CircuitState,
@@ -262,6 +263,28 @@ export class ArchiveCoordinator {
       return `${hours} hour${hours > 1 ? "s" : ""} old`;
     }
     return "less than 1 hour old";
+  }
+
+  /**
+   * Check if service is healthy before archiving
+   * Uses cached health checks to avoid additional network requests
+   */
+  private async isServiceHealthy(serviceId: string): Promise<boolean> {
+    try {
+      const cached = HealthChecker.getCachedResult(serviceId);
+      if (cached) {
+        return cached.status === "healthy";
+      }
+
+      // If no cache, do a quick health check
+      const health = await HealthChecker.checkService(serviceId, {
+        timeout: 5000,
+      });
+      return health.status === "healthy";
+    } catch {
+      // If health check fails, assume service is unavailable
+      return false;
+    }
   }
 
   /**
