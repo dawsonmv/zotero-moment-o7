@@ -1,0 +1,223 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-monitoring-dashboard"
+  name: "Build Monitoring Dashboard for Archive Services"
+  epic_id: "EPIC-archive-resilience"
+  created: "2026-01-02T22:30:00Z"
+  updated: "2026-01-02T22:30:00Z"
+  assignee: "Dawson Valdes"
+  type: "feature"
+  status: "backlog"
+  priority: "urgent"
+
+spec:
+  description: |
+    Create a monitoring dashboard that displays real-time health status of all
+    archive services, circuit breaker states, recent activities, and performance
+    metrics. This provides users visibility into plugin health and helps diagnose
+    archiving issues.
+
+  problem_statement: |
+    Users lack visibility into why archiving fails or what's happening with
+    archive services. A dashboard would show service health, recent activity,
+    and performance metrics, enabling better diagnosis and user confidence.
+
+  acceptance_criteria:
+    - "[ ] Dashboard component displays service health status"
+    - "[ ] Real-time circuit breaker state visualization"
+    - "[ ] Recent archiving activity timeline (last 20 items)"
+    - "[ ] Performance metrics (success rate, avg latency, total archived)"
+    - "[ ] Error log with filtering/search capabilities"
+    - "[ ] Responsive design for Zotero window sizes"
+    - "[ ] Updates in real-time as archiving happens"
+    - "[ ] Shows when services are unavailable/rate-limited"
+    - "[ ] Accessible via Zotero UI (menu or toolbar)"
+    - "[ ] Code reviewed and approved"
+
+  implementation_details:
+    approach: |
+      Create Dashboard component with real-time monitoring:
+
+      1. Dashboard Layout:
+         - Header: Title and refresh status
+         - Service Health Grid: 6+ services with status indicators
+         - Circuit Breaker Panel: CLOSED/OPEN/HALF_OPEN states
+         - Activity Feed: Recent archiving attempts
+         - Performance Stats: Charts and metrics
+         - Error Log: Searchable error details
+
+      2. Service Health Display:
+         - Service name and logo
+         - Status indicator (🟢 available, 🔴 unavailable, 🟡 rate-limited)
+         - Last check time
+         - Quick stats (success rate, avg latency)
+
+      3. Circuit Breaker Visualization:
+         - State: CLOSED (healthy) → OPEN (failing) → HALF_OPEN (testing)
+         - Failure count
+         - Recovery timeout countdown
+         - Last state change time
+
+      4. Activity Feed:
+         - Item title
+         - Archive service used
+         - Result (✓ success, ✗ failure, ↷ fallback)
+         - Timestamp
+         - Click to see details
+
+      5. Performance Metrics:
+         - Line chart: Success rate over time
+         - Bar chart: Archives per service
+         - Summary stats: Total archived, avg latency, uptime %
+
+      6. Error Log:
+         - Error type
+         - Service
+         - Timestamp
+         - Details
+         - Search/filter by service or error type
+
+      7. Real-time Updates:
+         - Subscribe to archiving events
+         - Auto-refresh health checks every 60 seconds
+         - WebSocket-like updates (polling or event emitter)
+
+    affected_files:
+      - "src/modules/monitoring/Dashboard.ts (NEW - main component)"
+      - "src/modules/monitoring/DashboardUI.ts (NEW - UI rendering)"
+      - "src/modules/monitoring/index.ts (UPDATE - export Dashboard)"
+      - "tests/monitoring/Dashboard.test.ts (NEW - component tests)"
+      - "addon/content/dashboard.xhtml (NEW - dashboard template)"
+      - "addon/content/styles/dashboard.css (NEW - styling)"
+
+    dependencies:
+      - library: "Metrics class"
+        version: "from monitoring module"
+        reason: "Access to performance metrics"
+      - library: "HealthChecker"
+        version: "from TICKET-add-health-checks"
+        reason: "Display service health status"
+      - library: "CircuitBreaker"
+        version: "from TICKET-implement-circuit-breaker"
+        reason: "Display circuit breaker states"
+      - library: "Logger"
+        version: "from monitoring module"
+        reason: "Display error logs"
+
+  testing_strategy: |
+    Unit tests covering:
+
+    Component Rendering:
+    - Dashboard renders without errors
+    - All sections visible
+    - Responsive to window size changes
+
+    Service Health Display:
+    - Shows correct status for available services
+    - Shows correct status for unavailable services
+    - Shows correct status for rate-limited services
+    - Updates when health check runs
+
+    Circuit Breaker Visualization:
+    - Displays CLOSED state correctly
+    - Displays OPEN state with timeout
+    - Displays HALF_OPEN state
+    - Updates on state transitions
+
+    Activity Feed:
+    - Shows recent archiving attempts
+    - Limited to last 20 items
+    - Shows correct result (success/failure/fallback)
+    - Timestamps accurate
+
+    Performance Metrics:
+    - Success rate calculated correctly
+    - Charts render with data
+    - Stats update in real-time
+
+    Error Log:
+    - Shows recent errors
+    - Search filters by service
+    - Search filters by error type
+    - Sorted by timestamp (newest first)
+
+    Real-time Updates:
+    - Dashboard updates when archiving happens
+    - Health checks trigger refreshes
+    - No performance degradation
+
+  tasks:
+    - "[ ] Design dashboard layout and wireframes"
+    - "[ ] Create Dashboard component class"
+    - "[ ] Implement service health grid display"
+    - "[ ] Implement circuit breaker state visualization"
+    - "[ ] Implement activity feed"
+    - "[ ] Implement performance metrics display"
+    - "[ ] Add charts for visual metrics"
+    - "[ ] Implement error log with search"
+    - "[ ] Add real-time update mechanism"
+    - "[ ] Create dashboard template (XHTML)"
+    - "[ ] Add CSS styling and responsive design"
+    - "[ ] Integrate with Zotero UI menu"
+    - "[ ] Write component tests"
+    - "[ ] Write integration tests"
+    - "[ ] Code review"
+    - "[ ] Merge to main"
+
+  blockers: []
+
+  related_tickets:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-add-health-checks"
+    - "TICKET-fallback-strategy"
+    - "TICKET-alerting-system"
+
+  estimated_effort: "8 story points (5-6 days)"
+
+  labels:
+    - "ui"
+    - "monitoring"
+    - "user-experience"
+
+  performance_considerations: |
+    - Minimize re-renders (use efficient update strategy)
+    - Don't block UI with heavy calculations
+    - Lazy-load error log (paginate or virtualize)
+    - Throttle real-time updates to 1-2 per second
+    - Cache chart data to avoid recalculation
+
+  security_considerations: |
+    - Don't display sensitive information (API keys, credentials)
+    - Sanitize error messages before display
+    - Limit error log to recent entries (prevent log spam)
+    - Validate all metrics data
+    - Don't expose internal architecture details
+
+  documentation_required:
+    - "[ ] JSDoc for Dashboard component"
+    - "[ ] Example: How to access the dashboard"
+    - "[ ] User guide: Understanding the dashboard"
+    - "[ ] Architecture diagram of monitoring system"
+    - "[ ] CHANGELOG entry"
+
+  notes: |
+    The dashboard is crucial for user confidence and debugging. Users want to
+    know why archiving fails and see service status at a glance.
+
+    This is marked URGENT because it's a high-impact feature for user experience.
+    The visual feedback helps users understand plugin behavior.
+
+    Consider implementing as a persistent sidebar or window that updates in
+    real-time as users archive items.
+
+  checklist:
+    - "[ ] Implementation complete"
+    - "[ ] All visual components rendering"
+    - "[ ] Real-time updates working"
+    - "[ ] Component tests passing"
+    - "[ ] Integration tests pass"
+    - "[ ] Code review completed"
+    - "[ ] Documentation updated"
+    - "[ ] UI/UX review approved"
+    - "[ ] Ready for merge"

@@ -1,0 +1,206 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-alerting-system"
+  name: "Add Alerting System for Service Failures"
+  epic_id: "EPIC-archive-resilience"
+  created: "2026-01-02T22:45:00Z"
+  updated: "2026-01-02T22:45:00Z"
+  assignee: "Dawson Valdes"
+  type: "feature"
+  status: "backlog"
+  priority: "high"
+
+spec:
+  description: |
+    Implement alerting system to notify users of repeated service failures and
+    circuit breaker state changes. Alerts should be non-intrusive but informative,
+    helping users understand why archiving is failing without overwhelming them.
+
+  problem_statement: |
+    When archive services fail repeatedly or become unavailable, users receive
+    no notification beyond a failed archive attempt. An alerting system would
+    proactively inform users about service issues, allowing them to make informed
+    decisions (e.g., "Archive.today is unavailable, but Perma.cc is working").
+
+  acceptance_criteria:
+    - "[ ] Alert system notifies on circuit breaker state changes"
+    - "[ ] Configurable alert thresholds (failure count, timeout)"
+    - "[ ] Multiple alert channels (notification, log, UI)"
+    - "[ ] Alert deduplication (no spam for same issue)"
+    - "[ ] Alert history/log for recent alerts"
+    - "[ ] User preference for alert frequency"
+    - "[ ] Integration with Zotero notification system"
+    - "[ ] Graceful degradation if notification unavailable"
+    - "[ ] Test coverage for alert scenarios"
+    - "[ ] Code reviewed and approved"
+
+  implementation_details:
+    approach: |
+      Create Alerting system with multiple channels:
+
+      1. Alert Types:
+         - ServiceDown: Service unavailable
+         - CircuitBreakerOpen: Service circuit breaker opened
+         - HighFailureRate: Many failures in time window
+         - ServiceRecovered: Service healthy again
+         - RateLimited: Service rate limiting detected
+
+      2. Alert Channels:
+         - Zotero Notification: Toast-style notification
+         - Logger: Debug log entry
+         - UI: Dashboard alert badge
+         - Preference Pane: Alert history log
+
+      3. Configuration:
+         - Failure threshold (default: 5 consecutive failures)
+         - Cooldown period (default: 1 hour between alerts for same service)
+         - Alert frequency: Immediate, Batched, Silent
+         - Per-service alert preferences
+
+      4. Deduplication:
+         - Track recent alerts by service and type
+         - Don't show duplicate alerts within cooldown period
+         - Allow user to manually dismiss alerts
+
+      5. Alert History:
+         - Store last 50 alerts
+         - Timestamp, service, type, message
+         - Accessible from preferences pane
+         - Export alert log for debugging
+
+      6. Smart Notifications:
+         - Don't alert on first failure (normal transients)
+         - Alert only after threshold reached
+         - Mention if fallback services available
+         - Suggest user action if applicable
+
+    affected_files:
+      - "src/modules/monitoring/Alerting.ts (NEW - main alerting class)"
+      - "src/modules/monitoring/AlertingUI.ts (NEW - notification rendering)"
+      - "src/modules/monitoring/AlertHistory.ts (NEW - alert log)"
+      - "src/modules/preferences/PreferencesManager.ts (UPDATE - alert settings)"
+      - "src/modules/preferences/ui/AlertingPanel.ts (NEW - preferences UI)"
+      - "tests/monitoring/Alerting.test.ts (NEW - alert tests)"
+
+    dependencies:
+      - library: "CircuitBreaker"
+        version: "from TICKET-implement-circuit-breaker"
+        reason: "Subscribe to state change events"
+      - library: "Metrics"
+        version: "from monitoring module"
+        reason: "Track failure rates"
+      - library: "Logger"
+        version: "from monitoring module"
+        reason: "Log alerts"
+
+  testing_strategy: |
+    Unit tests covering:
+
+    Alert Generation:
+    - Alert on circuit breaker CLOSED → OPEN
+    - Alert on circuit breaker OPEN → HALF_OPEN
+    - Alert on circuit breaker HALF_OPEN → CLOSED
+    - Alert on high failure rate
+    - Alert on service recovery
+
+    Deduplication:
+    - No duplicate alerts within cooldown
+    - Different alert types not deduplicated
+    - Different services not deduplicated
+    - Cooldown expires correctly
+
+    Notification Channels:
+    - Zotero notification shows correctly
+    - Logger records alert
+    - UI badge appears on dashboard
+    - Alert history stores entry
+
+    Configuration:
+    - User can set failure threshold
+    - User can set cooldown period
+    - User can choose alert frequency
+    - Per-service alert enable/disable
+
+    Edge Cases:
+    - No notification system available (graceful)
+    - Multiple alerts in quick succession
+    - Alert during plugin shutdown
+    - Alert for service not in primary list
+
+  tasks:
+    - "[ ] Design alert types and properties"
+    - "[ ] Create Alerting class with event handling"
+    - "[ ] Implement alert deduplication logic"
+    - "[ ] Add Zotero notification channel"
+    - "[ ] Add logger channel for debug logging"
+    - "[ ] Add UI channel (dashboard badge)"
+    - "[ ] Create AlertHistory class"
+    - "[ ] Integrate with CircuitBreaker state changes"
+    - "[ ] Add alert preferences to PreferencesManager"
+    - "[ ] Create alerting preferences UI panel"
+    - "[ ] Implement cooldown period"
+    - "[ ] Add configurable thresholds"
+    - "[ ] Write comprehensive unit tests"
+    - "[ ] Write integration tests"
+    - "[ ] Add JSDoc comments"
+    - "[ ] Code review"
+    - "[ ] Merge to main"
+
+  blockers:
+    - "TICKET-implement-circuit-breaker"
+
+  related_tickets:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-monitoring-dashboard"
+
+  estimated_effort: "5 story points (3-4 days)"
+
+  labels:
+    - "monitoring"
+    - "user-experience"
+    - "notifications"
+
+  performance_considerations: |
+    - Alert generation should be non-blocking
+    - Don't spam notifications (use deduplication)
+    - Alert history shouldn't grow unbounded (limit to 50)
+    - Cooldown prevents excessive alerting
+    - Async notification rendering
+
+  security_considerations: |
+    - Don't expose API keys or sensitive data in alerts
+    - Sanitize service names and error messages
+    - Don't reveal internal architecture details
+    - Log alerts securely (no secrets in logs)
+    - Validate alert configuration from preferences
+
+  documentation_required:
+    - "[ ] JSDoc for Alerting class"
+    - "[ ] Alert types and meanings documented"
+    - "[ ] Example: Configuring alert thresholds"
+    - "[ ] User guide: Understanding alerts"
+    - "[ ] Settings guide: Alert preferences"
+    - "[ ] CHANGELOG entry"
+
+  notes: |
+    Alerts are essential for user communication about service issues. The key is
+    balancing informativeness with non-intrusiveness. Too many alerts annoy users;
+    too few leaves them uninformed.
+
+    The cooldown period prevents alert fatigue. If Archive.today is down for an
+    hour, we don't want to alert the user every time they try to archive.
+
+    Consider implementing a smart suggestion system that recommends fallback
+    services when a primary service is unavailable.
+
+  checklist:
+    - "[ ] Implementation complete"
+    - "[ ] All alert channels working"
+    - "[ ] Deduplication working correctly"
+    - "[ ] Preferences UI functional"
+    - "[ ] Component tests passing"
+    - "[ ] Integration tests pass"
+    - "[ ] Code review completed"
+    - "[ ] Documentation updated"
+    - "[ ] Ready for merge"

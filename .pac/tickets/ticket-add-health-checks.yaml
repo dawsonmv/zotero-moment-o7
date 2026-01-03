@@ -1,0 +1,177 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-add-health-checks"
+  name: "Add Health Checks for Archive Services"
+  epic_id: "EPIC-archive-resilience"
+  created: "2026-01-02T22:00:00Z"
+  updated: "2026-01-02T22:00:00Z"
+  assignee: "Dawson Valdes"
+  type: "feature"
+  status: "backlog"
+  priority: "high"
+
+spec:
+  description: |
+    Implement health check endpoints for all archive services (Internet Archive,
+    Archive.today, Perma.cc, UK Web Archive, Arquivo.pt, and archive service
+    plugins). These health checks should detect service availability and respond
+    within 30 seconds.
+
+  problem_statement: |
+    Currently, the circuit breaker lacks a way to determine if a service has
+    recovered after being marked as unavailable. Health checks provide a mechanism
+    to periodically test if services are responding and available for archiving.
+
+  acceptance_criteria:
+    - "[ ] Health check endpoint for each of 6+ archive services"
+    - "[ ] Endpoints detect service availability/unavailability"
+    - "[ ] Check completes within 30 second timeout"
+    - "[ ] Returns consistent health status (available/unavailable)"
+    - "[ ] Handles network timeouts gracefully"
+    - "[ ] Respects rate limits during health checks"
+    - "[ ] Unit tests for each service's health check"
+    - "[ ] Integration with circuit breaker state transitions"
+    - "[ ] No performance degradation to normal archiving"
+    - "[ ] Code reviewed and approved"
+
+  implementation_details:
+    approach: |
+      Create HealthChecker class with methods for each service:
+
+      1. Interface Design:
+         - isAvailable(serviceId): Promise<boolean>
+         - getServiceStatus(serviceId): Promise<ServiceStatus>
+         - checkAllServices(): Promise<Map<string, ServiceStatus>>
+
+      2. Implementation per service:
+         - Internet Archive: Quick ping to /advancedsearch endpoint
+         - Archive.today: Lightweight request to capture API
+         - Perma.cc: API availability check
+         - UK Web Archive: Service status endpoint
+         - Arquivo.pt: Ping to search API
+         - Config services: Use archive endpoint with test URL
+
+      3. Error Handling:
+         - Timeout: 30 seconds max per service
+         - Network errors: Mark as unavailable
+         - Rate limit errors: Mark as rate-limited
+         - Service errors (5xx): Mark as unavailable
+
+      4. Caching:
+         - Cache health status for 60 seconds
+         - Avoid redundant health checks
+
+    affected_files:
+      - "src/modules/monitoring/HealthChecker.ts (NEW)"
+      - "tests/monitoring/HealthChecker.test.ts (NEW)"
+      - "src/modules/archive/CircuitBreakerManager.ts (UPDATE - integrate health checks)"
+      - "src/utils/CircuitBreaker.ts (UPDATE - add health check callback)"
+
+    dependencies:
+      - library: "TypeScript"
+        version: "^5.9"
+        reason: "Type safety for health status interface"
+      - library: "Jest"
+        version: "^30.0"
+        reason: "Unit testing framework"
+
+  testing_strategy: |
+    Unit tests covering:
+
+    Service-Specific Health Checks:
+    - Internet Archive availability detection
+    - Archive.today API health
+    - Perma.cc service status
+    - UK Web Archive endpoint response
+    - Arquivo.pt search API
+    - Config-driven services (generic)
+
+    Error Scenarios:
+    - Network timeout (30s exceeded)
+    - Service returning 5xx errors
+    - Rate limit response (429)
+    - Connection refused
+    - DNS resolution failure
+    - Partial connectivity (some services up, some down)
+
+    Caching:
+    - Results cached for 60 seconds
+    - Cache invalidation on timeout
+    - Multiple concurrent checks respect cache
+
+    Integration:
+    - Health checks trigger circuit breaker transitions
+    - HALF_OPEN state uses health checks for recovery testing
+    - No cascading failures during health checks
+
+  tasks:
+    - "[ ] Design HealthChecker interface and ServiceStatus type"
+    - "[ ] Implement health check for Internet Archive"
+    - "[ ] Implement health check for Archive.today"
+    - "[ ] Implement health check for Perma.cc"
+    - "[ ] Implement health check for UK Web Archive"
+    - "[ ] Implement health check for Arquivo.pt"
+    - "[ ] Implement generic health check for config services"
+    - "[ ] Add timeout handling (30 second max)"
+    - "[ ] Add caching layer (60 second TTL)"
+    - "[ ] Integrate with CircuitBreaker state transitions"
+    - "[ ] Write comprehensive unit tests"
+    - "[ ] Write integration tests with mock services"
+    - "[ ] Add JSDoc comments with examples"
+    - "[ ] Code review and approval"
+    - "[ ] Merge to main"
+
+  blockers:
+    - "TICKET-implement-circuit-breaker"
+
+  related_tickets:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-fallback-strategy"
+    - "TICKET-monitoring-dashboard"
+
+  estimated_effort: "5 story points (3-4 days)"
+
+  labels:
+    - "core"
+    - "monitoring"
+    - "reliability"
+
+  performance_considerations: |
+    - Health checks should not impact archiving performance
+    - Use timeout to prevent hanging requests
+    - Cache results to avoid redundant checks
+    - Run checks asynchronously, don't block UI
+    - Consider staggering checks for multiple services
+
+  security_considerations: |
+    - Don't expose internal error details
+    - Handle authentication failures gracefully
+    - Respect service rate limits during checks
+    - Validate responses before processing
+    - Log health check failures for debugging
+
+  documentation_required:
+    - "[ ] JSDoc comments on HealthChecker class"
+    - "[ ] Example: How to check service health"
+    - "[ ] Example: How health checks integrate with circuit breaker"
+    - "[ ] CHANGELOG entry for health check feature"
+
+  notes: |
+    Health checks are the foundation for the circuit breaker's recovery mechanism.
+    Without health checks, the circuit breaker would remain OPEN indefinitely.
+
+    The 30-second timeout is intentional to avoid blocking archiving operations.
+    Services should respond much faster than this in normal conditions.
+
+    Caching at 60 seconds balances freshness with performance. Too frequent checks
+    could trigger rate limits; too infrequent could miss service recovery.
+
+  checklist:
+    - "[ ] Implementation complete"
+    - "[ ] Unit tests written and passing"
+    - "[ ] Integration tests pass"
+    - "[ ] Code review completed"
+    - "[ ] Documentation updated"
+    - "[ ] Performance benchmarks show no regression"
+    - "[ ] Ready for merge"

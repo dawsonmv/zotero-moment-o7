@@ -1,0 +1,190 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-fallback-strategy"
+  name: "Implement Fallback Archive Strategy"
+  epic_id: "EPIC-archive-resilience"
+  created: "2026-01-02T22:15:00Z"
+  updated: "2026-01-02T22:15:00Z"
+  assignee: "Dawson Valdes"
+  type: "feature"
+  status: "backlog"
+  priority: "high"
+
+spec:
+  description: |
+    Create automatic fallback logic that attempts alternative archive services
+    when the primary service fails. This enables graceful degradation and improves
+    archiving success rates by allowing the plugin to try multiple services for
+    each URL.
+
+  problem_statement: |
+    Currently, if the primary archive service fails or is unavailable, users must
+    manually attempt to archive with alternative services. This results in failed
+    archiving attempts and poor user experience. Implementing fallback logic allows
+    the plugin to automatically try alternate services, increasing success rates.
+
+  acceptance_criteria:
+    - "[ ] ArchiveCoordinator automatically tries fallback services on failure"
+    - "[ ] Respects circuit breaker state when selecting fallback"
+    - "[ ] Configurable fallback order per user preferences"
+    - "[ ] Logs all fallback attempts with timestamps"
+    - "[ ] Updates item metadata with all successful archives"
+    - "[ ] Honors skip-before-archive checks for each attempt"
+    - "[ ] Prevents duplicate archiving (same URL, same service)"
+    - "[ ] UI shows which fallback was used in success message"
+    - "[ ] Test coverage for all fallback scenarios"
+    - "[ ] Code reviewed and approved"
+
+  implementation_details:
+    approach: |
+      Enhance ArchiveCoordinator with fallback logic:
+
+      1. Fallback Configuration:
+         - Default order: Internet Archive → Archive.today → Perma.cc → Others
+         - User can customize in preferences
+         - Store in PreferencesManager as ordered array
+
+      2. Archiving Flow with Fallback:
+         - Try primary service
+         - If fails, get next service from fallback order
+         - Check circuit breaker state (skip OPEN services)
+         - Try fallback service
+         - Repeat until success or all services exhausted
+
+      3. State Management:
+         - Track which services have been attempted
+         - Record success/failure for each attempt
+         - Update item.extra with all successful archives
+         - Prevent re-attempting same service for same URL
+
+      4. User Feedback:
+         - Progress dialog shows current attempt
+         - Final message indicates which service succeeded
+         - Error message lists which services were tried
+
+      5. Logging:
+         - Log timestamp of each fallback attempt
+         - Record which service failed and why
+         - Include circuit breaker state in logs
+
+    affected_files:
+      - "src/modules/archive/ArchiveCoordinator.ts (UPDATE - add fallback logic)"
+      - "src/modules/preferences/PreferencesManager.ts (UPDATE - fallback order preference)"
+      - "src/modules/archive/BaseArchiveService.ts (UPDATE - track attempt metadata)"
+      - "tests/archive/ArchiveCoordinator.test.ts (UPDATE - fallback test scenarios)"
+
+    dependencies:
+      - library: "CircuitBreaker"
+        version: "from TICKET-implement-circuit-breaker"
+        reason: "Check service availability before fallback attempt"
+      - library: "HealthChecker"
+        version: "from TICKET-add-health-checks"
+        reason: "Inform fallback strategy with service health"
+
+  testing_strategy: |
+    Unit tests covering:
+
+    Basic Fallback:
+    - Primary fails → tries first fallback
+    - First fallback fails → tries second fallback
+    - All services fail → returns error with history
+
+    Circuit Breaker Integration:
+    - Skips services in OPEN state
+    - Tries services in HALF_OPEN state
+    - Updates circuit breaker state on fallback success/failure
+
+    Duplicate Prevention:
+    - Doesn't re-archive same URL to same service
+    - Allows archiving same URL to different services
+    - Tracks duplicate attempts correctly
+
+    User Preferences:
+    - Custom fallback order respected
+    - Disabled services excluded from fallback
+    - Default order used if no preference set
+
+    Skip-Before-Archive:
+    - Respects skip checks for each fallback attempt
+    - Doesn't archive if already archived by fallback service
+
+    Metadata Updates:
+    - Stores all successful archives in item.extra
+    - Format: {serviceId}Archived: {url}
+    - Handles multiple archives for same item
+
+  tasks:
+    - "[ ] Design fallback strategy interface"
+    - "[ ] Add fallback order to PreferencesManager"
+    - "[ ] Create FallbackStrategy class"
+    - "[ ] Implement primary → fallback flow in ArchiveCoordinator"
+    - "[ ] Add circuit breaker checks to fallback logic"
+    - "[ ] Implement duplicate prevention"
+    - "[ ] Add metadata tracking for each attempt"
+    - "[ ] Update progress UI to show fallback information"
+    - "[ ] Implement fallback logging"
+    - "[ ] Add user preference for fallback order"
+    - "[ ] Write comprehensive unit tests"
+    - "[ ] Write integration tests with multiple services"
+    - "[ ] Add JSDoc comments"
+    - "[ ] Code review"
+    - "[ ] Merge to main"
+
+  blockers:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-add-health-checks"
+
+  related_tickets:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-add-health-checks"
+    - "TICKET-monitoring-dashboard"
+
+  estimated_effort: "5 story points (3-4 days)"
+
+  labels:
+    - "core"
+    - "feature"
+    - "reliability"
+
+  performance_considerations: |
+    - Avoid sequential fallback attempts that block UI
+    - Respect archive service rate limits
+    - Don't spam services with requests
+    - Cache service availability checks
+    - Timeout fallback attempts appropriately
+
+  security_considerations: |
+    - Validate service responses before storing
+    - Don't expose internal fallback logic to users
+    - Log security-relevant events (failures, retries)
+    - Respect per-service authentication
+    - Handle credential errors gracefully
+
+  documentation_required:
+    - "[ ] JSDoc for FallbackStrategy class"
+    - "[ ] Example: Custom fallback order configuration"
+    - "[ ] Example: Handling fallback failures"
+    - "[ ] User documentation on fallback behavior"
+    - "[ ] CHANGELOG entry"
+
+  notes: |
+    Fallback strategy significantly improves user experience by allowing the
+    plugin to recover from service failures automatically. Users appreciate
+    archives succeeding even when their primary preference is unavailable.
+
+    The order matters: Archive.org (most reliable) should be first fallback,
+    followed by Archive.today, then others. This balances reliability with
+    service diversity.
+
+    Consider adding analytics on fallback usage to identify which services
+    fail most frequently.
+
+  checklist:
+    - "[ ] Implementation complete"
+    - "[ ] All test scenarios passing"
+    - "[ ] Integration tests pass"
+    - "[ ] Code review completed"
+    - "[ ] Documentation updated"
+    - "[ ] User preference UI working"
+    - "[ ] Ready for merge"

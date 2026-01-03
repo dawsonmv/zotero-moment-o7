@@ -1,0 +1,206 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-update-documentation"
+  name: "Update Documentation for Resilience Features"
+  epic_id: "EPIC-archive-resilience"
+  created: "2026-01-02T23:00:00Z"
+  updated: "2026-01-02T23:00:00Z"
+  assignee: "Dawson Valdes"
+  type: "docs"
+  status: "backlog"
+  priority: "medium"
+
+spec:
+  description: |
+    Update user-facing and developer documentation to explain new resilience
+    features, circuit breaker behavior, health checks, and monitoring capabilities.
+    This includes user guides, API documentation, troubleshooting guides, and
+    architecture documentation.
+
+  problem_statement: |
+    Users need to understand how the resilience features work, why services might
+    be temporarily unavailable, and how to interpret dashboard information.
+    Developers need clear guidance on integrating with the monitoring system.
+    Without documentation, features won't be understood or properly used.
+
+  acceptance_criteria:
+    - "[ ] User guide explains circuit breaker behavior"
+    - "[ ] Documentation covers health checks and monitoring"
+    - "[ ] Troubleshooting guide for common failures"
+    - "[ ] API documentation for circuit breaker"
+    - "[ ] Code comments explain circuit breaker states"
+    - "[ ] Architecture documentation updated"
+    - "[ ] FAQ section added to user guide"
+    - "[ ] Settings guide explains alert configuration"
+    - "[ ] CHANGELOG prepared with feature overview"
+    - "[ ] All code has JSDoc comments"
+
+  implementation_details:
+    approach: |
+      Update documentation across multiple formats:
+
+      1. User Guide (README.md and user-guide.md):
+         - What is link rot? (background)
+         - How Moment-o7 prevents it (overview)
+         - New resilience features (circuit breaker, health checks, fallback)
+         - Dashboard guide (how to read metrics)
+         - Troubleshooting section (common issues)
+         - FAQ (frequently asked questions)
+
+      2. Administrator/Configuration Guide:
+         - Alert preferences (thresholds, channels)
+         - Fallback order customization
+         - Service enable/disable per archive
+         - Performance tuning
+
+      3. Developer API Documentation:
+         - CircuitBreaker class API
+         - HealthChecker class API
+         - Alerting system API
+         - Metrics API
+         - Event subscriptions
+
+      4. Architecture Documentation (CLAUDE.md update):
+         - Resilience patterns (circuit breaker, health checks, fallback)
+         - Monitoring system design
+         - Event flow diagrams
+         - State machine diagrams
+
+      5. Code Documentation:
+         - JSDoc comments on all public classes
+         - Example usage in comments
+         - Inline comments for complex logic
+         - Error handling documentation
+
+      6. Release Documentation:
+         - CHANGELOG entry with feature overview
+         - Migration guide for users with existing archives
+         - Known limitations and caveats
+         - Future roadmap
+
+    affected_files:
+      - "README.md (UPDATE - add resilience features overview)"
+      - "CLAUDE.md (UPDATE - architecture section)"
+      - "doc/user-guide.md (NEW - comprehensive user guide)"
+      - "doc/admin-guide.md (NEW - configuration guide)"
+      - "doc/api-reference.md (UPDATE - add new APIs)"
+      - "doc/troubleshooting.md (NEW - troubleshooting guide)"
+      - "doc/architecture.md (UPDATE - resilience patterns)"
+      - "CHANGELOG.md (UPDATE - new features)"
+      - "src/modules/monitoring/*.ts (UPDATE - JSDoc comments)"
+      - "src/modules/archive/*.ts (UPDATE - JSDoc comments)"
+
+    dependencies:
+      - library: "Markdown"
+        version: "latest"
+        reason: "Format for documentation"
+      - library: "TypeDoc"
+        version: "optional"
+        reason: "Auto-generate API docs from JSDoc"
+
+  testing_strategy: |
+    Documentation review and validation:
+
+    Content Accuracy:
+    - Circuit breaker behavior matches implementation
+    - API signatures match actual code
+    - Examples run without errors
+    - Screenshots/diagrams match actual UI
+
+    Completeness:
+    - All public APIs documented
+    - All configuration options documented
+    - Common use cases covered
+    - Edge cases explained
+
+    Clarity:
+    - Language is clear and accessible
+    - Technical terms explained
+    - Examples are helpful
+    - Troubleshooting addresses real issues
+
+    Consistency:
+    - Terminology consistent throughout
+    - Examples follow same style
+    - Formatting consistent
+    - Links work correctly
+
+    User Testing:
+    - Ask users to follow guides
+    - Collect feedback on clarity
+    - Update based on confusion points
+
+  tasks:
+    - "[ ] Review existing documentation"
+    - "[ ] Plan documentation structure"
+    - "[ ] Create user guide draft"
+    - "[ ] Add resilience features overview to README"
+    - "[ ] Write circuit breaker behavior guide"
+    - "[ ] Write health checks explanation"
+    - "[ ] Write dashboard usage guide"
+    - "[ ] Write troubleshooting guide"
+    - "[ ] Create FAQ section"
+    - "[ ] Write configuration/settings guide"
+    - "[ ] Update API reference documentation"
+    - "[ ] Update architecture documentation"
+    - "[ ] Add JSDoc comments to all classes"
+    - "[ ] Add code examples to documentation"
+    - "[ ] Create CHANGELOG entry"
+    - "[ ] Create migration guide for v0.0.2 → v0.0.3"
+    - "[ ] Review documentation for accuracy"
+    - "[ ] Peer review documentation"
+    - "[ ] Fix review comments"
+    - "[ ] Merge to main"
+
+  blockers: []
+
+  related_tickets:
+    - "TICKET-implement-circuit-breaker"
+    - "TICKET-add-health-checks"
+    - "TICKET-fallback-strategy"
+    - "TICKET-monitoring-dashboard"
+    - "TICKET-alerting-system"
+
+  estimated_effort: "3 story points (2-3 days)"
+
+  labels:
+    - "documentation"
+    - "user-experience"
+    - "developer-experience"
+
+  performance_considerations: |
+    None - documentation has no performance impact
+
+  security_considerations: |
+    - Don't include example API keys or credentials
+    - Document security considerations
+    - Explain how credentials are stored securely
+    - Document secure configuration practices
+
+  documentation_required:
+    - "[ ] User guide written"
+    - "[ ] Administrator guide written"
+    - "[ ] API documentation written"
+    - "[ ] Code examples provided"
+    - "[ ] Troubleshooting guide written"
+
+  notes: |
+    Good documentation is the difference between a feature being discovered and
+    used vs being ignored. Users need to understand resilience features to
+    appreciate the reliability improvements.
+
+    Documentation should be written at the end of feature development to ensure
+    accuracy and completeness. Include examples from actual use cases.
+
+    Consider creating visual diagrams (circuit breaker state machine, fallback
+    flow) to help users understand complex behavior.
+
+  checklist:
+    - "[ ] All documentation written"
+    - "[ ] JSDoc comments complete"
+    - "[ ] Examples tested and working"
+    - "[ ] Links verified"
+    - "[ ] Peer review completed"
+    - "[ ] Feedback incorporated"
+    - "[ ] Ready to merge"
