@@ -11,6 +11,7 @@ import { PreferencesManager } from "../preferences/PreferencesManager";
 import { ZoteroItemHandler } from "./ZoteroItemHandler";
 import { ConcurrentArchiveQueue } from "../../utils/ConcurrentArchiveQueue";
 import { TrafficMonitor } from "../../utils/TrafficMonitor";
+import { AlertManager } from "./AlertManager";
 import {
   CircuitBreakerManager,
   CircuitState,
@@ -19,11 +20,13 @@ import {
 export class ArchiveCoordinator {
   private static instance: ArchiveCoordinator;
   private registry: ServiceRegistry;
+  private alertManager: AlertManager;
   private currentTrafficMonitor: TrafficMonitor | null = null;
   private requestedServiceId: string | undefined;
 
   private constructor() {
     this.registry = ServiceRegistry.getInstance();
+    this.alertManager = AlertManager.getInstance();
   }
 
   static getInstance(): ArchiveCoordinator {
@@ -271,15 +274,23 @@ export class ArchiveCoordinator {
   ): Promise<ArchiveResult> {
     try {
       const results = await service.archive([item]);
-      return (
-        results[0] || {
-          item,
-          success: false,
-          service: serviceId,
-          error: "No result returned from service",
-        }
-      );
+      const result = results[0] || {
+        item,
+        success: false,
+        service: serviceId,
+        error: "No result returned from service",
+      };
+
+      // Track failure if service didn't return a result
+      if (!results[0]) {
+        this.alertManager.trackFailure(serviceId);
+      }
+
+      return result;
     } catch (error) {
+      // Track failure in alert manager
+      this.alertManager.trackFailure(serviceId);
+
       return {
         item,
         success: false,
@@ -326,15 +337,31 @@ export class ArchiveCoordinator {
     // Filter out services with OPEN circuit breakers
     const breakerManager = CircuitBreakerManager.getInstance();
     const beforeCircuitFilter = orderedServices.length;
+
+    // Track services being removed due to open circuit breakers
+    const openBreakerServices: string[] = [];
     orderedServices = orderedServices.filter(({ id }) => {
       const state = breakerManager.getBreaker(id).getState();
-      return state.state !== CircuitState.OPEN;
+      if (state.state === CircuitState.OPEN) {
+        openBreakerServices.push(id);
+        return false;
+      }
+      return true;
     });
 
     if (orderedServices.length < beforeCircuitFilter) {
       Zotero.debug(
         `MomentO7: Filtering services with OPEN circuit breakers, ${orderedServices.length}/${beforeCircuitFilter} services available for fallback`,
       );
+
+      // Alert about services with open circuit breakers
+      for (const serviceId of openBreakerServices) {
+        this.alertManager.alertCircuitBreakerChange(
+          serviceId,
+          "CLOSED_OR_HALF_OPEN",
+          "OPEN",
+        );
+      }
     }
 
     if (orderedServices.length === 0) {
