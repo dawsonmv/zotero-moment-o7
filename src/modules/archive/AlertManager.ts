@@ -321,4 +321,40 @@ export class AlertManager {
   private generateAlertId(): string {
     return `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
+
+  /**
+   * Export audit report with current system state
+   */
+  exportAuditReport(): {
+    timestamp: string;
+    summary: {
+      totalAlerts: number;
+      activeAlerts: number;
+      acknowledgedAlerts: number;
+      preferences: AlertPreferences;
+    };
+    alerts: Alert[];
+    failureTracking: Record<string, number>;
+  } {
+    const alerts = this.getHistory();
+    const acknowledgedAlerts = alerts.filter((a) => a.acknowledged);
+    const activeAlerts = alerts.filter((a) => !a.acknowledged);
+
+    const failureTracking: Record<string, number> = {};
+    for (const [serviceId, timestamps] of this.failureTracker.entries()) {
+      failureTracking[serviceId] = this.getFailureCount(serviceId);
+    }
+
+    return {
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalAlerts: alerts.length,
+        activeAlerts: activeAlerts.length,
+        acknowledgedAlerts: acknowledgedAlerts.length,
+        preferences: this.getPreferences(),
+      },
+      alerts: alerts,
+      failureTracking,
+    };
+  }
 }

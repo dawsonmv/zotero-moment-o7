@@ -593,6 +593,60 @@ describe("AlertManager", function () {
     });
   });
 
+  describe("audit reporting", function () {
+    it("should export comprehensive audit report", function () {
+      const manager = AlertManager.getInstance();
+
+      manager.createAlert("Alert 1", "message");
+      manager.createAlert("Alert 2", "message");
+      manager.trackFailure("service1");
+      manager.trackFailure("service1");
+
+      const report = manager.exportAuditReport();
+
+      expect(report.timestamp).toBeDefined();
+      expect(report.summary.totalAlerts).toBeGreaterThan(0);
+      expect(report.summary.activeAlerts).toBeGreaterThan(0);
+      expect(report.summary.acknowledgedAlerts).toBe(0);
+      expect(report.summary.preferences).toBeDefined();
+      expect(report.alerts).toBeDefined();
+      expect(report.failureTracking).toBeDefined();
+    });
+
+    it("should include acknowledged alerts in report", function () {
+      const manager = AlertManager.getInstance();
+
+      const alert = manager.createAlert("Test Alert", "message");
+      if (alert) {
+        manager.acknowledgeAlert(alert.id);
+      }
+
+      const report = manager.exportAuditReport();
+
+      expect(report.summary.acknowledgedAlerts).toBe(1);
+      expect(report.summary.activeAlerts).toBe(0);
+    });
+
+    it("should track failure counts in audit report", function () {
+      const manager = AlertManager.getInstance();
+      manager.setPreferences({
+        thresholds: {
+          failureCount: 5,
+          failureWindow: 300000,
+        },
+      } as any);
+
+      manager.trackFailure("service1");
+      manager.trackFailure("service1");
+      manager.trackFailure("service2");
+
+      const report = manager.exportAuditReport();
+
+      expect(report.failureTracking["service1"]).toBe(2);
+      expect(report.failureTracking["service2"]).toBe(1);
+    });
+  });
+
   describe("edge cases", function () {
     it("should handle alerts with very long messages", function () {
       const manager = AlertManager.getInstance();
