@@ -8507,8 +8507,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
   var ConcurrentArchiveQueue = class {
     maxConcurrency;
     trafficMonitor;
-    progressWindow;
-    // InstanceType<typeof Zotero.ProgressWindow>
+    progressWindow = null;
     itemProgress = /* @__PURE__ */ new Map();
     activeCount = 0;
     /**

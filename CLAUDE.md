@@ -72,8 +72,15 @@ src/
 │   ├── HtmlUtils.ts
 │   ├── HttpClient.ts
 │   └── ProgressReporter.ts
-└── types/
-    └── global.d.ts
+└── types/                # Type definitions
+    ├── augmentations/    # Zotero 7 API augmentations
+    │   └── http.d.ts     # HTTP.request 2-arg overload
+    ├── build/            # Build tool globals
+    │   └── globals.d.ts
+    ├── plugin/           # Plugin-specific types
+    │   ├── preferences.d.ts  # Plugin preferences augmentation
+    │   └── i18n.d.ts     # i18n message IDs
+    └── README.md         # Type system documentation
 
 addon/                    # Static addon files
 ├── bootstrap.js
@@ -85,7 +92,7 @@ addon/                    # Static addon files
     └── en-US/
         └── addon.ftl
 
-tests/                    # Jest unit tests (644 tests, 88% coverage)
+tests/                    # Jest unit tests (738 tests, 88% coverage)
 ├── archive/
 ├── memento/
 ├── monitoring/
@@ -125,6 +132,76 @@ enum ArchiveErrorType {
   Unknown,
 }
 ```
+
+## Type System Organization
+
+### Type Definition Sources
+
+The project uses three type definition sources:
+
+1. **zotero-types** (node_modules/zotero-types)
+   - Official Zotero API type definitions via `zotero-types@4.1.0-beta.4`
+   - Extended via tsconfig: `"extends": "zotero-types/entries/sandbox/"`
+   - Provides: `Zotero.*`, `_ZoteroTypes.*`, `XUL.*` namespaces
+   - Contains all Zotero APIs and plugin base types
+
+2. **Project Augmentations** (src/types/augmentations/)
+   - Extensions to zotero-types for Zotero 7 APIs not yet in the package
+   - Currently: `http.d.ts` - HTTP.request 2-argument overload
+   - Only add when a Zotero 7 API is verified but missing from zotero-types
+   - To check if type exists: `grep -r "type-name" node_modules/zotero-types/types/`
+
+3. **Project Types** (src/types/)
+   - **build/** - Build tool globals injected during build (ztoolkit, addon, __env__)
+   - **plugin/** - Plugin-specific types
+     - preferences.d.ts - Zotero preference type augmentation with plugin prefs
+     - i18n.d.ts - i18n/Fluent message ID definitions
+
+### Type Usage Guidelines
+
+**DO:**
+- Use types from zotero-types directly: `Zotero.Item`, `_ZoteroTypes.ZoteroPane`
+- Use zotero-types classes directly as types: `Zotero.ProgressWindow` (not `InstanceType<typeof ...>`)
+- Augment _ZoteroTypes namespace for missing Zotero 7 APIs
+- Check zotero-types before adding augmentations
+
+**DON'T:**
+- Re-declare types that exist in zotero-types
+- Use workaround interfaces when the real type exists
+- Mix test types (tests/types/mocks.d.ts) with production types
+- Keep one-off types in src/types/ - keep them local to their module
+
+### Common Type Patterns
+
+```typescript
+// Items from Zotero API
+const item: Zotero.Item = ...;
+const items: Zotero.Items = ...;
+
+// ProgressWindow - use class directly as type
+const pw: Zotero.ProgressWindow = new Zotero.ProgressWindow();
+
+// ZoteroPane from Zotero.getActiveZoteroPane()
+const pane: _ZoteroTypes.ZoteroPane | null = Zotero.getActiveZoteroPane();
+
+// HTTP requests - use 2-arg form (augmented in src/types/augmentations/)
+await Zotero.HTTP.request(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data),
+  timeout: 60000,
+});
+
+// Plugin preferences - augmented with plugin-specific prefs
+const autoArchive: boolean = Zotero.Prefs.get('extensions.momento7.autoArchive');
+```
+
+### Test Types
+
+Test-only type mocks are in `tests/types/mocks.d.ts`:
+- Minimal Zotero API mocks for Node.js/jsdom environment
+- Intentionally different from production types (test doubles, not real APIs)
+- Provided by tests/setup.ts at runtime
 
 ## Implementation Guidelines
 

@@ -33,7 +33,8 @@ interface ActivePromiseEntry {
 export class ConcurrentArchiveQueue {
   private maxConcurrency: number;
   private trafficMonitor: TrafficMonitor;
-  private progressWindow: any; // InstanceType<typeof Zotero.ProgressWindow>
+  private progressWindow: InstanceType<typeof Zotero.ProgressWindow> | null =
+    null;
   private itemProgress: Map<string, ItemProgress> = new Map();
   private activeCount: number = 0;
 
