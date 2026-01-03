@@ -277,7 +277,7 @@ async function onArchiveToService(serviceId: string): Promise<void> {
     return;
   }
 
-  const archivableItems = items.filter((item) =>
+  const archivableItems = items.filter((item: Zotero.Item) =>
     ZoteroItemHandler.needsArchiving(item),
   );
 
@@ -393,7 +393,7 @@ async function onArchiveSelected(): Promise<void> {
   }
 
   // Filter to archivable items
-  const archivableItems = items.filter((item) =>
+  const archivableItems = items.filter((item: Zotero.Item) =>
     ZoteroItemHandler.needsArchiving(item),
   );
 
@@ -542,9 +542,14 @@ async function onCreateRobustLinks(): Promise<void> {
 async function onArchiveAll(): Promise<void> {
   ztoolkit.log("Archive all items requested");
 
-  // Get all library items
+  // Get all library items using Search API
   const libraryID = Zotero.Libraries.userLibraryID;
-  const allItems = await Zotero.Items.getAll(libraryID);
+  const search = new (Zotero as any).Search();
+  search.libraryID = libraryID;
+  search.addCondition("itemType", "isNot", "attachment");
+  search.addCondition("itemType", "isNot", "note");
+  const itemIDs = await search.search();
+  const allItems = await Zotero.Items.getAsync(itemIDs);
 
   // Filter to archivable items
   const archivableItems = allItems.filter((item: Zotero.Item) =>
