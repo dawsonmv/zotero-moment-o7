@@ -19,7 +19,10 @@ export class ExtraFieldParser {
    * @param serviceId - The service ID to search for
    * @returns The archive URL if found, null otherwise
    */
-  static extractArchiveUrl(extra: string | null | undefined, serviceId: string): string | null {
+  static extractArchiveUrl(
+    extra: string | null | undefined,
+    serviceId: string,
+  ): string | null {
     if (!extra || typeof extra !== "string") {
       return null;
     }
@@ -35,7 +38,10 @@ export class ExtraFieldParser {
     }
 
     // Fallback to legacy format for backward compatibility: {serviceId}Archived: {url}
-    const legacyPattern = new RegExp(`^${this.escapeRegex(serviceId)}Archived${this.FIELD_SUFFIX}\\s*(.+)$`, "im");
+    const legacyPattern = new RegExp(
+      `^${this.escapeRegex(serviceId)}Archived${this.FIELD_SUFFIX}\\s*(.+)$`,
+      "im",
+    );
     const legacyMatch = extra.match(legacyPattern);
     if (legacyMatch && legacyMatch[1]) {
       return legacyMatch[1].trim();
@@ -51,7 +57,9 @@ export class ExtraFieldParser {
    * @param extra - The extra field content
    * @returns Map of service ID to archive URL
    */
-  static extractAllArchives(extra: string | null | undefined): Map<string, string> {
+  static extractAllArchives(
+    extra: string | null | undefined,
+  ): Map<string, string> {
     const archives = new Map<string, string>();
 
     if (!extra || typeof extra !== "string") {
@@ -65,7 +73,9 @@ export class ExtraFieldParser {
 
       // Try new format: archive_{serviceId}: {url}
       const newFormatMatch = trimmedLine.match(
-        new RegExp(`^${this.ARCHIVE_PREFIX}([a-z0-9]+)${this.FIELD_SUFFIX}\\s*(.+)$`),
+        new RegExp(
+          `^${this.ARCHIVE_PREFIX}([a-z0-9]+)${this.FIELD_SUFFIX}\\s*(.+)$`,
+        ),
       );
       if (newFormatMatch && newFormatMatch[2]) {
         const serviceId = newFormatMatch[1];
@@ -98,7 +108,11 @@ export class ExtraFieldParser {
    * @param url - The archive URL to write
    * @returns Updated extra field content
    */
-  static writeArchiveUrl(extra: string | null | undefined, serviceId: string, url: string): string {
+  static writeArchiveUrl(
+    extra: string | null | undefined,
+    serviceId: string,
+    url: string,
+  ): string {
     const currentExtra = extra && typeof extra === "string" ? extra : "";
 
     // Check if entry already exists (either format)
@@ -109,7 +123,7 @@ export class ExtraFieldParser {
     }
 
     // Remove any existing entries for this service (both formats)
-    let cleanedExtra = this.removeArchiveUrl(currentExtra, serviceId);
+    const cleanedExtra = this.removeArchiveUrl(currentExtra, serviceId);
 
     // Append new entry in standardized format
     const newEntry = `${this.ARCHIVE_PREFIX}${serviceId}${this.FIELD_SUFFIX} ${url}`;
@@ -123,7 +137,10 @@ export class ExtraFieldParser {
    * @param serviceId - The service ID to remove
    * @returns Updated extra field content
    */
-  static removeArchiveUrl(extra: string | null | undefined, serviceId: string): string {
+  static removeArchiveUrl(
+    extra: string | null | undefined,
+    serviceId: string,
+  ): string {
     if (!extra || typeof extra !== "string") {
       return "";
     }
@@ -132,7 +149,11 @@ export class ExtraFieldParser {
     const filtered = lines.filter((line) => {
       const trimmed = line.trim();
       // Remove new format: archive_{serviceId}: ...
-      if (trimmed.startsWith(`${this.ARCHIVE_PREFIX}${serviceId}${this.FIELD_SUFFIX}`)) {
+      if (
+        trimmed.startsWith(
+          `${this.ARCHIVE_PREFIX}${serviceId}${this.FIELD_SUFFIX}`,
+        )
+      ) {
         return false;
       }
       // Remove legacy format: {serviceId}Archived: ...
@@ -142,7 +163,10 @@ export class ExtraFieldParser {
       return true;
     });
 
-    return filtered.map((l) => l.trimEnd()).filter((l) => l.length > 0).join("\n");
+    return filtered
+      .map((l) => l.trimEnd())
+      .filter((l) => l.length > 0)
+      .join("\n");
   }
 
   /**
@@ -152,7 +176,10 @@ export class ExtraFieldParser {
    * @param serviceId - The service ID to check
    * @returns True if an archive URL exists for this service
    */
-  static hasArchive(extra: string | null | undefined, serviceId: string): boolean {
+  static hasArchive(
+    extra: string | null | undefined,
+    serviceId: string,
+  ): boolean {
     return this.extractArchiveUrl(extra, serviceId) !== null;
   }
 

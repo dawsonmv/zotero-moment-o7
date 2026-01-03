@@ -3,6 +3,7 @@
 Operational cheat sheet for Moment-o7’s network-facing code: how to call archives, handle timeouts/retries, and work with the Memento protocol.
 
 ## HTTP Command Patterns
+
 - Prefer `Zotero.HTTP.request` for all network calls (respects Zotero proxy/cookies). Signature: `Zotero.HTTP.request(method, url, { headers, body, timeout, responseType })` or two-arg overload `Zotero.HTTP.request(url, opts)`.
 - Default UA: set in `src/utils/HttpClient.ts` (“Mozilla/5.0 (compatible; Zotero)”). Override per service if needed.
 - Timeouts: use `PreferencesManager.getTimeout()` as the baseline; Internet Archive and Archive.today add retry/backoff logic.
@@ -10,37 +11,40 @@ Operational cheat sheet for Moment-o7’s network-facing code: how to call archi
 - Error typing: `ArchiveErrorType` maps HTTP/network failures to user-friendly messages; keep mappings in `BaseArchiveService.mapHttpError`.
 
 ## Archive Service Endpoints (as implemented)
-- **Internet Archive (SPN2 auth)**:  
-  - Submit: `POST https://web.archive.org/save` with `Authorization: LOW <access>:<secret>`, body `url=<target>`, `Accept: application/json`.  
+
+- **Internet Archive (SPN2 auth)**:
+  - Submit: `POST https://web.archive.org/save` with `Authorization: LOW <access>:<secret>`, body `url=<target>`, `Accept: application/json`.
   - Poll job: `GET https://web.archive.org/save/status/<jobId>` with same auth; success returns timestamp/original URL → build `https://web.archive.org/web/<timestamp>/<original>`.
-- **Internet Archive (public)**:  
+- **Internet Archive (public)**:
   - Submit: `GET https://web.archive.org/save/<target>`; archive URL taken from `Link: <...>; rel="memento"` or HTML body.
-- **Archive.today**:  
-  - Direct submit: `POST https://archive.today/submit/` form body `url=<target>`; scrape archived URL from response (`archive.*` snapshot link or `SHARE_LONGLINK`).  
+- **Archive.today**:
+  - Direct submit: `POST https://archive.today/submit/` form body `url=<target>`; scrape archived URL from response (`archive.*` snapshot link or `SHARE_LONGLINK`).
   - Proxy submit (optional): user-configured proxy URL via prefs, `POST proxyUrl { url, headers? }` expecting JSON `{ archivedUrl }`. Test with `ArchiveTodayService.testCredentials`.
-- **Perma.cc** (auth required):  
-  - Create archive: `POST https://api.perma.cc/v1/archives/` JSON `{ url, folder? }` with `Authorization: ApiKey <apiKey>`. Returns `{ guid }` → archived URL `https://perma.cc/<guid>`.  
+- **Perma.cc** (auth required):
+  - Create archive: `POST https://api.perma.cc/v1/archives/` JSON `{ url, folder? }` with `Authorization: ApiKey <apiKey>`. Returns `{ guid }` → archived URL `https://perma.cc/<guid>`.
   - Check quota/user: `GET https://api.perma.cc/v1/user/` with same auth.
-- **Arquivo.pt**:  
-  - Submit: `POST https://arquivo.pt/save` form body `url=<target>`.  
+- **Arquivo.pt**:
+  - Submit: `POST https://arquivo.pt/save` form body `url=<target>`.
   - Existing check: GET Timemap via `https://arquivo.pt/wayback/timemap/json/<url>` (handled in `findExistingArchive`); archived URLs match `https://arquivo.pt/wayback/<timestamp>/<original>`.
-- **UK Web Archive** (nomination flow):  
-  - Nominate: `POST https://www.webarchive.org.uk/en/ukwa/nominate` form body built by `UKWebArchiveService.buildNominationForm(url)`; response parsed for success strings.  
+- **UK Web Archive** (nomination flow):
+  - Nominate: `POST https://www.webarchive.org.uk/en/ukwa/nominate` form body built by `UKWebArchiveService.buildNominationForm(url)`; response parsed for success strings.
   - Existing check: GET `https://www.webarchive.org.uk/wayback/timemap/json/<url>` to detect prior captures.
 
 ## Memento Protocol (RFC 7089)
+
 - Helpers live in `src/modules/memento/`: `MementoProtocol` (parse/format Link headers, Timemap JSON/link-format) and `MementoChecker` (aggregator + archive lookups).
-- Aggregator endpoints used:  
-  - Time Travel: `http://timetravel.mementoweb.org/timemap/json/<url>` and `.../timegate/<url>`  
+- Aggregator endpoints used:
+  - Time Travel: `http://timetravel.mementoweb.org/timemap/json/<url>` and `.../timegate/<url>`
   - MemGator: `https://memgator.cs.odu.edu/timemap/json/<url>` and `.../timegate/<url>`
-- Archive-specific Timemap endpoints checked:  
-  - Internet Archive `https://web.archive.org/web/timemap/json/<url>`  
-  - UK Web Archive `https://www.webarchive.org.uk/wayback/timemap/json/<url>`  
-  - Arquivo.pt `https://arquivo.pt/wayback/timemap/json/<url>`  
+- Archive-specific Timemap endpoints checked:
+  - Internet Archive `https://web.archive.org/web/timemap/json/<url>`
+  - UK Web Archive `https://www.webarchive.org.uk/wayback/timemap/json/<url>`
+  - Arquivo.pt `https://arquivo.pt/wayback/timemap/json/<url>`
   - Archive.today currently lacks Memento support (skipped in checker).
 - Flow: `MementoChecker.checkUrl(url)` → try aggregators first → fall back to archive Timemaps → pick best memento via `MementoProtocol.findBestMemento`. `findExistingMementos` also scans item Extra/note robust links before hitting network.
 
 ## Sample Usage Snippets
+
 ```ts
 // Generic GET with Zotero.HTTP
 const res = await Zotero.HTTP.request("GET", timemapUrl, {
@@ -55,7 +59,12 @@ const http = new HttpClient(60000);
 const { data, status } = await http.post(
   "https://api.perma.cc/v1/archives/",
   JSON.stringify({ url }),
-  { headers: { Authorization: `ApiKey ${apiKey}`, "Content-Type": "application/json" } },
+  {
+    headers: {
+      Authorization: `ApiKey ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  },
 );
 
 // Circuit breaker-friendly retry
@@ -63,18 +72,23 @@ await Zotero.Promise.delay(retryDelayMs); // between retries; see InternetArchiv
 ```
 
 ## Concrete Flows
+
 ```ts
 // Internet Archive SPN2: submit + poll
 const creds = await PreferencesManager.getIACredentials();
-const submit = await Zotero.HTTP.request("POST", "https://web.archive.org/save", {
-  headers: {
-    Accept: "application/json",
-    Authorization: `LOW ${creds.accessKey}:${creds.secretKey}`,
-    "Content-Type": "application/x-www-form-urlencoded",
+const submit = await Zotero.HTTP.request(
+  "POST",
+  "https://web.archive.org/save",
+  {
+    headers: {
+      Accept: "application/json",
+      Authorization: `LOW ${creds.accessKey}:${creds.secretKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: `url=${encodeURIComponent(url)}`,
+    timeout: 60000,
   },
-  body: `url=${encodeURIComponent(url)}`,
-  timeout: 60000,
-});
+);
 const job = JSON.parse(submit.responseText || "{}");
 if (job.job_id) {
   const status = await Zotero.HTTP.request(
@@ -90,9 +104,14 @@ if (job.job_id) {
 ```ts
 // Archive.today direct vs proxy submit
 const useProxy = !!proxyUrlFromPrefs;
-const submitUrl = useProxy ? proxyUrlFromPrefs : "https://archive.today/submit/";
+const submitUrl = useProxy
+  ? proxyUrlFromPrefs
+  : "https://archive.today/submit/";
 const submitBody = useProxy
-  ? JSON.stringify({ url, headers: { "User-Agent": "Mozilla/5.0 (compatible; Zotero)" } })
+  ? JSON.stringify({
+      url,
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Zotero)" },
+    })
   : `url=${encodeURIComponent(url)}`;
 const submitHeaders = useProxy
   ? { "Content-Type": "application/json" }
@@ -112,7 +131,9 @@ const archivedUrl = useProxy
 // Perma.cc create archive with folder support
 const apiKey = await PreferencesManager.getPermaCCApiKey();
 const body = { url: targetUrl };
-const defaultFolder = Zotero.Prefs.get("extensions.momento7.permaccFolder") as string;
+const defaultFolder = Zotero.Prefs.get(
+  "extensions.momento7.permaccFolder",
+) as string;
 if (defaultFolder) body.folder = defaultFolder;
 const { data, status } = await http.post(
   "https://api.perma.cc/v1/archives/",
@@ -125,7 +146,8 @@ const { data, status } = await http.post(
     timeout: PreferencesManager.getTimeout(),
   },
 );
-if (status >= 400) throw new Error(PermaCCService.prototype.parsePermaCCError({ data }));
+if (status >= 400)
+  throw new Error(PermaCCService.prototype.parsePermaCCError({ data }));
 const { guid } = JSON.parse(data);
 const archivedUrl = `https://perma.cc/${guid}`;
 ```

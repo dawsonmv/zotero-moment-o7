@@ -26,21 +26,23 @@ The sprint infrastructure for the Archive Resilience Epic is fully prepared and 
 
 All 9 issues have been synced to Linear with proper metadata:
 
-| Sprint | Issues | Story Points | Status |
-|--------|--------|--------------|--------|
-| Sprint 1 | DAT-32, DAT-29, DAT-31, DAT-37 | 19 | Created |
-| Sprint 2 | DAT-30, DAT-33, DAT-34 | 15 | Created |
-| Sprint 3 | DAT-35, DAT-36 | 13 | Created |
-| **TOTAL** | **9 issues** | **50 sp** | **Ready** |
+| Sprint    | Issues                         | Story Points | Status    |
+| --------- | ------------------------------ | ------------ | --------- |
+| Sprint 1  | DAT-32, DAT-29, DAT-31, DAT-37 | 19           | Created   |
+| Sprint 2  | DAT-30, DAT-33, DAT-34         | 15           | Created   |
+| Sprint 3  | DAT-35, DAT-36                 | 13           | Created   |
+| **TOTAL** | **9 issues**                   | **50 sp**    | **Ready** |
 
 ### Automation Scripts: ✅ COMPLETE
 
 Two production-ready bash scripts have been created:
 
 #### 1. Create Sprints Script
+
 **File**: `/Users/dawsonvaldes/Documents/GitHub-Repos/zotero-momento7-new/.pac/create-sprints.sh`
 
 **Functionality**:
+
 - Creates 3 Linear cycles with exact dates specified
 - Sprint 1: Feb 1-14, 2026
 - Sprint 2: Feb 17 - Mar 2, 2026
@@ -50,14 +52,17 @@ Two production-ready bash scripts have been created:
 - Returns cycle IDs for reference
 
 **Requirements**:
+
 - LINEAR_API_KEY environment variable set
 - Valid Linear team ID (already hardcoded: 0c640fe8-9c50-4581-827b-cc0678dcde4a)
 - Network access to api.linear.app
 
 #### 2. Assign Issues Script
+
 **File**: `/Users/dawsonvaldes/Documents/GitHub-Repos/zotero-momento7-new/.pac/assign-issues-to-sprints.sh`
 
 **Functionality**:
+
 - Fetches the 3 most recent cycles created
 - Assigns all 9 issues to correct cycles:
   - DAT-32, DAT-29, DAT-31, DAT-37 → Sprint 1
@@ -67,6 +72,7 @@ Two production-ready bash scripts have been created:
 - Progress indicators for each assignment
 
 **Requirements**:
+
 - LINEAR_API_KEY environment variable set
 - Sprints created first (by create-sprints.sh)
 - All 9 issues exist in Linear (verified)
@@ -75,12 +81,12 @@ Two production-ready bash scripts have been created:
 
 Supporting documentation has been created:
 
-| Document | Purpose | Location |
-|----------|---------|----------|
-| SPRINT_PLAN.md | Detailed sprint planning with dependencies | `.pac/SPRINT_PLAN.md` |
-| SPRINT_ASSIGNMENTS.md | Issue-to-sprint mapping and execution order | `.pac/SPRINT_ASSIGNMENTS.md` |
-| SPRINT_SETUP.md | User-friendly setup instructions | `.pac/SPRINT_SETUP.md` |
-| SPRINT_EXECUTION_STATUS.md | This document | `.pac/SPRINT_EXECUTION_STATUS.md` |
+| Document                   | Purpose                                     | Location                          |
+| -------------------------- | ------------------------------------------- | --------------------------------- |
+| SPRINT_PLAN.md             | Detailed sprint planning with dependencies  | `.pac/SPRINT_PLAN.md`             |
+| SPRINT_ASSIGNMENTS.md      | Issue-to-sprint mapping and execution order | `.pac/SPRINT_ASSIGNMENTS.md`      |
+| SPRINT_SETUP.md            | User-friendly setup instructions            | `.pac/SPRINT_SETUP.md`            |
+| SPRINT_EXECUTION_STATUS.md | This document                               | `.pac/SPRINT_EXECUTION_STATUS.md` |
 
 ---
 
@@ -101,6 +107,7 @@ bash .pac/create-sprints.sh
 ```
 
 **Expected Output**:
+
 ```
 ===============================================
 Creating Archive Resilience Sprints
@@ -140,6 +147,7 @@ bash .pac/assign-issues-to-sprints.sh
 ```
 
 **Expected Output**:
+
 ```
 ===============================================
 Assigning Issues to Sprints
@@ -206,14 +214,15 @@ Go to https://linear.app/datamine/cycles and verify:
 **Team**: Datamine (DAT)
 **Goal**: Fix critical bugs and establish circuit breaker foundation
 
-| ID | Issue | Type | SP | Priority | Deps |
-|-----|-------|------|----|----|-------|
-| DAT-32 | Implement Circuit Breaker Utility | Feature | 5 | HIGH | None |
-| DAT-29 | Fix Item Persistence & Tagging | Bug | 3 | HIGH | DAT-32 |
-| DAT-31 | Standardize Extra Field Format | Bug | 8 | URGENT | DAT-29 |
-| DAT-37 | Update Documentation | Docs | 3 | MEDIUM | All |
+| ID     | Issue                             | Type    | SP  | Priority | Deps   |
+| ------ | --------------------------------- | ------- | --- | -------- | ------ |
+| DAT-32 | Implement Circuit Breaker Utility | Feature | 5   | HIGH     | None   |
+| DAT-29 | Fix Item Persistence & Tagging    | Bug     | 3   | HIGH     | DAT-32 |
+| DAT-31 | Standardize Extra Field Format    | Bug     | 8   | URGENT   | DAT-29 |
+| DAT-37 | Update Documentation              | Docs    | 3   | MEDIUM   | All    |
 
 **Execution Order**:
+
 1. DAT-32 (foundation - start first)
 2. DAT-29 (small fix, unblocks others)
 3. DAT-31 (complex, high impact)
@@ -228,13 +237,14 @@ Go to https://linear.app/datamine/cycles and verify:
 **Team**: Datamine (DAT)
 **Goal**: Implement health checks and fallback capabilities
 
-| ID | Issue | Type | SP | Priority | Deps |
-|-----|-------|------|----|----|-------|
-| DAT-30 | Support DOI-Only Items | Bug | 5 | HIGH | DAT-29 |
-| DAT-33 | Add Health Checks | Feature | 5 | HIGH | DAT-32 |
-| DAT-34 | Implement Fallback Strategy | Feature | 5 | HIGH | DAT-32 |
+| ID     | Issue                       | Type    | SP  | Priority | Deps   |
+| ------ | --------------------------- | ------- | --- | -------- | ------ |
+| DAT-30 | Support DOI-Only Items      | Bug     | 5   | HIGH     | DAT-29 |
+| DAT-33 | Add Health Checks           | Feature | 5   | HIGH     | DAT-32 |
+| DAT-34 | Implement Fallback Strategy | Feature | 5   | HIGH     | DAT-32 |
 
 **Execution Order**:
+
 1. DAT-33 & DAT-34 (parallel, both depend on DAT-32 from Sprint 1)
 2. DAT-30 (after DAT-29 completes in Sprint 1)
 
@@ -249,12 +259,13 @@ Go to https://linear.app/datamine/cycles and verify:
 **Team**: Datamine (DAT)
 **Goal**: Build dashboard and alerting system
 
-| ID | Issue | Type | SP | Priority | Deps |
-|-----|-------|------|----|----|-------|
-| DAT-35 | Monitoring Dashboard | Feature | 8 | URGENT | DAT-32, DAT-33 |
-| DAT-36 | Alerting System | Feature | 5 | HIGH | DAT-32, DAT-33 |
+| ID     | Issue                | Type    | SP  | Priority | Deps           |
+| ------ | -------------------- | ------- | --- | -------- | -------------- |
+| DAT-35 | Monitoring Dashboard | Feature | 8   | URGENT   | DAT-32, DAT-33 |
+| DAT-36 | Alerting System      | Feature | 5   | HIGH     | DAT-32, DAT-33 |
 
 **Execution Order**:
+
 1. DAT-35 & DAT-36 (can be parallel)
 
 **Release Gate**: Both features in production with UAT approval
@@ -319,17 +330,20 @@ DAT-37 (Documentation)
 ## API Integration Details
 
 ### Linear GraphQL Endpoint
+
 - **URL**: https://api.linear.app/graphql
 - **Auth**: Bearer token via Authorization header
 - **Format**: JSON request bodies with GraphQL queries
 
 ### Team Configuration
+
 - **Team Name**: Datamine
 - **Team Prefix**: DAT
 - **Team UUID**: 0c640fe8-9c50-4581-827b-cc0678dcde4a (hardcoded in scripts)
 - **Issues**: DAT-29 through DAT-37
 
 ### Cycle Creation Mutation
+
 ```graphql
 mutation CreateCycle($input: CycleCreateInput!) {
   cycleCreate(input: $input) {
@@ -343,6 +357,7 @@ mutation CreateCycle($input: CycleCreateInput!) {
 ```
 
 ### Issue Assignment Mutation
+
 ```graphql
 mutation UpdateIssue($input: IssueUpdateInput!) {
   issueUpdate(id: "ISSUE_ID", input: $input) {
@@ -362,6 +377,7 @@ mutation UpdateIssue($input: IssueUpdateInput!) {
 ### Issue: "LINEAR_API_KEY environment variable not set"
 
 **Solution**:
+
 ```bash
 export LINEAR_API_KEY="lin_your_key_here"
 ```
@@ -371,12 +387,14 @@ Get your key from: https://linear.app/settings/api
 ### Issue: "Error creating cycle"
 
 **Possible causes**:
+
 1. Invalid API key - regenerate at https://linear.app/settings/api
 2. Expired API key - create a new one
 3. Insufficient permissions - ensure you have cycle creation rights
 4. Team not found - verify team UUID is correct
 
 **Debug**:
+
 ```bash
 # Test API connectivity
 curl -X POST https://api.linear.app/graphql \
@@ -388,11 +406,13 @@ curl -X POST https://api.linear.app/graphql \
 ### Issue: "Issues not assigning"
 
 **Possible causes**:
+
 1. Cycles not created - run create-sprints.sh first
 2. Wrong issue IDs - verify DAT-29 through DAT-37 exist
 3. Stale API key - try refreshing it
 
 **Debug**:
+
 ```bash
 # List existing cycles
 curl -X POST https://api.linear.app/graphql \
@@ -404,6 +424,7 @@ curl -X POST https://api.linear.app/graphql \
 ### Issue: "HTTP 429 - Rate Limited"
 
 **Solution**:
+
 - Linear API allows 1000 requests per minute
 - The scripts make minimal requests - unlikely unless run many times
 - Wait 1 minute and retry
@@ -435,6 +456,7 @@ If the scripts fail completely, sprints can be created manually:
 ## Success Metrics
 
 ### Pre-Execution Checklist
+
 - [ ] All 9 issues exist in Linear (DAT-29 through DAT-37)
 - [ ] Create-sprints.sh script is executable (chmod +x)
 - [ ] Assign-issues-to-sprints.sh script is executable
@@ -442,6 +464,7 @@ If the scripts fail completely, sprints can be created manually:
 - [ ] Team ID verified: 0c640fe8-9c50-4581-827b-cc0678dcde4a
 
 ### Post-Execution Checklist
+
 - [ ] 3 sprints created in Linear with correct dates
 - [ ] All 9 issues assigned to correct sprints
 - [ ] No duplicate assignments
@@ -465,32 +488,35 @@ If the scripts fail completely, sprints can be created manually:
 
 ## Files Referenced
 
-| File | Purpose |
-|------|---------|
-| `.pac/create-sprints.sh` | Bash script to create 3 Linear cycles |
-| `.pac/assign-issues-to-sprints.sh` | Bash script to assign all 9 issues |
-| `.pac/SPRINT_PLAN.md` | Detailed sprint planning and rationale |
-| `.pac/SPRINT_ASSIGNMENTS.md` | Issue-to-sprint mapping reference |
-| `.pac/SPRINT_SETUP.md` | User-friendly setup guide |
-| `.pac/SPRINT_EXECUTION_STATUS.md` | This document |
+| File                               | Purpose                                |
+| ---------------------------------- | -------------------------------------- |
+| `.pac/create-sprints.sh`           | Bash script to create 3 Linear cycles  |
+| `.pac/assign-issues-to-sprints.sh` | Bash script to assign all 9 issues     |
+| `.pac/SPRINT_PLAN.md`              | Detailed sprint planning and rationale |
+| `.pac/SPRINT_ASSIGNMENTS.md`       | Issue-to-sprint mapping reference      |
+| `.pac/SPRINT_SETUP.md`             | User-friendly setup guide              |
+| `.pac/SPRINT_EXECUTION_STATUS.md`  | This document                          |
 
 ---
 
 ## Technical Notes
 
 ### API Security
+
 - **Never commit API key** to git
 - **Use `unset LINEAR_API_KEY`** after execution
 - **Regenerate key** if exposed
 - **Use environment variables**, not hardcoded strings
 
 ### Script Robustness
+
 - Both scripts use `set -e` for fail-fast execution
 - Error handling with jq for JSON parsing
 - Clear success/failure messages
 - Idempotent cycle creation (safe to retry)
 
 ### Data Integrity
+
 - Scripts validate API responses before proceeding
 - All issue IDs hardcoded (no external config needed)
 - Cycle IDs extracted automatically (no manual entry)

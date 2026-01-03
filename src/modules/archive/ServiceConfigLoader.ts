@@ -49,11 +49,11 @@ export class ServiceConfigLoader {
       try {
         const service = new ConfigurableArchiveService(config);
         registry.register(config.id, service);
-        Zotero.debug(`MomentO7: Registered config-driven service: ${config.id}`);
-      } catch (error) {
         Zotero.debug(
-          `MomentO7: Failed to load service ${config.id}: ${error}`,
+          `MomentO7: Registered config-driven service: ${config.id}`,
         );
+      } catch (error) {
+        Zotero.debug(`MomentO7: Failed to load service ${config.id}: ${error}`);
       }
     }
 

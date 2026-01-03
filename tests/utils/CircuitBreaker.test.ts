@@ -254,9 +254,9 @@ describe("CircuitBreaker", function () {
 
       breaker.trip();
 
-      await expect(breaker.execute(() => Promise.resolve("ok"))).rejects.toThrow(
-        CircuitBreakerError,
-      );
+      await expect(
+        breaker.execute(() => Promise.resolve("ok")),
+      ).rejects.toThrow(CircuitBreakerError);
     });
   });
 
@@ -370,7 +370,9 @@ describe("CircuitBreaker", function () {
 
       // Look for OPEN -> HALF_OPEN transition event
       const halfOpenEvent = events.find(
-        (e) => e.previousState === CircuitState.OPEN && e.newState === CircuitState.HALF_OPEN,
+        (e) =>
+          e.previousState === CircuitState.OPEN &&
+          e.newState === CircuitState.HALF_OPEN,
       );
       expect(halfOpenEvent).toBeDefined();
       expect(halfOpenEvent?.reason).toContain("Timeout expired");
@@ -396,7 +398,9 @@ describe("CircuitBreaker", function () {
 
       // Look for HALF_OPEN -> CLOSED transition event
       const closedEvent = events.find(
-        (e) => e.previousState === CircuitState.HALF_OPEN && e.newState === CircuitState.CLOSED,
+        (e) =>
+          e.previousState === CircuitState.HALF_OPEN &&
+          e.newState === CircuitState.CLOSED,
       );
       expect(closedEvent).toBeDefined();
       expect(closedEvent?.reason).toContain("Service recovered");

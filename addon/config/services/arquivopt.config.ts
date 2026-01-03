@@ -53,8 +53,7 @@ export const arquivoPtConfig: ServiceConfig = {
     // Response contains: <a href="https://arquivo.pt/wayback/20231201120000/example.com">
     responseParser: {
       type: "regex",
-      pattern:
-        "https?://arquivo\\.pt/wayback/\\d{14}/[^\\s\"'<>]+",
+      pattern: "https?://arquivo\\.pt/wayback/\\d{14}/[^\\s\"'<>]+",
       captureGroup: 0,
     },
   },

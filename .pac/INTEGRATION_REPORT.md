@@ -34,12 +34,12 @@ All infrastructure for creating 3 Linear sprints and assigning 9 issues has been
 
 ### Summary Table
 
-| Sprint | Duration | Issues | SP | Focus |
-|--------|----------|--------|----|----|
-| **Sprint 1** | Feb 1-14 | DAT-32, DAT-29, DAT-31, DAT-37 | 19 | Bug Fixes & Foundation |
-| **Sprint 2** | Feb 17-Mar 2 | DAT-30, DAT-33, DAT-34 | 15 | Resilience Features |
-| **Sprint 3** | Mar 3-16 | DAT-35, DAT-36 | 13 | Monitoring & Alerting |
-| **TOTAL** | 6 weeks | 9 issues | **50** | Archive Resilience Epic |
+| Sprint       | Duration     | Issues                         | SP     | Focus                   |
+| ------------ | ------------ | ------------------------------ | ------ | ----------------------- |
+| **Sprint 1** | Feb 1-14     | DAT-32, DAT-29, DAT-31, DAT-37 | 19     | Bug Fixes & Foundation  |
+| **Sprint 2** | Feb 17-Mar 2 | DAT-30, DAT-33, DAT-34         | 15     | Resilience Features     |
+| **Sprint 3** | Mar 3-16     | DAT-35, DAT-36                 | 13     | Monitoring & Alerting   |
+| **TOTAL**    | 6 weeks      | 9 issues                       | **50** | Archive Resilience Epic |
 
 ### Sprint 1: Bug Fixes & Foundation (Feb 1-14)
 
@@ -47,14 +47,15 @@ All infrastructure for creating 3 Linear sprints and assigning 9 issues has been
 
 **Issues**:
 
-| ID | Title | Type | SP | Deps | Rationale |
-|---|---|------|----|----|---|
-| DAT-32 | Implement Circuit Breaker Utility | Feature | 5 | None | Foundational - start immediately |
-| DAT-29 | Fix Item Persistence & Tagging | Bug | 3 | DAT-32 | Small fix, unblocks DAT-30/31 |
-| DAT-31 | Standardize Extra Field Format | Bug | 8 | DAT-29 | Complex, high priority |
-| DAT-37 | Update Documentation | Docs | 3 | All | Parallel, incremental updates |
+| ID     | Title                             | Type    | SP  | Deps   | Rationale                        |
+| ------ | --------------------------------- | ------- | --- | ------ | -------------------------------- |
+| DAT-32 | Implement Circuit Breaker Utility | Feature | 5   | None   | Foundational - start immediately |
+| DAT-29 | Fix Item Persistence & Tagging    | Bug     | 3   | DAT-32 | Small fix, unblocks DAT-30/31    |
+| DAT-31 | Standardize Extra Field Format    | Bug     | 8   | DAT-29 | Complex, high priority           |
+| DAT-37 | Update Documentation              | Docs    | 3   | All    | Parallel, incremental updates    |
 
 **Execution Order**:
+
 1. **DAT-32** (immediate) - 5 sp, 3-4 days
    - Circuit breaker pattern foundation
    - Required by all monitoring work
@@ -85,13 +86,14 @@ All infrastructure for creating 3 Linear sprints and assigning 9 issues has been
 
 **Issues**:
 
-| ID | Title | Type | SP | Deps | Rationale |
-|---|---|------|----|----|---|
-| DAT-30 | Support DOI-Only Items | Bug | 5 | DAT-29 | Final bug in critical trilogy |
-| DAT-33 | Add Health Checks | Feature | 5 | DAT-32 | Foundation for monitoring |
-| DAT-34 | Implement Fallback Strategy | Feature | 5 | DAT-32 | Resilience feature |
+| ID     | Title                       | Type    | SP  | Deps   | Rationale                     |
+| ------ | --------------------------- | ------- | --- | ------ | ----------------------------- |
+| DAT-30 | Support DOI-Only Items      | Bug     | 5   | DAT-29 | Final bug in critical trilogy |
+| DAT-33 | Add Health Checks           | Feature | 5   | DAT-32 | Foundation for monitoring     |
+| DAT-34 | Implement Fallback Strategy | Feature | 5   | DAT-32 | Resilience feature            |
 
 **Execution Order**:
+
 1. **DAT-33 & DAT-34** (parallel) - 5 sp each, 3-4 days each
    - Both depend on DAT-32 from Sprint 1
    - Can be worked by different team members
@@ -114,12 +116,13 @@ All infrastructure for creating 3 Linear sprints and assigning 9 issues has been
 
 **Issues**:
 
-| ID | Title | Type | SP | Deps | Rationale |
-|---|---|------|----|----|---|
-| DAT-35 | Monitoring Dashboard | Feature | 8 | DAT-32, DAT-33 | Primary UI component |
-| DAT-36 | Alerting System | Feature | 5 | DAT-32, DAT-33 | Operational alerts |
+| ID     | Title                | Type    | SP  | Deps           | Rationale            |
+| ------ | -------------------- | ------- | --- | -------------- | -------------------- |
+| DAT-35 | Monitoring Dashboard | Feature | 8   | DAT-32, DAT-33 | Primary UI component |
+| DAT-36 | Alerting System      | Feature | 5   | DAT-32, DAT-33 | Operational alerts   |
 
 **Execution Order**:
+
 1. **DAT-35 & DAT-36** (parallel possible) - 5-8 sp each, 3-5 days each
    - Both depend on health checks from Sprint 2
    - Dashboard is user-facing, needs UAT
@@ -160,12 +163,14 @@ DAT-37 (Documentation) - Parallel to all, incremental updates
 ### Automation Scripts
 
 #### 1. Create Sprints Script
+
 **File**: `.pac/create-sprints.sh`
 **Language**: Bash
 **Size**: 2.9 KB
 **Function**: Creates 3 Linear cycles via GraphQL API
 
 **Capabilities**:
+
 - Creates 3 cycles with exact dates
 - Sprint 1: Feb 1-14, 2026
 - Sprint 2: Feb 17 - Mar 2, 2026
@@ -175,23 +180,27 @@ DAT-37 (Documentation) - Parallel to all, incremental updates
 - Authentication via LINEAR_API_KEY
 
 **Usage**:
+
 ```bash
 export LINEAR_API_KEY="lin_your_key_here"
 bash .pac/create-sprints.sh
 ```
 
 **Output**:
+
 - 3 cycle IDs (for reference)
 - Success/failure indicators
 - Time: < 1 minute
 
 #### 2. Assign Issues Script
+
 **File**: `.pac/assign-issues-to-sprints.sh`
 **Language**: Bash
 **Size**: 4.0 KB
 **Function**: Assigns all 9 issues to their sprints
 
 **Capabilities**:
+
 - Fetches 3 most recent cycles (automatic ID extraction)
 - Assigns all 9 issues with correct cycle mapping
 - Spring 1: DAT-32, DAT-29, DAT-31, DAT-37
@@ -201,11 +210,13 @@ bash .pac/create-sprints.sh
 - Error handling and validation
 
 **Usage**:
+
 ```bash
 bash .pac/assign-issues-to-sprints.sh
 ```
 
 **Output**:
+
 - Per-issue assignment confirmation
 - Success summary
 - Time: < 1 minute
@@ -213,8 +224,10 @@ bash .pac/assign-issues-to-sprints.sh
 ### Documentation
 
 #### 1. SPRINT_EXECUTION_STATUS.md
+
 **Size**: 14 KB
 **Content**:
+
 - Complete infrastructure status
 - Step-by-step execution instructions
 - Pre/post-execution checklists
@@ -223,8 +236,10 @@ bash .pac/assign-issues-to-sprints.sh
 - Manual fallback procedures
 
 #### 2. SPRINT_API_REFERENCE.md
+
 **Size**: 14 KB
 **Content**:
+
 - Exact GraphQL queries and mutations
 - cURL command examples
 - Complete execution flow script
@@ -233,8 +248,10 @@ bash .pac/assign-issues-to-sprints.sh
 - References and links
 
 #### 3. SPRINT_PLAN.md
+
 **Size**: 7.4 KB
 **Content**:
+
 - Detailed sprint planning
 - Dependency graphs
 - Execution rationale
@@ -243,8 +260,10 @@ bash .pac/assign-issues-to-sprints.sh
 - Resource planning
 
 #### 4. SPRINT_ASSIGNMENTS.md
+
 **Size**: 6.3 KB
 **Content**:
+
 - Issue-to-sprint mapping
 - Execution order per sprint
 - Release gates
@@ -252,8 +271,10 @@ bash .pac/assign-issues-to-sprints.sh
 - Linear cycle names and dates
 
 #### 5. SPRINT_SETUP.md
+
 **Size**: 3.3 KB
 **Content**:
+
 - User-friendly setup guide
 - Prerequisites
 - Step-by-step instructions
@@ -262,7 +283,9 @@ bash .pac/assign-issues-to-sprints.sh
 - Manual alternatives
 
 #### 6. INTEGRATION_REPORT.md (This Document)
+
 **Content**:
+
 - Executive summary
 - Complete specifications
 - Deliverables overview
@@ -303,7 +326,7 @@ unset LINEAR_API_KEY
 1. Go to https://linear.app/settings/api
 2. Click "+ Create API key"
 3. Name it (e.g., "Sprint Automation")
-4. Copy the key (starts with "lin_")
+4. Copy the key (starts with "lin\_")
 5. Keep it secret
 
 #### Step 2: Create Sprints (1 minute)
@@ -315,6 +338,7 @@ bash .pac/create-sprints.sh
 ```
 
 **Expected Output**:
+
 ```
 ===============================================
 Creating Archive Resilience Sprints
@@ -361,6 +385,7 @@ bash .pac/assign-issues-to-sprints.sh
 ```
 
 **Expected Output**:
+
 ```
 ===============================================
 Assigning Issues to Sprints
@@ -409,18 +434,21 @@ env | grep LINEAR_API_KEY
 Go to https://linear.app/datamine/cycles and verify:
 
 **Sprint 1: Bug Fixes & Foundation**
+
 - [ ] Exists with correct name
 - [ ] Dates: Feb 1-14, 2026
 - [ ] Contains: DAT-32, DAT-29, DAT-31, DAT-37 (4 issues)
 - [ ] Story Points: 19
 
 **Sprint 2: Resilience Features**
+
 - [ ] Exists with correct name
 - [ ] Dates: Feb 17 - Mar 2, 2026
 - [ ] Contains: DAT-30, DAT-33, DAT-34 (3 issues)
 - [ ] Story Points: 15
 
 **Sprint 3: Monitoring & Alerting**
+
 - [ ] Exists with correct name
 - [ ] Dates: Mar 3-16, 2026
 - [ ] Contains: DAT-35, DAT-36 (2 issues)
@@ -487,12 +515,14 @@ Go to https://linear.app/datamine/cycles and verify:
 ## Success Criteria
 
 ### Pre-Execution
+
 - [ ] All 9 issues exist in Linear (DAT-29 to DAT-37)
 - [ ] Team ID verified: 0c640fe8-9c50-4581-827b-cc0678dcde4a
 - [ ] Scripts are executable
 - [ ] API key obtained and secret
 
 ### Post-Execution
+
 - [ ] 3 sprints created with correct names
 - [ ] Correct dates for each sprint
 - [ ] 9 issues assigned to correct sprints
@@ -502,6 +532,7 @@ Go to https://linear.app/datamine/cycles and verify:
 - [ ] No credentials exposed in git
 
 ### Development Execution
+
 - [ ] Sprint 1: All 4 issues merged by Feb 14
 - [ ] Sprint 2: All 3 issues merged by Mar 2
 - [ ] Sprint 3: All 2 issues merged by Mar 16
@@ -545,15 +576,19 @@ Scripts: 7 KB
 ### Common Issues
 
 **Issue**: LINEAR_API_KEY not set
+
 - **Solution**: `export LINEAR_API_KEY="lin_your_key_here"`
 
 **Issue**: Invalid API key
+
 - **Solution**: Go to https://linear.app/settings/api and create new key
 
 **Issue**: Cycles not created
+
 - **Solution**: Check `.pac/SPRINT_EXECUTION_STATUS.md` troubleshooting section
 
 **Issue**: Issues not assigning
+
 - **Solution**: Ensure create-sprints.sh completed successfully first
 
 ### Debug Commands

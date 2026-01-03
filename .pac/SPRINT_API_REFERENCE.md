@@ -22,6 +22,7 @@ Content-Type: application/json
 **Endpoint**: POST https://api.linear.app/graphql
 
 **Request Body**:
+
 ```json
 {
   "query": "mutation CreateCycle($input: CycleCreateInput!) { cycleCreate(input: $input) { success cycle { id name } } }",
@@ -37,6 +38,7 @@ Content-Type: application/json
 ```
 
 **Expected Response**:
+
 ```json
 {
   "data": {
@@ -52,6 +54,7 @@ Content-Type: application/json
 ```
 
 **Using cURL**:
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -74,6 +77,7 @@ curl -X POST https://api.linear.app/graphql \
 ### 2. Create Sprint 2: Resilience Features
 
 **Request Body**:
+
 ```json
 {
   "query": "mutation CreateCycle($input: CycleCreateInput!) { cycleCreate(input: $input) { success cycle { id name } } }",
@@ -89,6 +93,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 **Using cURL**:
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -111,6 +116,7 @@ curl -X POST https://api.linear.app/graphql \
 ### 3. Create Sprint 3: Monitoring & Alerting
 
 **Request Body**:
+
 ```json
 {
   "query": "mutation CreateCycle($input: CycleCreateInput!) { cycleCreate(input: $input) { success cycle { id name } } }",
@@ -126,6 +132,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 **Using cURL**:
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -150,6 +157,7 @@ curl -X POST https://api.linear.app/graphql \
 To get the cycle IDs after creation (useful for debugging):
 
 **Request Body**:
+
 ```json
 {
   "query": "query { cycles(filter: { team: { id: { eq: \"0c640fe8-9c50-4581-827b-cc0678dcde4a\" } } }, first: 10, orderBy: createdAt) { nodes { id name startsAt endsAt } } }"
@@ -157,6 +165,7 @@ To get the cycle IDs after creation (useful for debugging):
 ```
 
 **Expected Response**:
+
 ```json
 {
   "data": {
@@ -187,6 +196,7 @@ To get the cycle IDs after creation (useful for debugging):
 ```
 
 **Using cURL**:
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -205,6 +215,7 @@ curl -X POST https://api.linear.app/graphql \
 #### DAT-32 → Sprint 1
 
 **Request**:
+
 ```json
 {
   "query": "mutation UpdateIssue($input: IssueUpdateInput!) { issueUpdate(id: \"DAT-32\", input: $input) { success issue { identifier title } } }",
@@ -217,6 +228,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 **Using cURL**:
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -232,6 +244,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 #### DAT-29 → Sprint 1
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -247,6 +260,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 #### DAT-31 → Sprint 1
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -262,6 +276,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 #### DAT-37 → Sprint 1
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -281,6 +296,7 @@ curl -X POST https://api.linear.app/graphql \
 ### Sprint 2 Assignments
 
 #### DAT-30 → Sprint 2
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -296,6 +312,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 #### DAT-33 → Sprint 2
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -311,6 +328,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 #### DAT-34 → Sprint 2
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -330,6 +348,7 @@ curl -X POST https://api.linear.app/graphql \
 ### Sprint 3 Assignments
 
 #### DAT-35 → Sprint 3
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -345,6 +364,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 #### DAT-36 → Sprint 3
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer $LINEAR_API_KEY" \
@@ -366,6 +386,7 @@ curl -X POST https://api.linear.app/graphql \
 ### Authentication Error
 
 **Request** (with invalid key):
+
 ```bash
 curl -X POST https://api.linear.app/graphql \
   -H "Authorization: Bearer invalid_key" \
@@ -374,6 +395,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 **Response**:
+
 ```json
 {
   "errors": [
@@ -391,6 +413,7 @@ curl -X POST https://api.linear.app/graphql \
 ### Rate Limiting
 
 **Response** (HTTP 429):
+
 ```json
 {
   "errors": [
@@ -411,6 +434,7 @@ curl -X POST https://api.linear.app/graphql \
 ### Invalid Team ID
 
 **Request**:
+
 ```json
 {
   "variables": {
@@ -423,6 +447,7 @@ curl -X POST https://api.linear.app/graphql \
 ```
 
 **Response**:
+
 ```json
 {
   "errors": [

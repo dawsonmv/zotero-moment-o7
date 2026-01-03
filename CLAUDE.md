@@ -257,23 +257,23 @@ export const yourServiceConfig: ServiceConfig = {
       url: "https://api.your-service.com/archive?url={{url}}",
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      bodyTemplate: '{"url":"{{url}}"}',  // {{url}} interpolated with URL encoding
+      bodyTemplate: '{"url":"{{url}}"}', // {{url}} interpolated with URL encoding
       timeout: 120000,
     },
 
     // Required: Parse the response to extract archive URL
     responseParser: {
-      type: "json",  // "json" uses JSONPath, "regex" uses regex patterns
-      path: "archiveUrl",  // JSONPath like "data.urls[0]"
-      urlPrefix: "https://archive.your-service.com/",  // Optional: prepend to result
+      type: "json", // "json" uses JSONPath, "regex" uses regex patterns
+      path: "archiveUrl", // JSONPath like "data.urls[0]"
+      urlPrefix: "https://archive.your-service.com/", // Optional: prepend to result
     },
 
     // Optional: Authentication with credentials
     auth: {
       type: "header",
-      credentialKey: "yourServiceApiKey",  // Key in CredentialManager
+      credentialKey: "yourServiceApiKey", // Key in CredentialManager
       headerName: "Authorization",
-      template: "Bearer {{credential}}",  // {{credential}} replaced with stored value
+      template: "Bearer {{credential}}", // {{credential}} replaced with stored value
     },
 
     // Optional: Check for existing archives before submission
@@ -298,6 +298,7 @@ export { yourServiceConfig } from "./services/yourservice.config";
 3. The `ServiceConfigLoader` automatically loads and registers the service.
 
 **When to use configuration-driven services:**
+
 - Simple HTTP request/response patterns
 - Response extraction via JSON or regex
 - No complex state management or polling
@@ -313,6 +314,7 @@ Use this approach for services with complex behavior:
 4. Add to fallback order in `PreferencesManager.defaults`
 
 **When to use TypeScript services:**
+
 - Async polling or job tracking
 - Complex HTML/response parsing
 - Authentication with multiple steps
@@ -426,6 +428,7 @@ export const arquivoPtConfig: ServiceConfig = {
 #### Testing Configuration-Driven Services
 
 Test files should verify:
+
 - Configuration creates valid service instance
 - URL validation works as expected
 - Response parsing extracts correct values
@@ -433,6 +436,7 @@ Test files should verify:
 - Template interpolation handles URL encoding correctly
 
 Example test pattern:
+
 ```typescript
 it("should parse JSON response with JSONPath", () => {
   const response = JSON.stringify({ data: { url: "archive123" } });
@@ -441,10 +445,11 @@ it("should parse JSON response with JSONPath", () => {
 });
 
 it("should extract URL from regex pattern", () => {
-  const response = '<a href="https://archive.example.com/20231201/page">Link</a>';
+  const response =
+    '<a href="https://archive.example.com/20231201/page">Link</a>';
   const parser: ResponseParser = {
     type: "regex",
-    pattern: "https://archive\\.example\\.com/\\d+/[^\"]+",
+    pattern: 'https://archive\\.example\\.com/\\d+/[^"]+',
   };
   // Verify regex extracts "https://archive.example.com/20231201/page"
 });
@@ -457,18 +462,18 @@ The `ServiceConfig` interface extends the core service metadata with optional ru
 ```typescript
 interface ServiceConfig {
   // Core metadata
-  id: string;  // Unique identifier (used in preferences, registry)
-  name: string;  // Display name
-  homepage?: string;  // Service website
+  id: string; // Unique identifier (used in preferences, registry)
+  name: string; // Display name
+  homepage?: string; // Service website
 
   capabilities: {
-    acceptsUrl: boolean;  // Service can submit URLs for archiving
-    returnsUrl: boolean;  // Service returns archive URL immediately
-    preservesJavaScript: boolean;  // Archive executes JavaScript
-    preservesInteractiveElements: boolean;  // Archive preserves interactive elements
-    requiresAuthentication: boolean;  // Requires API credentials
-    hasQuota: boolean;  // Service has rate limits or usage quotas
-    regionRestricted: boolean;  // Only works for certain regions/domains
+    acceptsUrl: boolean; // Service can submit URLs for archiving
+    returnsUrl: boolean; // Service returns archive URL immediately
+    preservesJavaScript: boolean; // Archive executes JavaScript
+    preservesInteractiveElements: boolean; // Archive preserves interactive elements
+    requiresAuthentication: boolean; // Requires API credentials
+    hasQuota: boolean; // Service has rate limits or usage quotas
+    regionRestricted: boolean; // Only works for certain regions/domains
   };
 
   // Optional: Configuration-driven service (replaces custom TypeScript class)
@@ -479,8 +484,8 @@ interface ServiceRuntime {
   // Optional: URL validation before submission
   urlValidator?: {
     type: "regex";
-    pattern: string;  // Regex pattern URLs must match
-    errorMessage?: string;  // Custom error message
+    pattern: string; // Regex pattern URLs must match
+    errorMessage?: string; // Custom error message
   };
 
   // Required: Where to submit URLs for archiving
@@ -499,30 +504,31 @@ interface ServiceRuntime {
 }
 
 interface HttpEndpoint {
-  url: string;  // Supports {{url}} template interpolation
+  url: string; // Supports {{url}} template interpolation
   method: "GET" | "POST";
   headers?: Record<string, string>;
-  bodyTemplate?: string;  // For POST requests, supports {{url}}
-  timeout?: number;  // Request timeout in milliseconds
+  bodyTemplate?: string; // For POST requests, supports {{url}}
+  timeout?: number; // Request timeout in milliseconds
 }
 
 interface ResponseParser {
   type: "json" | "regex";
-  path?: string;  // For JSON: JSONPath like "data.urls[0]"
-  pattern?: string;  // For regex: regex pattern to match
-  captureGroup?: number;  // For regex: capture group index (default: 0)
-  urlPrefix?: string;  // Optional: prepend to extracted value
+  path?: string; // For JSON: JSONPath like "data.urls[0]"
+  pattern?: string; // For regex: regex pattern to match
+  captureGroup?: number; // For regex: capture group index (default: 0)
+  urlPrefix?: string; // Optional: prepend to extracted value
 }
 
 interface AuthConfig {
-  type: "header";  // Only header auth currently supported
-  credentialKey: string;  // Key in CredentialManager to retrieve
-  headerName: string;  // HTTP header name (e.g., "Authorization")
-  template: string;  // Template with {{credential}} placeholder
+  type: "header"; // Only header auth currently supported
+  credentialKey: string; // Key in CredentialManager to retrieve
+  headerName: string; // HTTP header name (e.g., "Authorization")
+  template: string; // Template with {{credential}} placeholder
 }
 ```
 
 **Important Notes:**
+
 - `runtime` field is **optional** - allows gradual migration from TypeScript services to configs
 - `archiveEndpoint` and `responseParser` are **required** in `runtime`
 - All other `runtime` fields are **optional**
@@ -530,15 +536,15 @@ interface AuthConfig {
 
 ### Naming Conventions
 
-| Type                    | Convention                           | Example                           |
-| ----------------------- | ------------------------------------ | --------------------------------- |
-| TypeScript Services     | `*Service.ts`                        | `InternetArchiveService.ts`       |
-| Config-driven Services  | `*.config.ts` in `src/config/services/` | `permacc.config.ts`               |
-| Service Config Export   | `*Config` variable                   | `permaCCConfig`                   |
-| Types                   | Interface in `types.ts`              | `ArchiveResult`                   |
-| Preferences             | `extensions.momento7.*`              | `extensions.momento7.autoArchive` |
-| Credential Keys         | Descriptive, service-specific        | `permaCCApiKey`, `iaAccessKey`   |
-| Tags                    | `archived`                           | Item tag after archiving          |
+| Type                   | Convention                              | Example                           |
+| ---------------------- | --------------------------------------- | --------------------------------- |
+| TypeScript Services    | `*Service.ts`                           | `InternetArchiveService.ts`       |
+| Config-driven Services | `*.config.ts` in `src/config/services/` | `permacc.config.ts`               |
+| Service Config Export  | `*Config` variable                      | `permaCCConfig`                   |
+| Types                  | Interface in `types.ts`                 | `ArchiveResult`                   |
+| Preferences            | `extensions.momento7.*`                 | `extensions.momento7.autoArchive` |
+| Credential Keys        | Descriptive, service-specific           | `permaCCApiKey`, `iaAccessKey`    |
+| Tags                   | `archived`                              | Item tag after archiving          |
 
 ### Non-Obvious Behaviors
 

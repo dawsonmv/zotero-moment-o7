@@ -95,9 +95,7 @@ export class ConfigurableArchiveService extends BaseArchiveService {
         ? this.interpolate(runtime.archiveEndpoint.bodyTemplate, { url })
         : undefined;
 
-      const headers = await this.buildHeaders(
-        runtime.archiveEndpoint.headers,
-      );
+      const headers = await this.buildHeaders(runtime.archiveEndpoint.headers);
 
       const response = await this.makeHttpRequest(requestUrl, {
         method: runtime.archiveEndpoint.method,
@@ -226,9 +224,7 @@ export class ConfigurableArchiveService extends BaseArchiveService {
           return null;
         }
 
-        return parser.urlPrefix
-          ? `${parser.urlPrefix}${value}`
-          : String(value);
+        return parser.urlPrefix ? `${parser.urlPrefix}${value}` : String(value);
       }
 
       if (parser.type === "regex") {
@@ -252,9 +248,7 @@ export class ConfigurableArchiveService extends BaseArchiveService {
           return null;
         }
 
-        return parser.urlPrefix
-          ? `${parser.urlPrefix}${captured}`
-          : captured;
+        return parser.urlPrefix ? `${parser.urlPrefix}${captured}` : captured;
       }
     } catch {
       return null;
@@ -267,10 +261,7 @@ export class ConfigurableArchiveService extends BaseArchiveService {
    * Template string interpolation
    * Replaces {{url}} with encoded URL value
    */
-  private interpolate(
-    template: string,
-    vars: Record<string, string>,
-  ): string {
+  private interpolate(template: string, vars: Record<string, string>): string {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
       const value = vars[key];
       return value ? encodeURIComponent(value) : "";

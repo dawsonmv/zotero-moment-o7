@@ -38,22 +38,24 @@ DAT-37 (Documentation) → Can run in parallel (updates as features complete)
 **Capacity**: 19 story points
 **Goal**: Enable all dependent work and fix critical data integrity issues
 
-| ID | Ticket | Type | SP | Status | Depends On |
-|-------|--------|------|----|---------|----|
-| DAT-32 | Circuit Breaker Implementation | Feature | 5 | Not Started | - |
-| DAT-29 | Fix Item Persistence & Tagging | Bug | 3 | Not Started | DAT-32 |
-| DAT-31 | Fix Extra Field Format | Bug | 8 | Not Started | DAT-29 |
-| DAT-37 | Update Documentation | Docs | 3 | Not Started | All |
+| ID     | Ticket                         | Type    | SP  | Status      | Depends On |
+| ------ | ------------------------------ | ------- | --- | ----------- | ---------- |
+| DAT-32 | Circuit Breaker Implementation | Feature | 5   | Not Started | -          |
+| DAT-29 | Fix Item Persistence & Tagging | Bug     | 3   | Not Started | DAT-32     |
+| DAT-31 | Fix Extra Field Format         | Bug     | 8   | Not Started | DAT-29     |
+| DAT-37 | Update Documentation           | Docs    | 3   | Not Started | All        |
 
 **Sprint 1 Total**: 19 sp
 
 **Rationale**:
+
 - **DAT-32 first** (5 sp): Circuit breaker is the foundation pattern used by monitoring and fallback logic
 - **DAT-29 follows** (3 sp): Small fix that unblocks feature work for DOI and extra field issues
 - **DAT-31 parallel** (8 sp): High-priority bug fix that depends on DAT-29, can be worked on while others complete DAT-32
 - **DAT-37 parallel** (3 sp): Documentation can begin drafting while code is being implemented, updated incrementally
 
 **Success Criteria**:
+
 - ✅ Circuit breaker prevents cascading failures in test scenarios
 - ✅ Item persistence bug fixed and verified with reload tests
 - ✅ Extra field format consistency established across readers/writers
@@ -70,21 +72,23 @@ DAT-37 (Documentation) → Can run in parallel (updates as features complete)
 **Capacity**: 20 story points (of 28 available)
 **Goal**: Complete health checks, fallback logic, and basic dashboard
 
-| ID | Ticket | Type | SP | Status | Depends On |
-|-------|--------|------|----|---------|----|
-| DAT-30 | Support DOI-Only Items | Bug | 5 | Not Started | DAT-29 |
-| DAT-33 | Health Checks | Feature | 5 | Not Started | DAT-32 |
-| DAT-34 | Fallback Strategy | Feature | 5 | Not Started | DAT-32 |
+| ID     | Ticket                 | Type    | SP  | Status      | Depends On |
+| ------ | ---------------------- | ------- | --- | ----------- | ---------- |
+| DAT-30 | Support DOI-Only Items | Bug     | 5   | Not Started | DAT-29     |
+| DAT-33 | Health Checks          | Feature | 5   | Not Started | DAT-32     |
+| DAT-34 | Fallback Strategy      | Feature | 5   | Not Started | DAT-32     |
 
 **Sprint 2 Total**: 15 sp (Sprint 1 carryover: 4 sp if DAT-37 completes early)
 
 **Rationale**:
+
 - **DAT-30** (5 sp): Final critical bug fix in bug-fix trilogy, can start once DAT-29 completes
 - **DAT-33 & DAT-34** (5 sp each): Foundation monitoring and resilience features that both depend on DAT-32
 - Deliberately **defer DAT-35 & DAT-36** to Sprint 3 to keep velocity manageable
 - **DAT-37 completes** by end of Sprint 2
 
 **Success Criteria**:
+
 - ✅ DOI-only items can be archived to all 6 services
 - ✅ Health checks detect service unavailability within 30 seconds
 - ✅ Fallback to secondary service works automatically
@@ -99,14 +103,15 @@ DAT-37 (Documentation) → Can run in parallel (updates as features complete)
 **Capacity**: ~16 story points
 **Deferred from Sprint 2 due to scope**
 
-| ID | Ticket | Type | SP | Status | Depends On |
-|-------|--------|------|----|---------|----|
-| DAT-35 | Monitoring Dashboard | Feature | 8 | Not Started | DAT-32, DAT-33 |
-| DAT-36 | Alerting System | Feature | 5 | Not Started | DAT-32, DAT-33 |
+| ID     | Ticket               | Type    | SP  | Status      | Depends On     |
+| ------ | -------------------- | ------- | --- | ----------- | -------------- |
+| DAT-35 | Monitoring Dashboard | Feature | 8   | Not Started | DAT-32, DAT-33 |
+| DAT-36 | Alerting System      | Feature | 5   | Not Started | DAT-32, DAT-33 |
 
 **Sprint 3 Total**: 13 sp
 
 **Rationale**:
+
 - Both depend on health checks (DAT-33) which completes in Sprint 2
 - Dashboard requires stable metrics collection from health checks
 - Alerting requires circuit breaker state changes from health checks
@@ -141,12 +146,14 @@ Week 7-12: Integration, Testing, Polish & Release - Mar 17 - May 15
 ## Resource & Risk Analysis
 
 ### Velocity Assumptions
+
 - **Assumed velocity**: 10-13 sp/week
 - **Sprint 1**: 19 sp over 2 weeks = 9.5 sp/week (feasible)
 - **Sprint 2**: 15 sp over 2 weeks = 7.5 sp/week (conservative, allows slack)
 - **Sprint 3**: 13 sp over 2 weeks = 6.5 sp/week (allows integration/polish time)
 
 ### High-Risk Items
+
 1. **DAT-32 (Circuit Breaker)** - CRITICAL PATH
    - Risk: Architecture decision on state machine implementation
    - Mitigation: Early architecture review, spike if needed
@@ -160,6 +167,7 @@ Week 7-12: Integration, Testing, Polish & Release - Mar 17 - May 15
    - Mitigation: Limit historical data window, implement pagination
 
 ### Dependencies
+
 - **Critical Path**: DAT-32 → DAT-29 → {DAT-30, DAT-31}
 - **Parallel Work**: DAT-37 can start immediately
 - **Secondary Path**: DAT-33 & DAT-34 can start once DAT-32 completes
@@ -169,18 +177,21 @@ Week 7-12: Integration, Testing, Polish & Release - Mar 17 - May 15
 ## Success Metrics (Per Sprint)
 
 ### Sprint 1
+
 - All 3 bug fixes merged with approval
 - Test coverage ≥ 90% for critical fixes
 - Documentation review cycle complete
 - Zero regression in existing tests
 
 ### Sprint 2
+
 - Health checks detect 100% of service failures in test
 - Fallback logic works for 6/6 archive services
 - DOI-only archiving works end-to-end
 - Documentation complete and reviewed
 
 ### Sprint 3
+
 - Dashboard displays real-time metrics for 6+ services
 - Alerting system sends notifications for failures
 - Alert deduplication prevents spam
@@ -191,6 +202,7 @@ Week 7-12: Integration, Testing, Polish & Release - Mar 17 - May 15
 ## Rollout Plan
 
 ### Pre-Release (Week 7-11)
+
 - Integration testing: All features together
 - Performance testing: No degradation
 - User acceptance testing: Docs clear, UI intuitive
@@ -198,6 +210,7 @@ Week 7-12: Integration, Testing, Polish & Release - Mar 17 - May 15
 - Final documentation review
 
 ### Release (Week 12)
+
 - Staged rollout to beta testers
 - Monitor early feedback
 - Patch critical issues within 48 hours

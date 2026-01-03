@@ -21,6 +21,7 @@ Implement circuit breaker patterns and comprehensive monitoring to improve relia
 These 3 tickets address critical bugs affecting data durability and core functionality.
 
 ### 1. TICKET-fix-item-persistence
+
 - **Status**: Backlog
 - **Priority**: HIGH
 - **Effort**: 3 story points / 4 hours
@@ -38,6 +39,7 @@ These 3 tickets address critical bugs affecting data durability and core functio
   - [ ] New tests verify persistence
 
 ### 2. TICKET-support-doi-only-items
+
 - **Status**: Backlog
 - **Priority**: HIGH
 - **Effort**: 5 story points / 6 hours
@@ -54,6 +56,7 @@ These 3 tickets address critical bugs affecting data durability and core functio
   - [ ] Error only shown if both URL and DOI missing
 
 ### 3. TICKET-fix-extra-field-format
+
 - **Status**: Backlog
 - **Priority**: CRITICAL
 - **Effort**: 8 story points / 10 hours
@@ -82,6 +85,7 @@ These 3 tickets address critical bugs affecting data durability and core functio
 ## Additional Tickets
 
 ### 4. TICKET-implement-circuit-breaker
+
 - **Status**: Backlog
 - **Priority**: MEDIUM
 - **Effort**: Unestimated
@@ -103,17 +107,17 @@ These 3 tickets address critical bugs affecting data durability and core functio
 
 ## Summary Statistics
 
-| Metric | Value |
-|--------|-------|
-| Total Tickets | 4 |
-| Critical Priority | 1 |
-| High Priority | 2 |
-| Medium Priority | 1 |
-| Total Story Points | 16+ |
-| Estimated Hours | 20+ |
-| Epic Duration | 12 weeks |
-| Start Date | 2026-02-01 |
-| Target Completion | 2026-05-15 |
+| Metric             | Value      |
+| ------------------ | ---------- |
+| Total Tickets      | 4          |
+| Critical Priority  | 1          |
+| High Priority      | 2          |
+| Medium Priority    | 1          |
+| Total Story Points | 16+        |
+| Estimated Hours    | 20+        |
+| Epic Duration      | 12 weeks   |
+| Start Date         | 2026-02-01 |
+| Target Completion  | 2026-05-15 |
 
 ## Dependencies
 

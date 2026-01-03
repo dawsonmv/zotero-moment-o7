@@ -371,7 +371,9 @@ archive_arquivopt: https://arquivo.pt/wayback/20231201/https://example.com`;
       const mementos = MementoChecker.findExistingMementos(mockItem);
 
       expect(mementos.length).toBe(3);
-      expect(mementos.some((m) => m.url.includes("web.archive.org"))).toBe(true);
+      expect(mementos.some((m) => m.url.includes("web.archive.org"))).toBe(
+        true,
+      );
       expect(mementos.some((m) => m.url.includes("perma.cc"))).toBe(true);
       expect(mementos.some((m) => m.url.includes("arquivo.pt"))).toBe(true);
     });
@@ -404,7 +406,9 @@ archivetoday: https://archive.today/abc123`;
       const mementos = MementoChecker.findExistingMementos(mockItem);
 
       expect(mementos.length).toBeGreaterThanOrEqual(1);
-      expect(mementos.some((m) => m.url.includes("web.archive.org"))).toBe(true);
+      expect(mementos.some((m) => m.url.includes("web.archive.org"))).toBe(
+        true,
+      );
     });
 
     it("should support all service types in standardized format", function () {

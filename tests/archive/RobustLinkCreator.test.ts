@@ -231,7 +231,9 @@ archive_permacc: https://perma.cc/1234-5678`;
 
       expect(html).not.toBeNull();
       expect(html).toContain("data-originalurl");
-      expect(html).toContain("https://web.archive.org/web/20231201/https://example.com");
+      expect(html).toContain(
+        "https://web.archive.org/web/20231201/https://example.com",
+      );
       expect(html).toContain("https://perma.cc/1234-5678");
     });
 
@@ -251,7 +253,9 @@ permaccArchived: https://perma.cc/1234-5678`;
 
       expect(html).not.toBeNull();
       expect(html).toContain("data-originalurl");
-      expect(html).toContain("https://web.archive.org/web/20231201/https://example.com");
+      expect(html).toContain(
+        "https://web.archive.org/web/20231201/https://example.com",
+      );
     });
 
     it("should handle mixed new and legacy formats", function () {
@@ -269,13 +273,16 @@ archivetoday: https://archive.today/abc`;
       const html = RobustLinkCreator.createFromItem(mockItem);
 
       expect(html).not.toBeNull();
-      expect(html).toContain("https://web.archive.org/web/20231201/https://example.com");
+      expect(html).toContain(
+        "https://web.archive.org/web/20231201/https://example.com",
+      );
     });
 
     it("should return null when no URL field exists", function () {
       const mockItem = {
         getField: jest.fn((field: string) => {
-          if (field === "extra") return "archive_internetarchive: https://web.archive.org/web/20231201/https://example.com";
+          if (field === "extra")
+            return "archive_internetarchive: https://web.archive.org/web/20231201/https://example.com";
           return "";
         }),
       } as unknown as Zotero.Item;
@@ -290,7 +297,8 @@ archivetoday: https://archive.today/abc`;
         getField: jest.fn((field: string) => {
           if (field === "url") return "https://example.com";
           if (field === "title") return "Example Title";
-          if (field === "extra") return "DOI: 10.1234/example\nSome other metadata";
+          if (field === "extra")
+            return "DOI: 10.1234/example\nSome other metadata";
           return "";
         }),
       } as unknown as Zotero.Item;

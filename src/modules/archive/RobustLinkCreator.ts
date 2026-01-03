@@ -161,7 +161,9 @@ export class RobustLinkCreator {
 
     // Extract archive URLs from Extra field using standardized parser
     const extra = item.getField("extra") || "";
-    const archiveUrls = Object.fromEntries(ExtraFieldParser.extractAllArchives(extra));
+    const archiveUrls = Object.fromEntries(
+      ExtraFieldParser.extractAllArchives(extra),
+    );
 
     if (Object.keys(archiveUrls).length === 0) {
       return null;

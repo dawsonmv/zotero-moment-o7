@@ -5681,6 +5681,143 @@ html {
     }
   };
 
+  // src/modules/archive/ExtraFieldParser.ts
+  var ExtraFieldParser = class {
+    static ARCHIVE_PREFIX = "archive_";
+    static FIELD_SUFFIX = ":";
+    /**
+     * Extract archive URL for a specific service from extra field.
+     * Supports both new format (archive_{serviceId}: {url}) and legacy formats.
+     *
+     * @param extra - The extra field content
+     * @param serviceId - The service ID to search for
+     * @returns The archive URL if found, null otherwise
+     */
+    static extractArchiveUrl(extra, serviceId) {
+      if (!extra || typeof extra !== "string") {
+        return null;
+      }
+      const newFormatPattern = new RegExp(
+        `^${this.ARCHIVE_PREFIX}${this.escapeRegex(serviceId)}${this.FIELD_SUFFIX}\\s*(.+)$`,
+        "im"
+      );
+      const match = extra.match(newFormatPattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+      const legacyPattern = new RegExp(
+        `^${this.escapeRegex(serviceId)}Archived${this.FIELD_SUFFIX}\\s*(.+)$`,
+        "im"
+      );
+      const legacyMatch = extra.match(legacyPattern);
+      if (legacyMatch && legacyMatch[1]) {
+        return legacyMatch[1].trim();
+      }
+      return null;
+    }
+    /**
+     * Extract all archive URLs from extra field, keyed by service ID.
+     * Automatically detects both new and legacy formats.
+     *
+     * @param extra - The extra field content
+     * @returns Map of service ID to archive URL
+     */
+    static extractAllArchives(extra) {
+      const archives = /* @__PURE__ */ new Map();
+      if (!extra || typeof extra !== "string") {
+        return archives;
+      }
+      const lines = extra.split("\n");
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        const newFormatMatch = trimmedLine.match(
+          new RegExp(
+            `^${this.ARCHIVE_PREFIX}([a-z0-9]+)${this.FIELD_SUFFIX}\\s*(.+)$`
+          )
+        );
+        if (newFormatMatch && newFormatMatch[2]) {
+          const serviceId = newFormatMatch[1];
+          const url = newFormatMatch[2].trim();
+          archives.set(serviceId, url);
+          continue;
+        }
+        const legacyMatch = trimmedLine.match(/^([a-z0-9]+)Archived:\s*(.+)$/);
+        if (legacyMatch && legacyMatch[2]) {
+          const serviceId = legacyMatch[1];
+          const url = legacyMatch[2].trim();
+          if (!archives.has(serviceId)) {
+            archives.set(serviceId, url);
+          }
+        }
+      }
+      return archives;
+    }
+    /**
+     * Write an archive URL to the extra field in standardized format.
+     * Appends to existing content without duplicating entries.
+     *
+     * @param extra - The current extra field content
+     * @param serviceId - The service ID
+     * @param url - The archive URL to write
+     * @returns Updated extra field content
+     */
+    static writeArchiveUrl(extra, serviceId, url) {
+      const currentExtra = extra && typeof extra === "string" ? extra : "";
+      const existingUrl = this.extractArchiveUrl(currentExtra, serviceId);
+      if (existingUrl === url) {
+        return currentExtra;
+      }
+      const cleanedExtra = this.removeArchiveUrl(currentExtra, serviceId);
+      const newEntry = `${this.ARCHIVE_PREFIX}${serviceId}${this.FIELD_SUFFIX} ${url}`;
+      return cleanedExtra ? cleanedExtra + "\n" + newEntry : newEntry;
+    }
+    /**
+     * Remove archive URL for a specific service from extra field.
+     *
+     * @param extra - The extra field content
+     * @param serviceId - The service ID to remove
+     * @returns Updated extra field content
+     */
+    static removeArchiveUrl(extra, serviceId) {
+      if (!extra || typeof extra !== "string") {
+        return "";
+      }
+      const lines = extra.split("\n");
+      const filtered = lines.filter((line) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith(
+          `${this.ARCHIVE_PREFIX}${serviceId}${this.FIELD_SUFFIX}`
+        )) {
+          return false;
+        }
+        if (trimmed.startsWith(`${serviceId}Archived${this.FIELD_SUFFIX}`)) {
+          return false;
+        }
+        return true;
+      });
+      return filtered.map((l) => l.trimEnd()).filter((l) => l.length > 0).join("\n");
+    }
+    /**
+     * Check if an archive URL exists for a specific service.
+     *
+     * @param extra - The extra field content
+     * @param serviceId - The service ID to check
+     * @returns True if an archive URL exists for this service
+     */
+    static hasArchive(extra, serviceId) {
+      return this.extractArchiveUrl(extra, serviceId) !== null;
+    }
+    /**
+     * Escape special regex characters in a string.
+     *
+     * @param str - The string to escape
+     * @returns Escaped string safe for use in regex
+     */
+    static escapeRegex(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+  };
+
   // src/modules/archive/BaseArchiveService.ts
   var BaseArchiveService = class {
     constructor(config2) {
@@ -5807,7 +5944,10 @@ html {
                 ...options,
                 method: options.method || "GET"
               };
-              const response = await Zotero.HTTP.request(url, requestOptions);
+              const response = await Zotero.HTTP.request(
+                url,
+                requestOptions
+              );
               if (!monitoringStarted) {
                 Zotero.clearTimeout(timerHandle);
               } else {
@@ -5900,11 +6040,14 @@ html {
       const titleField = item.getField("title");
       const linkText = typeof titleField === "string" && titleField ? titleField : originalUrl;
       const extraField = item.getField("extra");
-      let extra = typeof extraField === "string" ? extraField : "";
-      const archiveField = `${this.id}Archived: ${archivedUrl}`;
-      if (!extra.includes(archiveField)) {
-        extra = extra ? extra + "\n" + archiveField : archiveField;
-        item.setField("extra", extra);
+      const extra = typeof extraField === "string" ? extraField : "";
+      const updatedExtra = ExtraFieldParser.writeArchiveUrl(
+        extra,
+        this.id,
+        archivedUrl
+      );
+      if (updatedExtra !== extra) {
+        item.setField("extra", updatedExtra);
       }
       const robustLinkHTML = this.createRobustLinkHTML(
         originalUrl,
@@ -8254,9 +8397,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
           url
         });
         const requestBody = runtime.archiveEndpoint.bodyTemplate ? this.interpolate(runtime.archiveEndpoint.bodyTemplate, { url }) : void 0;
-        const headers = await this.buildHeaders(
-          runtime.archiveEndpoint.headers
-        );
+        const headers = await this.buildHeaders(runtime.archiveEndpoint.headers);
         const response = await this.makeHttpRequest(requestUrl, {
           method: runtime.archiveEndpoint.method,
           headers,
@@ -8623,11 +8764,11 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         try {
           const service = new ConfigurableArchiveService(config2);
           registry.register(config2.id, service);
-          Zotero.debug(`MomentO7: Registered config-driven service: ${config2.id}`);
-        } catch (error) {
           Zotero.debug(
-            `MomentO7: Failed to load service ${config2.id}: ${error}`
+            `MomentO7: Registered config-driven service: ${config2.id}`
           );
+        } catch (error) {
+          Zotero.debug(`MomentO7: Failed to load service ${config2.id}: ${error}`);
         }
       }
       Zotero.debug("MomentO7: Archive services initialization complete");
@@ -9005,30 +9146,21 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       const mementos = [];
       const extra = item.getField("extra");
       if (extra) {
-        const patterns = [
-          /Archived:\s*(https?:\/\/[^\s]+)/gi,
-          /Internet Archive:\s*(https?:\/\/[^\s]+)/gi,
-          /Archive\.today:\s*(https?:\/\/[^\s]+)/gi,
-          /Perma\.cc:\s*(https?:\/\/[^\s]+)/gi
-        ];
-        for (const pattern of patterns) {
-          let match;
-          while ((match = pattern.exec(extra)) !== null) {
-            const url = match[1];
-            let service = "Unknown";
-            for (const archive of this.KNOWN_ARCHIVES) {
-              if (archive.pattern.test(url)) {
-                service = archive.name;
-                break;
-              }
+        const archiveUrls = ExtraFieldParser.extractAllArchives(extra);
+        for (const [_serviceId, url] of archiveUrls) {
+          let service = "Unknown";
+          for (const archive of this.KNOWN_ARCHIVES) {
+            if (archive.pattern.test(url)) {
+              service = archive.name;
+              break;
             }
-            mementos.push({
-              url,
-              datetime: (/* @__PURE__ */ new Date()).toISOString(),
-              // We don't have the actual datetime
-              service
-            });
           }
+          mementos.push({
+            url,
+            datetime: (/* @__PURE__ */ new Date()).toISOString(),
+            // We don't have the actual datetime
+            service
+          });
         }
       }
       const notes = item.getNotes ? item.getNotes() : [];
@@ -9748,24 +9880,10 @@ ${errors.join("\n")}`);
       const url = item.getField("url");
       if (!url) return null;
       const title = item.getField("title") || url;
-      const archiveUrls = {};
       const extra = item.getField("extra") || "";
-      const lines = extra.split("\n");
-      const servicePatterns = [
-        { pattern: /^Internet Archive:\s*(.+)$/i, service: "internetarchive" },
-        { pattern: /^Archive\.today:\s*(.+)$/i, service: "archivetoday" },
-        { pattern: /^Perma\.cc:\s*(.+)$/i, service: "permacc" },
-        { pattern: /^UK Web Archive:\s*(.+)$/i, service: "ukwebarchive" },
-        { pattern: /^Arquivo\.pt:\s*(.+)$/i, service: "arquivopt" }
-      ];
-      for (const line of lines) {
-        for (const { pattern, service } of servicePatterns) {
-          const match = line.match(pattern);
-          if (match && match.length > 1 && match[1]) {
-            archiveUrls[service] = match[1].trim();
-          }
-        }
-      }
+      const archiveUrls = Object.fromEntries(
+        ExtraFieldParser.extractAllArchives(extra)
+      );
       if (Object.keys(archiveUrls).length === 0) {
         return null;
       }

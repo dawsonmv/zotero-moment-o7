@@ -5,7 +5,7 @@
         {
           "version": "0.0.3",
           "update_link": "https://github.com/dawsonmv/zotero-moment-o7/releases/download/v0.0.3/moment-o-7.xpi",
-          "update_hash": "sha512:b50720078ae64f02f142bbd38d24d3a71f5ba1a1c2e9f2cd72d9cc8639b77663fb809ba246d6e40e1754c0b89f39879b45842caff581831cd4968097f9856548",
+          "update_hash": "sha512:3653db7d1006b475b9f3374c4a5692f7b7e41c0339d775346fa84cdec7df345fba6363211b66473d3813141132937d7cf9d67bdb6c8518493baf7339fc72d5db",
           "applications": {
             "zotero": {
               "strict_min_version": "6.999",

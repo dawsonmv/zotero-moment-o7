@@ -30,9 +30,9 @@ spec:
 
   acceptance_criteria:
     - "[ ] Item.save() is called after mutating item.extra with archive metadata"
-    - "[ ] Item.addTag(\"archived\") is called and persisted to database"
+    - '[ ] Item.addTag("archived") is called and persisted to database'
     - "[ ] Archive metadata survives reload (test with Zotero restart)"
-    - "[ ] Items appear tagged as \"archived\" in Zotero UI"
+    - '[ ] Items appear tagged as "archived" in Zotero UI'
     - "[ ] All existing tests pass with new implementation"
     - "[ ] New tests verify persistence of extra field and tags"
 
@@ -40,7 +40,7 @@ spec:
     - "[ ] Analyze BaseArchiveService.saveToItem() implementation (lines 243-283)"
     - "[ ] Identify why item.save() is not being called for extra field mutations"
     - "[ ] Add item.save() call after extra field mutation"
-    - "[ ] Add item.addTag(\"archived\") and verify persistence"
+    - '[ ] Add item.addTag("archived") and verify persistence'
     - "[ ] Write unit tests for item persistence scenario"
     - "[ ] Write integration test with item reload"
     - "[ ] Verify no regressions in archiving workflow"

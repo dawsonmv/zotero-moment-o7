@@ -9,30 +9,30 @@ import { CredentialManager } from "../../src/utils/CredentialManager";
 // Mock CredentialManager
 jest.mock("../../src/utils/CredentialManager");
 
-describe("ConfigurableArchiveService", () => {
+describe("ConfigurableArchiveService", function () {
   let service: ConfigurableArchiveService;
   let mockConfig: ServiceConfig;
 
-  beforeEach(() => {
+  beforeEach(function () {
     jest.clearAllMocks();
     (CredentialManager.getInstance as jest.Mock).mockReturnValue({
       get: jest.fn(),
     });
   });
 
-  describe("Constructor and Validation", () => {
-    it("should throw error if runtime config is missing", () => {
+  describe("Constructor and Validation", function () {
+    it("should throw error if runtime config is missing", function () {
       const configWithoutRuntime: ServiceConfig = {
         id: "test",
         name: "Test Service",
       };
 
-      expect(() => new ConfigurableArchiveService(configWithoutRuntime)).toThrow(
-        "ConfigurableArchiveService requires runtime configuration",
-      );
+      expect(
+        () => new ConfigurableArchiveService(configWithoutRuntime),
+      ).toThrow("ConfigurableArchiveService requires runtime configuration");
     });
 
-    it("should initialize successfully with runtime config", () => {
+    it("should initialize successfully with runtime config", function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -52,8 +52,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("isAvailable", () => {
-    it("should return true if no authentication required", async () => {
+  describe("isAvailable", function () {
+    it("should return true if no authentication required", async function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -74,7 +74,7 @@ describe("ConfigurableArchiveService", () => {
       expect(available).toBe(true);
     });
 
-    it("should return true if credential exists", async () => {
+    it("should return true if credential exists", async function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -108,7 +108,7 @@ describe("ConfigurableArchiveService", () => {
       expect(available).toBe(true);
     });
 
-    it("should return false if credential missing", async () => {
+    it("should return false if credential missing", async function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -143,8 +143,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("URL Validation", () => {
-    beforeEach(() => {
+  describe("URL Validation", function () {
+    beforeEach(function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -167,15 +167,15 @@ describe("ConfigurableArchiveService", () => {
       service = new ConfigurableArchiveService(mockConfig);
     });
 
-    it("should validate URL against regex pattern", async () => {
+    it("should validate URL against regex pattern", async function () {
       // This test verifies that invalid URLs are caught
       // The actual validation happens in archiveUrl protected method
       expect(service.checkValidUrl("https://example.com")).toBe(true);
     });
   });
 
-  describe("Response Parsing - JSON", () => {
-    beforeEach(() => {
+  describe("Response Parsing - JSON", function () {
+    beforeEach(function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -195,7 +195,7 @@ describe("ConfigurableArchiveService", () => {
       service = new ConfigurableArchiveService(mockConfig);
     });
 
-    it("should extract URL from JSON response with path", () => {
+    it("should extract URL from JSON response with path", function () {
       const response = JSON.stringify({
         data: {
           archiveUrl: "20231201120000/https://example.com",
@@ -207,7 +207,7 @@ describe("ConfigurableArchiveService", () => {
       expect(() => JSON.parse(response)).not.toThrow();
     });
 
-    it("should prepend URL prefix to extracted value", () => {
+    it("should prepend URL prefix to extracted value", function () {
       const response = JSON.stringify({
         data: {
           archiveUrl: "abc123",
@@ -222,8 +222,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("Response Parsing - Regex", () => {
-    beforeEach(() => {
+  describe("Response Parsing - Regex", function () {
+    beforeEach(function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -242,10 +242,10 @@ describe("ConfigurableArchiveService", () => {
       service = new ConfigurableArchiveService(mockConfig);
     });
 
-    it("should extract URL from regex pattern", () => {
+    it("should extract URL from regex pattern", function () {
       const response =
         '<html><a href="https://archive.example.com/20231201120000/https://example.com">Link</a></html>';
-      const pattern = "https://archive\\.example\\.com/\\d+/[^\"\\s>]+";
+      const pattern = 'https://archive\\.example\\.com/\\d+/[^"\\s>]+';
       const regex = new RegExp(pattern);
       const match = response.match(regex);
 
@@ -255,7 +255,7 @@ describe("ConfigurableArchiveService", () => {
       );
     });
 
-    it("should handle capture groups", () => {
+    it("should handle capture groups", function () {
       const response = "/wayback/20231201120000/";
       const pattern = "/wayback/(\\d{14})/";
       const regex = new RegExp(pattern);
@@ -265,8 +265,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("Authentication Header Building", () => {
-    beforeEach(() => {
+  describe("Authentication Header Building", function () {
+    beforeEach(function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -293,7 +293,7 @@ describe("ConfigurableArchiveService", () => {
       service = new ConfigurableArchiveService(mockConfig);
     });
 
-    it("should add authentication header with credential", async () => {
+    it("should add authentication header with credential", async function () {
       const mockCredManager = {
         get: jest.fn().mockResolvedValue("secret-key-123"),
       };
@@ -310,7 +310,7 @@ describe("ConfigurableArchiveService", () => {
       expect(result).toBe("ApiKey secret-key-123");
     });
 
-    it("should include base headers in final headers", () => {
+    it("should include base headers in final headers", function () {
       // Verify that base headers are preserved
       const baseHeaders = { "Content-Type": "application/json" };
       const mergedHeaders: Record<string, string> = { ...baseHeaders };
@@ -321,8 +321,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("Template Interpolation", () => {
-    beforeEach(() => {
+  describe("Template Interpolation", function () {
+    beforeEach(function () {
       mockConfig = {
         id: "test",
         name: "Test Service",
@@ -341,18 +341,16 @@ describe("ConfigurableArchiveService", () => {
       service = new ConfigurableArchiveService(mockConfig);
     });
 
-    it("should interpolate URL in endpoint URL", () => {
+    it("should interpolate URL in endpoint URL", function () {
       const template = "https://api.example.com/save?url={{url}}";
       const testUrl = "https://example.com";
       const encoded = encodeURIComponent(testUrl);
       const result = template.replace("{{url}}", encoded);
 
-      expect(result).toBe(
-        `https://api.example.com/save?url=${encoded}`,
-      );
+      expect(result).toBe(`https://api.example.com/save?url=${encoded}`);
     });
 
-    it("should interpolate URL in request body", () => {
+    it("should interpolate URL in request body", function () {
       const template = '{"url":"{{url}}"}';
       const testUrl = "https://example.com";
       const encoded = encodeURIComponent(testUrl);
@@ -361,7 +359,7 @@ describe("ConfigurableArchiveService", () => {
       expect(() => JSON.parse(result)).not.toThrow();
     });
 
-    it("should URL-encode interpolated values", () => {
+    it("should URL-encode interpolated values", function () {
       const testUrl = "https://example.com?param=value&other=test";
       const encoded = encodeURIComponent(testUrl);
 
@@ -372,8 +370,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("Service Name and ID", () => {
-    it("should expose service name from config", () => {
+  describe("Service Name and ID", function () {
+    it("should expose service name from config", function () {
       mockConfig = {
         id: "permacc",
         name: "Perma.cc",
@@ -395,8 +393,8 @@ describe("ConfigurableArchiveService", () => {
     });
   });
 
-  describe("HTTP Request Methods", () => {
-    it("should support GET requests", () => {
+  describe("HTTP Request Methods", function () {
+    it("should support GET requests", function () {
       mockConfig = {
         id: "test",
         name: "Test GET Service",
@@ -417,7 +415,7 @@ describe("ConfigurableArchiveService", () => {
       expect(service.id).toBe("test");
     });
 
-    it("should support POST requests", () => {
+    it("should support POST requests", function () {
       mockConfig = {
         id: "test",
         name: "Test POST Service",

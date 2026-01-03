@@ -181,7 +181,10 @@ export abstract class BaseArchiveService implements ArchiveService {
               ...options,
               method: options.method || "GET",
             };
-            const response = await Zotero.HTTP.request(url, requestOptions as any);
+            const response = await Zotero.HTTP.request(
+              url,
+              requestOptions as any,
+            );
 
             // Clear timer if request completed before 1 second
             if (!monitoringStarted) {
@@ -223,9 +226,10 @@ export abstract class BaseArchiveService implements ArchiveService {
       return {
         success: false,
         data: "",
-        error: error instanceof CircuitBreakerError
-          ? `${this.name} is temporarily unavailable (circuit breaker ${error.state})`
-          : error.message || "Request failed",
+        error:
+          error instanceof CircuitBreakerError
+            ? `${this.name} is temporarily unavailable (circuit breaker ${error.state})`
+            : error.message || "Request failed",
         status: error instanceof CircuitBreakerError ? 503 : error.status,
       };
     }
@@ -308,7 +312,11 @@ export abstract class BaseArchiveService implements ArchiveService {
     // Update extra field using standardized format
     const extraField = item.getField("extra");
     const extra = typeof extraField === "string" ? extraField : "";
-    const updatedExtra = ExtraFieldParser.writeArchiveUrl(extra, this.id, archivedUrl);
+    const updatedExtra = ExtraFieldParser.writeArchiveUrl(
+      extra,
+      this.id,
+      archivedUrl,
+    );
     if (updatedExtra !== extra) {
       item.setField("extra", updatedExtra);
     }
