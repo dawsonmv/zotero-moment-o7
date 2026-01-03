@@ -1,4 +1,5 @@
 import { PreferencesManager } from "../preferences/PreferencesManager";
+import { ExtraFieldParser } from "./ExtraFieldParser";
 
 declare const document: Document;
 
@@ -157,28 +158,10 @@ export class RobustLinkCreator {
     if (!url) return null;
 
     const title = item.getField("title") || url;
-    const archiveUrls: Record<string, string> = {};
 
-    // Extract archive URLs from Extra field
+    // Extract archive URLs from Extra field using standardized parser
     const extra = item.getField("extra") || "";
-    const lines = extra.split("\n");
-
-    const servicePatterns = [
-      { pattern: /^Internet Archive:\s*(.+)$/i, service: "internetarchive" },
-      { pattern: /^Archive\.today:\s*(.+)$/i, service: "archivetoday" },
-      { pattern: /^Perma\.cc:\s*(.+)$/i, service: "permacc" },
-      { pattern: /^UK Web Archive:\s*(.+)$/i, service: "ukwebarchive" },
-      { pattern: /^Arquivo\.pt:\s*(.+)$/i, service: "arquivopt" },
-    ];
-
-    for (const line of lines) {
-      for (const { pattern, service } of servicePatterns) {
-        const match = line.match(pattern);
-        if (match && match.length > 1 && match[1]) {
-          archiveUrls[service] = match[1].trim();
-        }
-      }
-    }
+    const archiveUrls = Object.fromEntries(ExtraFieldParser.extractAllArchives(extra));
 
     if (Object.keys(archiveUrls).length === 0) {
       return null;

@@ -1,4 +1,5 @@
 import { MementoProtocol, TimeMap } from "./MementoProtocol";
+import { ExtraFieldParser } from "../archive/ExtraFieldParser";
 
 export interface MementoCheckResult {
   hasMemento: boolean;
@@ -209,37 +210,27 @@ export class MementoChecker {
   static findExistingMementos(item: Zotero.Item): MementoInfo[] {
     const mementos: MementoInfo[] = [];
 
-    // Check Extra field
+    // Check Extra field using standardized parser
     const extra = item.getField("extra");
     if (extra) {
-      // Look for archived URLs
-      const patterns = [
-        /Archived:\s*(https?:\/\/[^\s]+)/gi,
-        /Internet Archive:\s*(https?:\/\/[^\s]+)/gi,
-        /Archive\.today:\s*(https?:\/\/[^\s]+)/gi,
-        /Perma\.cc:\s*(https?:\/\/[^\s]+)/gi,
-      ];
+      const archiveUrls = ExtraFieldParser.extractAllArchives(extra);
 
-      for (const pattern of patterns) {
-        let match;
-        while ((match = pattern.exec(extra)) !== null) {
-          const url = match[1];
-          let service = "Unknown";
+      for (const [_serviceId, url] of archiveUrls) {
+        let service = "Unknown";
 
-          // Detect service
-          for (const archive of this.KNOWN_ARCHIVES) {
-            if (archive.pattern.test(url)) {
-              service = archive.name;
-              break;
-            }
+        // Detect service from URL
+        for (const archive of this.KNOWN_ARCHIVES) {
+          if (archive.pattern.test(url)) {
+            service = archive.name;
+            break;
           }
-
-          mementos.push({
-            url,
-            datetime: new Date().toISOString(), // We don't have the actual datetime
-            service,
-          });
         }
+
+        mementos.push({
+          url,
+          datetime: new Date().toISOString(), // We don't have the actual datetime
+          service,
+        });
       }
     }
 

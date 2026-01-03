@@ -4734,6 +4734,14 @@ html {
   };
 
   // src/utils/CircuitBreaker.ts
+  var CircuitBreakerError = class extends Error {
+    constructor(state, serviceId, message) {
+      super(message || `Circuit breaker is ${state}`);
+      this.state = state;
+      this.serviceId = serviceId;
+      this.name = "CircuitBreakerError";
+    }
+  };
   var CircuitBreaker = class {
     state = "CLOSED" /* CLOSED */;
     failures = 0;
@@ -4746,6 +4754,7 @@ html {
     // Track in-flight HALF_OPEN calls
     stateChangeLock = false;
     // Prevent concurrent state transitions
+    listeners = /* @__PURE__ */ new Set();
     options;
     constructor(options = {}) {
       this.options = {
@@ -4758,7 +4767,64 @@ html {
       };
     }
     /**
+     * Subscribe to circuit breaker state change events
+     * @param listener - Callback function called when state changes
+     * @returns Unsubscribe function to remove the listener
+     */
+    subscribe(listener) {
+      this.listeners.add(listener);
+      return () => this.listeners.delete(listener);
+    }
+    /**
+     * Emit a state change event to all listeners
+     * @param previousState - The state before the transition
+     * @param newState - The state after the transition
+     * @param reason - Human-readable reason for the state change
+     */
+    emit(previousState, newState, reason) {
+      const event = {
+        previousState,
+        newState,
+        timestamp: Date.now(),
+        reason
+      };
+      this.listeners.forEach((listener) => {
+        try {
+          listener(event);
+        } catch (error) {
+          console.error("Circuit breaker listener error:", error);
+        }
+      });
+    }
+    /**
      * Execute a function with circuit breaker protection
+     *
+     * If the circuit is OPEN (service unavailable), either executes the fallback
+     * function or throws CircuitBreakerError. If HALF_OPEN (testing recovery),
+     * allows limited concurrent test requests.
+     *
+     * @template R - The return type of the operation
+     * @param operation - The function to execute with protection
+     * @param fallback - Optional fallback function to execute when circuit is OPEN
+     * @returns The result of the operation or fallback
+     * @throws {CircuitBreakerError} When circuit is OPEN and no fallback provided
+     * @throws {Error} Any error thrown by the operation (after being filtered)
+     *
+     * @example
+     * ```typescript
+     * try {
+     *   const data = await breaker.execute(
+     *     () => fetchFromUnreliableAPI(),
+     *     () => getCachedData() // Used when circuit is OPEN
+     *   );
+     * } catch (error) {
+     *   if (error instanceof CircuitBreakerError) {
+     *     console.error('Service unavailable:', error.state);
+     *   } else {
+     *     console.error('Operation failed:', error.message);
+     *   }
+     * }
+     * ```
      */
     async execute(operation, fallback) {
       this.checkStateTransition();
@@ -4766,7 +4832,11 @@ html {
         if (fallback) {
           return fallback();
         }
-        throw new Error("Circuit breaker is OPEN - service unavailable");
+        throw new CircuitBreakerError(
+          "OPEN" /* OPEN */,
+          void 0,
+          "Circuit breaker is OPEN - service unavailable"
+        );
       }
       const isHalfOpenTest = this.state === "HALF_OPEN" /* HALF_OPEN */;
       if (isHalfOpenTest) {
@@ -4774,7 +4844,9 @@ html {
           if (fallback) {
             return fallback();
           }
-          throw new Error(
+          throw new CircuitBreakerError(
+            "HALF_OPEN" /* HALF_OPEN */,
+            void 0,
             "Circuit breaker is testing - service may be unavailable"
           );
         }
@@ -4793,6 +4865,18 @@ html {
     }
     /**
      * Get current circuit breaker state
+     *
+     * Returns an immutable snapshot of the circuit breaker's internal state,
+     * useful for monitoring, logging, and decision-making.
+     *
+     * @returns Circuit breaker state snapshot
+     *
+     * @example
+     * ```typescript
+     * const state = breaker.getState();
+     * console.log(`Current state: ${state.state}`);
+     * console.log(`Failures: ${state.failures} of ${state.totalCalls} calls`);
+     * ```
      */
     getState() {
       return {
@@ -4805,7 +4889,17 @@ html {
       };
     }
     /**
-     * Manually reset the circuit breaker
+     * Manually reset the circuit breaker to CLOSED state
+     *
+     * Clears all internal state including failure counts, timers, and event listeners.
+     * Use this for testing or when you want to force recovery without waiting for timeout.
+     *
+     * @example
+     * ```typescript
+     * // Manually reset circuit after manual intervention
+     * breaker.reset();
+     * console.log(breaker.getState().state); // CLOSED
+     * ```
      */
     reset() {
       this.state = "CLOSED" /* CLOSED */;
@@ -4817,9 +4911,21 @@ html {
       this.halfOpenCalls = 0;
       this.halfOpenPending = 0;
       this.stateChangeLock = false;
+      this.listeners.clear();
     }
     /**
-     * Force the circuit to open
+     * Force the circuit breaker to OPEN state immediately
+     *
+     * Marks the service as unavailable without waiting for failure threshold.
+     * Useful for manual intervention or when external systems signal unavailability.
+     *
+     * @example
+     * ```typescript
+     * // Manually open circuit if health check fails
+     * if (!await isServiceHealthy()) {
+     *   breaker.trip();
+     * }
+     * ```
      */
     trip() {
       this.state = "OPEN" /* OPEN */;
@@ -4833,6 +4939,11 @@ html {
       if (this.state === "OPEN" /* OPEN */ && this.lastFailureTime) {
         const timeSinceFailure = Date.now() - this.lastFailureTime;
         if (timeSinceFailure >= this.options.timeout) {
+          this.emit(
+            "OPEN" /* OPEN */,
+            "HALF_OPEN" /* HALF_OPEN */,
+            `Timeout expired (${timeSinceFailure}ms >= ${this.options.timeout}ms) - testing recovery`
+          );
           this.state = "HALF_OPEN" /* HALF_OPEN */;
           this.halfOpenCalls = 0;
         }
@@ -4851,6 +4962,11 @@ html {
       if (this.state === "HALF_OPEN" /* HALF_OPEN */ && !this.stateChangeLock) {
         if (this.consecutiveSuccesses >= this.options.successThreshold) {
           this.stateChangeLock = true;
+          this.emit(
+            "HALF_OPEN" /* HALF_OPEN */,
+            "CLOSED" /* CLOSED */,
+            `Service recovered - ${this.consecutiveSuccesses} consecutive successes`
+          );
           this.state = "CLOSED" /* CLOSED */;
           this.failures = 0;
           this.halfOpenCalls = 0;
@@ -4878,19 +4994,65 @@ html {
       }
       if (this.state === "HALF_OPEN" /* HALF_OPEN */ && !this.stateChangeLock) {
         this.stateChangeLock = true;
+        this.emit(
+          "HALF_OPEN" /* HALF_OPEN */,
+          "OPEN" /* OPEN */,
+          "Service still failing during recovery test"
+        );
         this.state = "OPEN" /* OPEN */;
         this.halfOpenCalls = 0;
         this.halfOpenPending = 0;
         this.stateChangeLock = false;
       } else if (this.state === "CLOSED" /* CLOSED */ && this.totalCalls >= this.options.volumeThreshold && this.failures >= this.options.failureThreshold) {
+        this.emit(
+          "CLOSED" /* CLOSED */,
+          "OPEN" /* OPEN */,
+          `Failure threshold reached (${this.failures}/${this.options.failureThreshold} failures after ${this.totalCalls} calls)`
+        );
         this.state = "OPEN" /* OPEN */;
       }
     }
   };
-  var CircuitBreakerManager = class {
+  var CircuitBreakerManager = class _CircuitBreakerManager {
+    static instance;
     breakers = /* @__PURE__ */ new Map();
     /**
+     * Get the global singleton instance of CircuitBreakerManager
+     *
+     * @returns The singleton instance, creating it if necessary
+     *
+     * @example
+     * ```typescript
+     * const manager = CircuitBreakerManager.getInstance();
+     * const breaker = manager.getBreaker('service-id');
+     * ```
+     */
+    static getInstance() {
+      if (!_CircuitBreakerManager.instance) {
+        _CircuitBreakerManager.instance = new _CircuitBreakerManager();
+      }
+      return _CircuitBreakerManager.instance;
+    }
+    /**
+     * Private constructor - use getInstance() instead
+     */
+    constructor() {
+    }
+    /**
      * Get or create a circuit breaker for a service
+     *
+     * If the service doesn't have a breaker yet, creates one with the provided
+     * options. Subsequent calls return the same breaker instance.
+     *
+     * @param serviceId - Unique identifier for the service
+     * @param options - Optional circuit breaker configuration (only used on creation)
+     * @returns The circuit breaker for this service
+     *
+     * @example
+     * ```typescript
+     * const breaker1 = manager.getBreaker('service-a', { failureThreshold: 5 });
+     * const breaker2 = manager.getBreaker('service-a');  // Same instance as breaker1
+     * ```
      */
     getBreaker(serviceId, options) {
       if (!this.breakers.has(serviceId)) {
@@ -4900,6 +5062,28 @@ html {
     }
     /**
      * Execute operation with circuit breaker for a service
+     *
+     * Convenient shorthand that automatically gets/creates the breaker
+     * and executes the operation with fallback support.
+     *
+     * @template T - The return type of the operation
+     * @param serviceId - Unique identifier for the service
+     * @param operation - The function to execute with protection
+     * @param options - Optional fallback and breaker configuration
+     * @returns The result of the operation or fallback
+     * @throws {CircuitBreakerError} If circuit is OPEN and no fallback provided
+     *
+     * @example
+     * ```typescript
+     * const result = await manager.execute(
+     *   'api-service',
+     *   () => fetchFromAPI(),
+     *   {
+     *     fallback: () => getDefaultData(),
+     *     breakerOptions: { timeout: 30000 }
+     *   }
+     * );
+     * ```
      */
     async execute(serviceId, operation, options) {
       const breaker = this.getBreaker(serviceId, options?.breakerOptions);
@@ -4907,6 +5091,21 @@ html {
     }
     /**
      * Get all circuit breaker states
+     *
+     * Returns a snapshot of the state of all known circuit breakers,
+     * useful for monitoring, dashboards, and health checks.
+     *
+     * @returns Map of service IDs to their circuit breaker states
+     *
+     * @example
+     * ```typescript
+     * const states = manager.getAllStates();
+     * for (const [serviceId, state] of states) {
+     *   if (state.state === CircuitState.OPEN) {
+     *     console.warn(`${serviceId} is unavailable`);
+     *   }
+     * }
+     * ```
      */
     getAllStates() {
       const states = /* @__PURE__ */ new Map();
@@ -4916,7 +5115,16 @@ html {
       return states;
     }
     /**
-     * Reset all circuit breakers
+     * Reset all circuit breakers to CLOSED state
+     *
+     * Useful for testing or when manually recovering from a widespread outage.
+     * Clears all state for all known services.
+     *
+     * @example
+     * ```typescript
+     * // After manual intervention to fix the underlying issue
+     * manager.resetAll();
+     * ```
      */
     resetAll() {
       for (const breaker of this.breakers.values()) {
@@ -4925,6 +5133,28 @@ html {
     }
     /**
      * Get services that are currently available (not OPEN)
+     *
+     * Returns the IDs of services whose circuit breakers are either CLOSED or HALF_OPEN.
+     * Useful for determining fallback order or filtering services for retries.
+     *
+     * @returns Array of available service IDs
+     *
+     * @example
+     * ```typescript
+     * // Try available services in preferred order
+     * const available = manager.getAvailableServices();
+     * const preferred = ['service-a', 'service-b', 'service-c'].filter(
+     *   id => available.includes(id)
+     * );
+     *
+     * for (const serviceId of preferred) {
+     *   try {
+     *     return await manager.execute(serviceId, () => tryService(serviceId));
+     *   } catch (error) {
+     *     // Continue to next service
+     *   }
+     * }
+     * ```
      */
     getAvailableServices() {
       return Array.from(this.breakers.entries()).filter(([_, breaker]) => breaker.getState().state !== "OPEN" /* OPEN */).map(([id]) => id);
@@ -4954,7 +5184,7 @@ html {
       this.config = { ...DEFAULT_CONFIG3, ...config2 };
       this.logger = Logger.getInstance().child("HealthChecker");
       this.metrics = MetricsRegistry.getInstance();
-      this.circuitBreakers = new CircuitBreakerManager();
+      this.circuitBreakers = CircuitBreakerManager.getInstance();
     }
     static getInstance(config2) {
       if (!_HealthChecker.instance) {
@@ -5534,45 +5764,83 @@ html {
       return url;
     }
     /**
-     * Make HTTP request with traffic monitoring
+     * Make HTTP request with traffic monitoring and circuit breaker protection
      * Wraps request with TrafficMonitor to track service response times
+     * and CircuitBreaker to prevent cascading failures
      * Uses 1-second delayed timer start to account for network overhead
      */
     async makeHttpRequest(url, options) {
-      const trafficMonitor = TrafficMonitor.getInstance();
-      const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      let monitoringStarted = false;
-      const timerHandle = Zotero.setTimeout(() => {
-        monitoringStarted = true;
-        trafficMonitor.startRequest(requestId, this.id, url);
-      }, 1e3);
+      const breakerManager = CircuitBreakerManager.getInstance();
+      const breaker = breakerManager.getBreaker(this.id, {
+        failureThreshold: 5,
+        successThreshold: 2,
+        timeout: 6e4,
+        volumeThreshold: 10,
+        // Only count service failures, not client errors
+        errorFilter: (error) => {
+          if (error instanceof CircuitBreakerError) {
+            return false;
+          }
+          if (error instanceof ArchiveError) {
+            return [
+              "SERVER_ERROR" /* ServerError */,
+              "TIMEOUT" /* Timeout */,
+              "RATE_LIMIT" /* RateLimit */
+            ].includes(error.type);
+          }
+          return true;
+        }
+      });
       try {
-        const requestOptions = {
-          ...options,
-          method: options.method || "GET"
-        };
-        const response = await Zotero.HTTP.request(url, requestOptions);
-        if (!monitoringStarted) {
-          Zotero.clearTimeout(timerHandle);
-        } else {
-          trafficMonitor.endRequest(requestId, true);
-        }
-        return {
-          success: true,
-          data: response.responseText,
-          status: response.status
-        };
+        return await breaker.execute(
+          // Main operation: perform HTTP request
+          async () => {
+            const trafficMonitor = TrafficMonitor.getInstance();
+            const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            let monitoringStarted = false;
+            const timerHandle = Zotero.setTimeout(() => {
+              monitoringStarted = true;
+              trafficMonitor.startRequest(requestId, this.id, url);
+            }, 1e3);
+            try {
+              const requestOptions = {
+                ...options,
+                method: options.method || "GET"
+              };
+              const response = await Zotero.HTTP.request(url, requestOptions);
+              if (!monitoringStarted) {
+                Zotero.clearTimeout(timerHandle);
+              } else {
+                trafficMonitor.endRequest(requestId, true);
+              }
+              return {
+                success: true,
+                data: response.responseText,
+                status: response.status
+              };
+            } catch (error) {
+              if (!monitoringStarted) {
+                Zotero.clearTimeout(timerHandle);
+              } else {
+                trafficMonitor.endRequest(requestId, false);
+              }
+              throw error;
+            }
+          },
+          // Fallback: return error response when circuit is OPEN
+          async () => ({
+            success: true,
+            data: "",
+            status: 503
+            // Service Unavailable
+          })
+        );
       } catch (error) {
-        if (!monitoringStarted) {
-          Zotero.clearTimeout(timerHandle);
-        } else {
-          trafficMonitor.endRequest(requestId, false);
-        }
         return {
           success: false,
-          data: error.responseText || "",
-          error: error.message || "Request failed",
-          status: error.status
+          data: "",
+          error: error instanceof CircuitBreakerError ? `${this.name} is temporarily unavailable (circuit breaker ${error.state})` : error.message || "Request failed",
+          status: error instanceof CircuitBreakerError ? 503 : error.status
         };
       }
     }
@@ -6095,234 +6363,6 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     }
   };
 
-  // src/modules/archive/PermaCCService.ts
-  var PermaCCService = class _PermaCCService extends BaseArchiveService {
-    static API_BASE = "https://api.perma.cc/v1";
-    defaultFolder = null;
-    constructor() {
-      super({
-        id: "permacc",
-        name: "Perma.cc",
-        homepage: "https://perma.cc",
-        capabilities: {
-          acceptsUrl: true,
-          returnsUrl: true,
-          preservesJavaScript: true,
-          preservesInteractiveElements: true,
-          requiresAuthentication: true,
-          hasQuota: true
-        }
-      });
-      this.defaultFolder = Zotero.Prefs.get("extensions.momento7.permaccFolder") || null;
-    }
-    async isAvailable() {
-      const apiKey = await PreferencesManager.getPermaCCApiKey();
-      return apiKey !== void 0 && apiKey !== null;
-    }
-    /**
-     * Get API key securely
-     */
-    async getApiKey() {
-      const apiKey = await PreferencesManager.getPermaCCApiKey();
-      return apiKey || null;
-    }
-    async archiveUrl(url, progress) {
-      const apiKey = await this.getApiKey();
-      if (!apiKey) {
-        return {
-          success: false,
-          error: "Perma.cc API key not configured. Please add your API key in preferences."
-        };
-      }
-      try {
-        progress?.onStatusUpdate(`Creating Perma.cc archive for ${url}...`);
-        const timeout = PreferencesManager.getTimeout();
-        const body = { url };
-        if (this.defaultFolder) {
-          body.folder = this.defaultFolder;
-        }
-        const response = await this.makeHttpRequest(
-          `${_PermaCCService.API_BASE}/archives/`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `ApiKey ${apiKey}`
-            },
-            body: JSON.stringify(body),
-            timeout
-          }
-        );
-        if (!response.success) {
-          return {
-            success: false,
-            error: this.parsePermaCCError(response)
-          };
-        }
-        const data = JSON.parse(response.data);
-        if (!data.guid) {
-          return {
-            success: false,
-            error: "No GUID returned from Perma.cc"
-          };
-        }
-        const archivedUrl = `https://perma.cc/${data.guid}`;
-        return {
-          success: true,
-          url: archivedUrl,
-          metadata: {
-            originalUrl: url,
-            archiveDate: data.creation_timestamp || (/* @__PURE__ */ new Date()).toISOString(),
-            service: this.config.name,
-            guid: data.guid,
-            title: data.title,
-            organization: data.organization,
-            folder: data.folder
-          }
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred"
-        };
-      }
-    }
-    parsePermaCCError(response) {
-      try {
-        const error = JSON.parse(response.data);
-        if (error.detail?.includes("quota")) {
-          return "Perma.cc quota exceeded. Free tier allows 10 links per month.";
-        }
-        if (error.detail?.includes("Invalid API key")) {
-          return "Invalid Perma.cc API key. Please check your credentials.";
-        }
-        return error.detail || error.error || response.error || "Perma.cc request failed";
-      } catch {
-        return response.error || "Perma.cc request failed";
-      }
-    }
-    async checkAvailability(_url) {
-      const apiKey = await this.getApiKey();
-      if (!apiKey) {
-        return { available: false };
-      }
-      try {
-        const response = await this.makeHttpRequest(
-          `${_PermaCCService.API_BASE}/user/`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `ApiKey ${apiKey}`
-            },
-            timeout: 3e4
-          }
-        );
-        if (response.success) {
-          return { available: true };
-        }
-        return { available: false };
-      } catch (error) {
-        return { available: false };
-      }
-    }
-    async getFolders() {
-      const apiKey = await this.getApiKey();
-      if (!apiKey) {
-        return [];
-      }
-      try {
-        const response = await this.makeHttpRequest(
-          `${_PermaCCService.API_BASE}/folders/`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `ApiKey ${apiKey}`
-            },
-            timeout: 3e4
-          }
-        );
-        if (response.success) {
-          const folders = JSON.parse(response.data);
-          return folders.objects || [];
-        }
-      } catch (error) {
-        console.error("Failed to fetch Perma.cc folders:", error);
-      }
-      return [];
-    }
-    async validateApiKey(apiKey) {
-      try {
-        const response = await this.makeHttpRequest(
-          `${_PermaCCService.API_BASE}/user/`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `ApiKey ${apiKey}`
-            },
-            timeout: 3e4
-          }
-        );
-        return response.success && response.status === 200;
-      } catch {
-        return false;
-      }
-    }
-    /**
-     * Test Perma.cc credentials by validating API key
-     * Makes a GET request to /user/ endpoint which requires valid auth
-     * @static
-     */
-    static async testCredentials(credentials) {
-      try {
-        if (!credentials.apiKey || credentials.apiKey.length === 0) {
-          return {
-            success: false,
-            message: "API key is required"
-          };
-        }
-        const timeout = 1e4;
-        const response = await Zotero.HTTP.request(
-          `${_PermaCCService.API_BASE}/user/`,
-          {
-            method: "GET",
-            timeout,
-            headers: {
-              Authorization: `ApiKey ${credentials.apiKey}`
-            }
-          }
-        );
-        if (response.status === 401 || response.status === 403) {
-          return {
-            success: false,
-            message: "Invalid API key - Authentication failed"
-          };
-        }
-        if (response.status === 200) {
-          return {
-            success: true,
-            message: "API key valid"
-          };
-        }
-        if (response.status >= 400) {
-          return {
-            success: false,
-            message: `HTTP ${response.status} error`
-          };
-        }
-        return {
-          success: true,
-          message: "API key valid"
-        };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return {
-          success: false,
-          message: `Connection error: ${message}`
-        };
-      }
-    }
-  };
-
   // src/modules/archive/ArchiveTodayService.ts
   var ArchiveTodayService = class extends BaseArchiveService {
     // Proxy availability is tracked per-session
@@ -6774,12 +6814,6 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         }
         return true;
       } else if (serviceId === "permacc") {
-        const result = await PermaCCService.testCredentials({
-          apiKey: credentials.apiKey
-        });
-        if (!result.success) {
-          throw new Error(result.message);
-        }
         return true;
       } else if (serviceId === "archivetoday") {
         const result = await ArchiveTodayService.testCredentials({
@@ -6788,6 +6822,8 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         if (!result.success) {
           throw new Error(result.message);
         }
+        return true;
+      } else if (serviceId === "arquivopt" || serviceId === "ukwebarchive") {
         return true;
       }
       throw new Error(`Unknown service: ${serviceId}`);
@@ -9506,6 +9542,22 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         }
         Zotero.debug(
           `MomentO7: Filtering jammed services, ${orderedServices.length} services available for fallback`
+        );
+      }
+      const breakerManager = CircuitBreakerManager.getInstance();
+      const beforeCircuitFilter = orderedServices.length;
+      orderedServices = orderedServices.filter(({ id }) => {
+        const state = breakerManager.getBreaker(id).getState();
+        return state.state !== "OPEN" /* OPEN */;
+      });
+      if (orderedServices.length < beforeCircuitFilter) {
+        Zotero.debug(
+          `MomentO7: Filtering services with OPEN circuit breakers, ${orderedServices.length}/${beforeCircuitFilter} services available for fallback`
+        );
+      }
+      if (orderedServices.length === 0) {
+        throw new Error(
+          "No archiving services available (all circuit breakers OPEN) - consider retrying later"
         );
       }
       const errors = [];

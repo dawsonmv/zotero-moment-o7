@@ -4,6 +4,7 @@
 
 import { RobustLinkCreator } from "../../src/modules/archive/RobustLinkCreator";
 import { PreferencesManager } from "../../src/modules/preferences/PreferencesManager";
+import { ExtraFieldParser } from "../../src/modules/archive/ExtraFieldParser";
 
 // Mock PreferencesManager
 jest.mock("../../src/modules/preferences/PreferencesManager", () => ({
@@ -205,6 +206,127 @@ describe("RobustLinkCreator", function () {
         },
       });
 
+      expect(html).toContain(">IA<");
+      expect(html).toContain(">AT<");
+      expect(html).toContain(">Perma<");
+      expect(html).toContain(">UK<");
+      expect(html).toContain(">PT<");
+    });
+  });
+
+  describe("createFromItem", function () {
+    it("should extract archives from standardized extra field format", function () {
+      const mockItem = {
+        getField: jest.fn((field: string) => {
+          if (field === "url") return "https://example.com";
+          if (field === "title") return "Example Title";
+          if (field === "extra")
+            return `archive_internetarchive: https://web.archive.org/web/20231201/https://example.com
+archive_permacc: https://perma.cc/1234-5678`;
+          return "";
+        }),
+      } as unknown as Zotero.Item;
+
+      const html = RobustLinkCreator.createFromItem(mockItem);
+
+      expect(html).not.toBeNull();
+      expect(html).toContain("data-originalurl");
+      expect(html).toContain("https://web.archive.org/web/20231201/https://example.com");
+      expect(html).toContain("https://perma.cc/1234-5678");
+    });
+
+    it("should support backward compatibility with legacy format", function () {
+      const mockItem = {
+        getField: jest.fn((field: string) => {
+          if (field === "url") return "https://example.com";
+          if (field === "title") return "Example Title";
+          if (field === "extra")
+            return `internetarchiveArchived: https://web.archive.org/web/20231201/https://example.com
+permaccArchived: https://perma.cc/1234-5678`;
+          return "";
+        }),
+      } as unknown as Zotero.Item;
+
+      const html = RobustLinkCreator.createFromItem(mockItem);
+
+      expect(html).not.toBeNull();
+      expect(html).toContain("data-originalurl");
+      expect(html).toContain("https://web.archive.org/web/20231201/https://example.com");
+    });
+
+    it("should handle mixed new and legacy formats", function () {
+      const mockItem = {
+        getField: jest.fn((field: string) => {
+          if (field === "url") return "https://example.com";
+          if (field === "title") return "Example Title";
+          if (field === "extra")
+            return `archive_internetarchive: https://web.archive.org/web/20231201/https://example.com
+archivetoday: https://archive.today/abc`;
+          return "";
+        }),
+      } as unknown as Zotero.Item;
+
+      const html = RobustLinkCreator.createFromItem(mockItem);
+
+      expect(html).not.toBeNull();
+      expect(html).toContain("https://web.archive.org/web/20231201/https://example.com");
+    });
+
+    it("should return null when no URL field exists", function () {
+      const mockItem = {
+        getField: jest.fn((field: string) => {
+          if (field === "extra") return "archive_internetarchive: https://web.archive.org/web/20231201/https://example.com";
+          return "";
+        }),
+      } as unknown as Zotero.Item;
+
+      const html = RobustLinkCreator.createFromItem(mockItem);
+
+      expect(html).toBeNull();
+    });
+
+    it("should return null when no archives found in extra field", function () {
+      const mockItem = {
+        getField: jest.fn((field: string) => {
+          if (field === "url") return "https://example.com";
+          if (field === "title") return "Example Title";
+          if (field === "extra") return "DOI: 10.1234/example\nSome other metadata";
+          return "";
+        }),
+      } as unknown as Zotero.Item;
+
+      const html = RobustLinkCreator.createFromItem(mockItem);
+
+      expect(html).toBeNull();
+    });
+
+    it("should support all service types in standardized format", function () {
+      // Enable all services for this test
+      (PreferencesManager.getEnabledServices as jest.Mock).mockReturnValue([
+        "internetarchive",
+        "archivetoday",
+        "permacc",
+        "ukwebarchive",
+        "arquivopt",
+      ]);
+
+      const mockItem = {
+        getField: jest.fn((field: string) => {
+          if (field === "url") return "https://example.com";
+          if (field === "title") return "Example Title";
+          if (field === "extra")
+            return `archive_internetarchive: https://web.archive.org/web/123/example.com
+archive_archivetoday: https://archive.today/abc
+archive_permacc: https://perma.cc/XYZ
+archive_ukwebarchive: https://webarchive.org.uk/wayback/123/example.com
+archive_arquivopt: https://arquivo.pt/wayback/123/example.com`;
+          return "";
+        }),
+      } as unknown as Zotero.Item;
+
+      const html = RobustLinkCreator.createFromItem(mockItem);
+
+      expect(html).not.toBeNull();
       expect(html).toContain(">IA<");
       expect(html).toContain(">AT<");
       expect(html).toContain(">Perma<");

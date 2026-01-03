@@ -19,6 +19,7 @@ import {
   CircuitBreakerManager,
   CircuitBreakerError,
 } from "../../utils/CircuitBreaker";
+import { ExtraFieldParser } from "./ExtraFieldParser";
 
 export abstract class BaseArchiveService implements ArchiveService {
   protected lastRequest: number | null = null;
@@ -304,13 +305,12 @@ export abstract class BaseArchiveService implements ArchiveService {
     const linkText =
       typeof titleField === "string" && titleField ? titleField : originalUrl;
 
-    // Update extra field
+    // Update extra field using standardized format
     const extraField = item.getField("extra");
-    let extra = typeof extraField === "string" ? extraField : "";
-    const archiveField = `${this.id}Archived: ${archivedUrl}`;
-    if (!extra.includes(archiveField)) {
-      extra = extra ? extra + "\n" + archiveField : archiveField;
-      item.setField("extra", extra);
+    const extra = typeof extraField === "string" ? extraField : "";
+    const updatedExtra = ExtraFieldParser.writeArchiveUrl(extra, this.id, archivedUrl);
+    if (updatedExtra !== extra) {
+      item.setField("extra", updatedExtra);
     }
 
     // Create note with robust link

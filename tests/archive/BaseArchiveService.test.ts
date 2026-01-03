@@ -11,6 +11,7 @@ import {
   ArchiveErrorType,
   HTTPRequestOptions,
 } from "../../src/modules/archive/types";
+import { ExtraFieldParser } from "../../src/modules/archive/ExtraFieldParser";
 
 // Concrete implementation for testing abstract class
 class TestArchiveService extends BaseArchiveService {
@@ -432,6 +433,106 @@ describe("BaseArchiveService", function () {
       expect(results).toHaveLength(2);
       expect(results[0].success).toBe(true);
       expect(results[1].success).toBe(true);
+    });
+
+    it("should save archive URL to extra field in standardized format", async function () {
+      service.archiveUrlMock.mockResolvedValue({
+        success: true,
+        url: "https://archive.org/web/20231201/https://example.com",
+      });
+
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com";
+        if (field === "title") return "Example Title";
+        if (field === "extra") return "";
+        return "";
+      });
+
+      const results = await service.archive([mockItem]);
+
+      expect(results[0].success).toBe(true);
+      expect(mockItem.setField).toHaveBeenCalled();
+
+      // Verify that the extra field was updated with standardized format
+      const setFieldCalls = (mockItem.setField as jest.Mock).mock.calls;
+      const extraFieldCall = setFieldCalls.find((call) => call[0] === "extra");
+      expect(extraFieldCall).toBeDefined();
+
+      if (extraFieldCall) {
+        const updatedExtra = extraFieldCall[1];
+        // Should use new standardized format: archive_{serviceId}: {url}
+        expect(updatedExtra).toContain("archive_testarchive:");
+        expect(updatedExtra).toContain(
+          "https://archive.org/web/20231201/https://example.com",
+        );
+
+        // Verify the format can be read back
+        const extractedUrl = ExtraFieldParser.extractArchiveUrl(
+          updatedExtra,
+          "testarchive",
+        );
+        expect(extractedUrl).toBe(
+          "https://archive.org/web/20231201/https://example.com",
+        );
+      }
+    });
+
+    it("should not duplicate archive entry if same URL already exists", async function () {
+      const archiveUrl = "https://archive.org/web/20231201/https://example.com";
+
+      service.archiveUrlMock.mockResolvedValue({
+        success: true,
+        url: archiveUrl,
+      });
+
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com";
+        if (field === "title") return "Example Title";
+        if (field === "extra") return `archive_testarchive: ${archiveUrl}`;
+        return "";
+      });
+
+      const results = await service.archive([mockItem]);
+
+      expect(results[0].success).toBe(true);
+
+      // setField should not be called if the entry already exists
+      const setFieldCalls = (mockItem.setField as jest.Mock).mock.calls.filter(
+        (call) => call[0] === "extra",
+      );
+      expect(setFieldCalls.length).toBe(0);
+    });
+
+    it("should support backward compatibility with legacy format", async function () {
+      const archiveUrl = "https://archive.org/web/20231201/https://example.com";
+
+      // Item has legacy format in extra field
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com";
+        if (field === "title") return "Example Title";
+        if (field === "extra") return `testarchiveArchived: ${archiveUrl}`;
+        return "";
+      });
+
+      service.archiveUrlMock.mockResolvedValue({
+        success: true,
+        url: archiveUrl,
+      });
+
+      const results = await service.archive([mockItem]);
+
+      expect(results[0].success).toBe(true);
+
+      // Verify the legacy format is still readable
+      const setFieldCalls = (mockItem.setField as jest.Mock).mock.calls;
+      const extraFieldCall = setFieldCalls.find((call) => call[0] === "extra");
+
+      if (extraFieldCall) {
+        const updatedExtra = extraFieldCall[1];
+        // Should be migrated to new format
+        expect(updatedExtra).toContain("archive_testarchive:");
+        expect(updatedExtra).not.toContain("testarchiveArchived:");
+      }
     });
   });
 });

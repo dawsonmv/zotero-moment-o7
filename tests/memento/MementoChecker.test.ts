@@ -3,6 +3,7 @@
  */
 
 import { MementoChecker } from "../../src/modules/memento/MementoChecker";
+import { ExtraFieldParser } from "../../src/modules/archive/ExtraFieldParser";
 
 describe("MementoChecker", function () {
   beforeEach(function () {
@@ -218,7 +219,7 @@ describe("MementoChecker", function () {
     it("should find mementos in Extra field", function () {
       (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
         if (field === "extra") {
-          return "Internet Archive: https://web.archive.org/web/20231215/https://example.com";
+          return "archive_internetarchive: https://web.archive.org/web/20231215/https://example.com";
         }
         return "";
       });
@@ -233,8 +234,8 @@ describe("MementoChecker", function () {
     it("should find multiple mementos in Extra field", function () {
       (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
         if (field === "extra") {
-          return `Internet Archive: https://web.archive.org/web/20231215/https://example.com
-Perma.cc: https://perma.cc/ABC-123`;
+          return `archive_internetarchive: https://web.archive.org/web/20231215/https://example.com
+archive_permacc: https://perma.cc/ABC-123`;
         }
         return "";
       });
@@ -275,8 +276,8 @@ Perma.cc: https://perma.cc/ABC-123`;
     it("should deduplicate mementos", function () {
       (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
         if (field === "extra") {
-          return `Archived: https://web.archive.org/web/20231215/https://example.com
-Internet Archive: https://web.archive.org/web/20231215/https://example.com`;
+          return `archive_internetarchive: https://web.archive.org/web/20231215/https://example.com
+internetarchiveArchived: https://web.archive.org/web/20231215/https://example.com`;
         }
         return "";
       });
@@ -298,7 +299,7 @@ Internet Archive: https://web.archive.org/web/20231215/https://example.com`;
     it("should detect service from Archive.today URL", function () {
       (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
         if (field === "extra") {
-          return "Archived: https://archive.today/abc123";
+          return "archive_archivetoday: https://archive.today/abc123";
         }
         return "";
       });
@@ -311,7 +312,7 @@ Internet Archive: https://web.archive.org/web/20231215/https://example.com`;
     it("should detect service from Arquivo.pt URL", function () {
       (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
         if (field === "extra") {
-          return "Archived: https://arquivo.pt/wayback/20231215/https://example.com";
+          return "archive_arquivopt: https://arquivo.pt/wayback/20231215/https://example.com";
         }
         return "";
       });
@@ -344,6 +345,104 @@ Internet Archive: https://web.archive.org/web/20231215/https://example.com`;
       const result = await MementoChecker.checkUrl("https://example.com");
 
       expect(result.hasMemento).toBe(false);
+    });
+  });
+
+  describe("findExistingMementos with standardized format", function () {
+    let mockItem: Zotero.Item;
+
+    beforeEach(function () {
+      mockItem = {
+        getField: jest.fn(),
+        getNotes: jest.fn().mockReturnValue([]),
+      } as unknown as Zotero.Item;
+    });
+
+    it("should extract mementos from standardized extra field format", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "extra") {
+          return `archive_internetarchive: https://web.archive.org/web/20231215/https://example.com
+archive_permacc: https://perma.cc/1234-5678
+archive_arquivopt: https://arquivo.pt/wayback/20231201/https://example.com`;
+        }
+        return "";
+      });
+
+      const mementos = MementoChecker.findExistingMementos(mockItem);
+
+      expect(mementos.length).toBe(3);
+      expect(mementos.some((m) => m.url.includes("web.archive.org"))).toBe(true);
+      expect(mementos.some((m) => m.url.includes("perma.cc"))).toBe(true);
+      expect(mementos.some((m) => m.url.includes("arquivo.pt"))).toBe(true);
+    });
+
+    it("should support backward compatibility with legacy format", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "extra") {
+          return `internetarchiveArchived: https://web.archive.org/web/20231215/https://example.com
+permaccArchived: https://perma.cc/1234-5678`;
+        }
+        return "";
+      });
+
+      const mementos = MementoChecker.findExistingMementos(mockItem);
+
+      expect(mementos).toHaveLength(2);
+      expect(mementos[0].service).toBe("Internet Archive");
+      expect(mementos[1].service).toBe("Unknown"); // permacc pattern not in KNOWN_ARCHIVES for detection
+    });
+
+    it("should handle mixed new and legacy formats", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "extra") {
+          return `archive_internetarchive: https://web.archive.org/web/20231215/https://example.com
+archivetoday: https://archive.today/abc123`;
+        }
+        return "";
+      });
+
+      const mementos = MementoChecker.findExistingMementos(mockItem);
+
+      expect(mementos.length).toBeGreaterThanOrEqual(1);
+      expect(mementos.some((m) => m.url.includes("web.archive.org"))).toBe(true);
+    });
+
+    it("should support all service types in standardized format", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "extra") {
+          return `archive_internetarchive: https://web.archive.org/web/123/example.com
+archive_archivetoday: https://archive.today/abc
+archive_ukwebarchive: https://webarchive.org.uk/wayback/123/example.com
+archive_arquivopt: https://arquivo.pt/wayback/123/example.com`;
+        }
+        return "";
+      });
+
+      const mementos = MementoChecker.findExistingMementos(mockItem);
+
+      expect(mementos.length).toBeGreaterThanOrEqual(4);
+
+      const services = mementos.map((m) => m.service);
+      expect(services).toContain("Internet Archive");
+      expect(services).toContain("Archive.today");
+      expect(services).toContain("UK Web Archive");
+      expect(services).toContain("Arquivo.pt");
+    });
+
+    it("should not duplicate mementos when mixed formats have same URL", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "extra") {
+          return `archive_internetarchive: https://web.archive.org/web/20231215/https://example.com
+internetarchiveArchived: https://web.archive.org/web/20231215/https://example.com`;
+        }
+        return "";
+      });
+
+      const mementos = MementoChecker.findExistingMementos(mockItem);
+
+      // Should deduplicate by URL
+      const uniqueUrls = new Set(mementos.map((m) => m.url));
+      expect(uniqueUrls.size).toBe(1);
     });
   });
 });
