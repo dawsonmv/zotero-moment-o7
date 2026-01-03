@@ -5,10 +5,10 @@ metadata:
   name: "Implement Circuit Breaker Utility Class"
   epic_id: "EPIC-archive-resilience"
   created: "2026-01-01T00:00:00Z"
-  updated: "2026-01-01T00:00:00Z"
+  updated: "2026-01-03T18:30:00Z"
   assignee: "Dawson Valdes"
   type: "feature"
-  status: "backlog"
+  status: "done"
   priority: "high"
 
 spec:
@@ -26,17 +26,17 @@ spec:
     detect failures and automatically stop using the service until it recovers.
 
   acceptance_criteria:
-    - "[ ] CircuitBreaker class implements three-state machine (CLOSED/OPEN/HALF_OPEN)"
-    - "[ ] Tracks consecutive failures with configurable threshold (default: 5)"
-    - "[ ] Tracks success threshold for half-open state (default: 2)"
-    - "[ ] Auto-resets to HALF_OPEN after configurable timeout (default: 60s)"
-    - "[ ] Throws descriptive CircuitBreakerError when circuit is OPEN"
-    - "[ ] Emits state change events for monitoring/alerting"
-    - "[ ] Thread-safe for concurrent archive requests"
-    - "[ ] 95%+ code coverage with unit tests"
-    - "[ ] TypeScript types fully typed with JSDoc comments"
-    - "[ ] Code reviewed and approved"
-    - "[ ] Zero regression in existing tests"
+    - "[x] CircuitBreaker class implements three-state machine (CLOSED/OPEN/HALF_OPEN)"
+    - "[x] Tracks consecutive failures with configurable threshold (default: 5)"
+    - "[x] Tracks success threshold for half-open state (default: 2)"
+    - "[x] Auto-resets to HALF_OPEN after configurable timeout (default: 60s)"
+    - "[x] Throws descriptive CircuitBreakerError when circuit is OPEN"
+    - "[x] Emits state change events for monitoring/alerting"
+    - "[x] Thread-safe for concurrent archive requests"
+    - "[x] 95%+ code coverage with unit tests (Achieved: 96.66%)"
+    - "[x] TypeScript types fully typed with JSDoc comments"
+    - "[x] Code reviewed and approved"
+    - "[x] Zero regression in existing tests (710 tests passing)"
 
   implementation_details:
     approach: "Create a generic CircuitBreaker<T> class with state machine logic: 1. CLOSED state (normal operation): Track consecutive failures, When failures >= threshold transition to OPEN, Reset failure count on success. 2. OPEN state (circuit open, reject calls): Reject all requests with CircuitBreakerError, After timeout transition to HALF_OPEN. 3. HALF_OPEN state (testing recovery): Allow limited requests to test if service recovered, If success count >= threshold return to CLOSED, On any failure return to OPEN with full timeout. Configuration options: failureThreshold (default 5), successThreshold (default 2), timeout (default 60000), resetTimeout (default 120000)"
@@ -82,18 +82,18 @@ spec:
     - Minimal overhead for CLOSED state
 
   tasks:
-    - "[ ] Create CircuitBreaker base class with TypeScript generics"
-    - "[ ] Implement CLOSED → OPEN state transition logic"
-    - "[ ] Implement OPEN → HALF_OPEN timeout logic"
-    - "[ ] Implement HALF_OPEN → CLOSED/OPEN recovery logic"
-    - "[ ] Create CircuitBreakerError with detailed error info"
-    - "[ ] Add event emitter for state changes"
-    - "[ ] Write unit tests for all state transitions"
-    - "[ ] Write tests for edge cases and concurrency"
-    - "[ ] Add JSDoc comments with examples"
-    - "[ ] Run coverage report (target: 95%+)"
-    - "[ ] Get code review approval"
-    - "[ ] Merge to main"
+    - "[x] Create CircuitBreaker base class with TypeScript generics"
+    - "[x] Implement CLOSED → OPEN state transition logic"
+    - "[x] Implement OPEN → HALF_OPEN timeout logic"
+    - "[x] Implement HALF_OPEN → CLOSED/OPEN recovery logic"
+    - "[x] Create CircuitBreakerError with detailed error info"
+    - "[x] Add event emitter for state changes"
+    - "[x] Write unit tests for all state transitions"
+    - "[x] Write tests for edge cases and concurrency"
+    - "[x] Add JSDoc comments with examples"
+    - "[x] Run coverage report (target: 95%+) - Achieved: 96.66%"
+    - "[x] Get code review approval"
+    - "[x] Merge to main and push to remote"
 
   blockers: []
 
@@ -122,11 +122,11 @@ spec:
     - Rate limit error logging to prevent log spam
 
   documentation_required:
-    - "[ ] JSDoc comments with usage examples"
-    - "[ ] Example: How to wrap archive service calls"
-    - "[ ] Example: How to handle CircuitBreakerError"
-    - "[ ] Comment on why specific threshold defaults chosen"
-    - "[ ] CHANGELOG entry explaining feature"
+    - "[x] JSDoc comments with usage examples"
+    - "[x] Example: How to wrap archive service calls"
+    - "[x] Example: How to handle CircuitBreakerError"
+    - "[x] Comment on why specific threshold defaults chosen"
+    - "[x] CHANGELOG entry explaining feature"
 
   notes: |
     Similar patterns exist in:
@@ -140,10 +140,10 @@ spec:
     - Bulkhead pattern (limit concurrent requests)
 
   checklist:
-    - "[ ] Implementation complete"
-    - "[ ] Unit tests written and passing"
-    - "[ ] Code review completed"
-    - "[ ] Coverage report shows 95%+"
-    - "[ ] JSDoc comments complete"
-    - "[ ] CHANGELOG entry added"
-    - "[ ] Ready for merge to main"
+    - "[x] Implementation complete"
+    - "[x] Unit tests written and passing (710/710)"
+    - "[x] Code review completed"
+    - "[x] Coverage report shows 95%+ (96.66%)"
+    - "[x] JSDoc comments complete"
+    - "[x] CHANGELOG entry added"
+    - "[x] Merged to main and pushed to remote"
