@@ -215,6 +215,104 @@ export class AlertManager {
   }
 
   /**
+   * Find alerts by criteria
+   */
+  findAlerts(criteria: {
+    level?: AlertLevel;
+    serviceId?: string;
+    acknowledged?: boolean;
+    since?: number; // Timestamp in milliseconds
+    title?: string; // Partial match
+  }): Alert[] {
+    return this.getHistory().filter((alert) => {
+      if (criteria.level && alert.level !== criteria.level) return false;
+      if (criteria.serviceId && alert.serviceId !== criteria.serviceId)
+        return false;
+      if (
+        criteria.acknowledged !== undefined &&
+        alert.acknowledged !== criteria.acknowledged
+      )
+        return false;
+      if (criteria.since) {
+        const alertTime = new Date(alert.timestamp).getTime();
+        if (alertTime < criteria.since) return false;
+      }
+      if (
+        criteria.title &&
+        !alert.title.toLowerCase().includes(criteria.title.toLowerCase())
+      )
+        return false;
+      return true;
+    });
+  }
+
+  /**
+   * Get critical alerts (Error or Critical level)
+   */
+  getCriticalAlerts(): Alert[] {
+    return this.getHistory().filter(
+      (a) => a.level === AlertLevel.Error || a.level === AlertLevel.Critical,
+    );
+  }
+
+  /**
+   * Get recent unacknowledged alerts for a service
+   */
+  getRecentServiceAlerts(serviceId: string, hoursBack: number = 24): Alert[] {
+    const sinceTime = Date.now() - hoursBack * 3600000;
+    return this.findAlerts({
+      serviceId,
+      acknowledged: false,
+      since: sinceTime,
+    });
+  }
+
+  /**
+   * Count alerts by level
+   */
+  countAlertsByLevel(): Record<string, number> {
+    const counts: Record<string, number> = {};
+    const alerts = this.getHistory();
+
+    for (const alert of alerts) {
+      counts[alert.level] = (counts[alert.level] || 0) + 1;
+    }
+
+    return counts;
+  }
+
+  /**
+   * Get alert trend - count of new alerts in time windows
+   */
+  getAlertTrend(
+    windowMinutes: number = 60,
+    windowsBack: number = 24,
+  ): Array<{ window: string; alertCount: number }> {
+    const windowMs = windowMinutes * 60000;
+    const trends: Array<{ window: string; alertCount: number }> = [];
+    const now = Date.now();
+
+    for (let i = windowsBack - 1; i >= 0; i--) {
+      const windowStart = now - (i + 1) * windowMs;
+      const windowEnd = now - i * windowMs;
+      const windowDate = new Date(windowStart);
+      const windowKey = windowDate.toISOString().substring(0, 16);
+
+      const alertsInWindow = this.getHistory().filter((a) => {
+        const alertTime = new Date(a.timestamp).getTime();
+        return alertTime >= windowStart && alertTime < windowEnd;
+      });
+
+      trends.push({
+        window: windowKey,
+        alertCount: alertsInWindow.length,
+      });
+    }
+
+    return trends;
+  }
+
+  /**
    * Reset failure tracker for a service
    */
   resetFailureTracker(serviceId: string): void {
