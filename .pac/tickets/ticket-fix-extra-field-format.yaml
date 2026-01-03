@@ -1,0 +1,238 @@
+apiVersion: productascode.org/v0.1.0
+kind: Ticket
+metadata:
+  id: "TICKET-fix-extra-field-format"
+  sequence: 4
+  name: "Standardize extra field format between writers and readers"
+  epic: "EPIC-archive-resilience"
+  created: "2026-01-02T21:45:00Z"
+  updated: "2026-01-02T21:45:00Z"
+  assignee: "Dawson Valdes"
+  labels:
+    component: "metadata-persistence"
+    type: "bug"
+    effort: "medium"
+    priority: "critical"
+
+spec:
+  description: |
+    BaseArchiveService.saveToItem() writes archive URLs to the extra field in one
+    format, but MementoChecker.findExistingMementos() and RobustLinkCreator.createFromItem()
+    read them using incompatible patterns. This causes previously archived URLs to not
+    be detected, leading to duplicate archiving and missed skip-before-archive checks.
+
+    **Writer (BaseArchiveService.ts, lines 256-263)**:
+    - Uses service ID from this.id (e.g., "internetarchive", "permacc", "arquivopt")
+    - Writes format: `{serviceId}Archived: {url}` (e.g., "internetarchiveArchived: http://...")
+
+    **Readers (Different Patterns)**:
+
+    1. RobustLinkCreator.ts (lines 166-172):
+       - Looks for display names: "Internet Archive:", "Archive.today:", "Perma.cc:", etc.
+       - Hardcoded patterns that DON'T match what saveToItem() writes
+
+    2. MementoChecker.ts (lines 216-221):
+       - Also uses hardcoded patterns: "Archived:", "Internet Archive:", "Archive.today:", etc.
+       - Misses config-driven services like "arquivopt", "ukwebarchive"
+       - Cannot detect archives added by saveToItem()
+
+    **Impact**:
+    - Existing archives are invisible to both checkers
+    - Duplicate archiving occurs (user archives same URL multiple times)
+    - Skip-before-archive feature doesn't work (check finds no existing mementos)
+    - Config-driven services (Arquivo.pt, UK Web Archive) have no detection
+    - Data integrity issue: loss of provenance for archived content
+
+    **Root Cause**:
+    - Inconsistent naming: service IDs ("internetarchive") vs display names ("Internet Archive")
+    - Hardcoded patterns in readers that don't match writer format
+    - No single source of truth for extra field format
+
+  type: "bug"
+  status: "backlog"
+  priority: "critical"
+
+  acceptance_criteria:
+    - [ ] Extra field format is consistent between writer and all readers
+    - [ ] BaseArchiveService.saveToItem() writes standardized format
+    - [ ] RobustLinkCreator.createFromItem() reads all service formats
+    - [ ] MementoChecker.findExistingMementos() reads all service formats
+    - [ ] Config-driven services (arquivopt, ukwebarchive) are supported
+    - [ ] No duplicate archiving for already-archived URLs
+    - [ ] Skip-before-archive checks find existing archives correctly
+    - [ ] Robust links correctly identify all previously archived versions
+
+  tasks:
+    - [ ] Analyze current extra field format across all services
+    - [ ] Document the inconsistency with concrete examples
+    - [ ] Create unified extra field format specification
+    - [ ] Update BaseArchiveService.saveToItem() to use standard format
+    - [ ] Create helper function to parse extra field (DRY principle)
+    - [ ] Update RobustLinkCreator.createFromItem() to use standard parser
+    - [ ] Update MementoChecker.findExistingMementos() to use standard parser
+    - [ ] Add support for all 5 service types in readers
+    - [ ] Write unit tests for format writer
+    - [ ] Write unit tests for format readers with all services
+    - [ ] Write integration tests for round-trip consistency
+    - [ ] Test duplicate detection works for all services
+
+  technical_notes: |
+    Current Problems:
+
+    1. Format Mismatch:
+       - Writer: Uses service.id (lowercase, no spaces): "internetarchiveArchived: URL"
+       - Readers: Use display names (mixed case): "Internet Archive: URL"
+       - Format never matches, so archives are never found
+
+    2. Hardcoded Service Lists:
+       - RobustLinkCreator has 5 hardcoded patterns (lines 166-172)
+       - MementoChecker has 4 hardcoded patterns (lines 217-220)
+       - New services require code changes in multiple places
+
+    3. Missing Services:
+       - Config-driven services (arquivopt, ukwebarchive) not supported in readers
+       - Any service added after initial development is invisible
+
+    Proposed Solution:
+
+    Option A: Standardize on Service IDs
+    - BaseArchiveService already uses this.id ("internetarchive", "permacc", etc.)
+    - Change format to: `{serviceId}Archived: {url}`
+    - Readers parse using service.id instead of display names
+    - Update all hardcoded patterns to use service IDs
+    - Advantage: Consistent, scalable for new services
+
+    Option B: Standardize on Display Names
+    - Services provide displayName in config/class
+    - Change format to: `{displayName}Archived: {url}`
+    - Readers know about display names from registry
+    - Advantage: More human-readable in Zotero UI
+
+    Option C: Separate Key-Value Format (Recommended)
+    - Use standardized key: `archive_{serviceId}` = `{url}`
+    - More structured, easier to parse
+    - Example: `archive_internetarchive: http://...`
+    - Readers can loop through services dynamically
+
+    Create ExtraFieldParser utility:
+    ```typescript
+    class ExtraFieldParser {
+      static parse(extra: string, serviceId: string): string | null
+      static write(extra: string, serviceId: string, url: string): string
+      static extractAllArchives(extra: string): Map<string, string>
+    }
+    ```
+
+    This centralizes the format and makes it easy to:
+    - Update format in one place
+    - Support new services automatically
+    - Add validation and error handling
+    - Make format changes without breaking readers
+
+    Files to Modify:
+    - src/modules/archive/BaseArchiveService.ts (lines 256-263)
+    - src/modules/memento/MementoChecker.ts (lines 216-224)
+    - src/modules/archive/RobustLinkCreator.ts (lines 166-172, 174-179)
+    - (NEW) src/modules/archive/ExtraFieldParser.ts (if choosing centralized approach)
+
+  dependencies:
+    - "TICKET-fix-item-persistence"
+
+  estimation:
+    story_points: 8
+    tshirt_size: "L"
+    hours: 10
+
+  testing_strategy: |
+    Unit Tests - Format Writer (BaseArchiveService):
+    - Test format for each of 5 services
+    - Test append to existing extra field
+    - Test no duplicates when same service archived twice
+    - Test special characters in URLs
+    - Test multiline extra fields
+
+    Unit Tests - Format Readers:
+    - Test RobustLinkCreator parses all service formats
+    - Test MementoChecker parses all service formats
+    - Test with mixed archives from different services
+    - Test with extra field containing non-archive lines
+    - Test with malformed entries (error handling)
+
+    Integration Tests:
+    - Create item, archive to Service A
+    - Verify RobustLinkCreator finds the archive
+    - Verify MementoChecker finds the archive
+    - Archive same item to Service B
+    - Verify both archives are found
+    - Verify no duplicate archiving
+
+    Round-Trip Tests:
+    - Write archive to extra field
+    - Read it back with reader
+    - Verify URL matches exactly
+    - Test for all 5 services
+
+    Edge Cases:
+    - Extra field starting with archive entry
+    - Extra field ending with archive entry
+    - Multiple spaces in format
+    - Different case variations (if format is case-insensitive)
+    - Very long URLs
+    - URLs with special characters that need escaping
+
+    Regression Tests:
+    - Verify existing items still work
+    - Check skip-before-archive now prevents duplicates
+    - Verify robust links work with existing items
+    - No performance regression
+
+  risk_assessment: |
+    Risk Level: Medium-High
+
+    Risks:
+    - Format change could break existing items with old format
+    - Multiple parsers in different locations could cause inconsistency
+    - Rollback would be difficult if format change issues discovered
+
+    Mitigations:
+    - Design format change to be backward compatible
+    - Create migration function to convert old format to new
+    - Test with real user data (if available)
+    - Add validation to detect format errors
+    - Comprehensive test coverage before release
+    - Consider supporting both old and new format during transition
+
+    Backward Compatibility Strategy:
+    - New format: `archive_{serviceId}: {url}`
+    - Reader tries new format first, falls back to old
+    - Gradual migration: next archiving re-writes in new format
+    - Eventually all items will migrate naturally
+
+  success_metrics:
+    - No more duplicate archiving attempts
+    - Skip-before-archive checks find 100% of existing archives
+    - RobustLinkCreator identifies all previously archived versions
+    - MementoChecker finds all Memento instances for items
+    - All 5 services supported in readers
+    - Format change has zero impact on user experience
+
+  notes: |
+    This is a CRITICAL bug because it breaks core functionality:
+    - Duplicate archiving defeats the purpose of archiving
+    - Skip-before-archive feature completely ineffective
+    - Data integrity issue: lost provenance for archives
+
+    The bug affects both hardcoded AND config-driven services.
+    It became visible during config-driven services implementation
+    because new services weren't in the hardcoded reader lists.
+
+    This ticket should be prioritized alongside TICKET-fix-item-persistence
+    and TICKET-support-doi-only-items as they all affect data integrity.
+
+    Consider implementing ExtraFieldParser as reusable utility
+    that can be used by other components needing to work with
+    archive metadata.
+
+    The fix enables proper functioning of the skip-before-archive
+    feature from the monitoring/resilience epic, since that feature
+    relies on finding existing archives.
