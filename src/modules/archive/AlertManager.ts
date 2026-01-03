@@ -323,6 +323,72 @@ export class AlertManager {
   }
 
   /**
+   * Get statistics for a specific service
+   */
+  getServiceStatistics(serviceId: string): {
+    serviceId: string;
+    totalAlerts: number;
+    activeAlerts: number;
+    criticalAlerts: number;
+    errorAlerts: number;
+    currentFailureCount: number;
+    lastAlertTime?: string;
+  } {
+    const serviceAlerts = this.getServiceAlerts(serviceId);
+    const activeAlerts = serviceAlerts.filter((a) => !a.acknowledged);
+    const criticalAlerts = serviceAlerts.filter(
+      (a) => a.level === AlertLevel.Critical,
+    );
+    const errorAlerts = serviceAlerts.filter(
+      (a) => a.level === AlertLevel.Error,
+    );
+
+    const lastAlert =
+      serviceAlerts.length > 0 ? serviceAlerts[0].timestamp : undefined;
+
+    return {
+      serviceId,
+      totalAlerts: serviceAlerts.length,
+      activeAlerts: activeAlerts.length,
+      criticalAlerts: criticalAlerts.length,
+      errorAlerts: errorAlerts.length,
+      currentFailureCount: this.getFailureCount(serviceId),
+      lastAlertTime: lastAlert,
+    };
+  }
+
+  /**
+   * Get statistics for all services with alerts
+   */
+  getAllServiceStatistics(): Array<{
+    serviceId: string;
+    totalAlerts: number;
+    activeAlerts: number;
+    criticalAlerts: number;
+    errorAlerts: number;
+    currentFailureCount: number;
+    lastAlertTime?: string;
+  }> {
+    const uniqueServices = new Set<string>();
+
+    // Collect all services from alerts
+    for (const alert of this.getHistory()) {
+      if (alert.serviceId) {
+        uniqueServices.add(alert.serviceId);
+      }
+    }
+
+    // Collect all services from failure tracker
+    for (const serviceId of this.failureTracker.keys()) {
+      uniqueServices.add(serviceId);
+    }
+
+    return Array.from(uniqueServices)
+      .map((serviceId) => this.getServiceStatistics(serviceId))
+      .sort((a, b) => b.activeAlerts - a.activeAlerts); // Sort by active alert count
+  }
+
+  /**
    * Export audit report with current system state
    */
   exportAuditReport(): {
@@ -335,6 +401,15 @@ export class AlertManager {
     };
     alerts: Alert[];
     failureTracking: Record<string, number>;
+    serviceStatistics: Array<{
+      serviceId: string;
+      totalAlerts: number;
+      activeAlerts: number;
+      criticalAlerts: number;
+      errorAlerts: number;
+      currentFailureCount: number;
+      lastAlertTime?: string;
+    }>;
   } {
     const alerts = this.getHistory();
     const acknowledgedAlerts = alerts.filter((a) => a.acknowledged);
@@ -355,6 +430,7 @@ export class AlertManager {
       },
       alerts: alerts,
       failureTracking,
+      serviceStatistics: this.getAllServiceStatistics(),
     };
   }
 }
