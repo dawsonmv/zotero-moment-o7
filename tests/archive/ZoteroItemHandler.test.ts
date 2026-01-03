@@ -379,4 +379,135 @@ describe("ZoteroItemHandler", function () {
       expect(archives.get("permacc")).toBe("https://perma.cc/ABC-123");
     });
   });
+
+  describe("getEffectiveUrl", function () {
+    it("should return direct URL when URL field is present", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com/article";
+        return "";
+      });
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("https://example.com/article");
+    });
+
+    it("should prefer DOI over direct URL", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com/article";
+        if (field === "DOI") return "10.1234/example";
+        return "";
+      });
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("https://doi.org/10.1234/example");
+    });
+
+    it("should return DOI URL for DOI-only items", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "DOI") return "10.1234/journal.example";
+        return "";
+      });
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("https://doi.org/10.1234/journal.example");
+    });
+
+    it("should return empty string when neither URL nor DOI present", function () {
+      (mockItem.getField as jest.Mock).mockReturnValue("");
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("");
+    });
+
+    it("should handle non-string URL and DOI fields", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return null;
+        if (field === "DOI") return null;
+        return "";
+      });
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("");
+    });
+
+    it("should handle journal articles with DOI", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "DOI") return "10.1016/j.example.2023.01.001";
+        return "";
+      });
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("https://doi.org/10.1016/j.example.2023.01.001");
+    });
+
+    it("should handle URLs with special characters", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url")
+          return "https://example.com/path?query=test&foo=bar#section";
+        return "";
+      });
+
+      const url = ZoteroItemHandler.getEffectiveUrl(mockItem);
+
+      expect(url).toBe("https://example.com/path?query=test&foo=bar#section");
+    });
+  });
+
+  describe("hasArchivableUrl", function () {
+    it("should return true when item has URL", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com";
+        return "";
+      });
+
+      expect(ZoteroItemHandler.hasArchivableUrl(mockItem)).toBe(true);
+    });
+
+    it("should return true when item has DOI", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "DOI") return "10.1234/example";
+        return "";
+      });
+
+      expect(ZoteroItemHandler.hasArchivableUrl(mockItem)).toBe(true);
+    });
+
+    it("should return true when item has both URL and DOI", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "https://example.com";
+        if (field === "DOI") return "10.1234/example";
+        return "";
+      });
+
+      expect(ZoteroItemHandler.hasArchivableUrl(mockItem)).toBe(true);
+    });
+
+    it("should return false when item has neither URL nor DOI", function () {
+      (mockItem.getField as jest.Mock).mockReturnValue("");
+
+      expect(ZoteroItemHandler.hasArchivableUrl(mockItem)).toBe(false);
+    });
+
+    it("should return false for empty DOI and URL fields", function () {
+      (mockItem.getField as jest.Mock).mockImplementation((field: string) => {
+        if (field === "url") return "";
+        if (field === "DOI") return "";
+        return "";
+      });
+
+      expect(ZoteroItemHandler.hasArchivableUrl(mockItem)).toBe(false);
+    });
+
+    it("should handle non-string fields", function () {
+      (mockItem.getField as jest.Mock).mockReturnValue(null);
+
+      expect(ZoteroItemHandler.hasArchivableUrl(mockItem)).toBe(false);
+    });
+  });
 });

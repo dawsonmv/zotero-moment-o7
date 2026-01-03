@@ -20,6 +20,7 @@ import {
   CircuitBreakerError,
 } from "../../utils/CircuitBreaker";
 import { ExtraFieldParser } from "./ExtraFieldParser";
+import { ZoteroItemHandler } from "./ZoteroItemHandler";
 
 export abstract class BaseArchiveService implements ArchiveService {
   protected lastRequest: number | null = null;
@@ -110,16 +111,10 @@ export abstract class BaseArchiveService implements ArchiveService {
 
   /**
    * Get the best URL for archiving (prefer DOI if available)
+   * Uses the shared utility from ZoteroItemHandler for consistency
    */
   getBestUrl(item: Zotero.Item): string {
-    const doiField = item.getField("DOI");
-    const doi = typeof doiField === "string" ? doiField : null;
-    if (doi) {
-      return `https://doi.org/${doi}`;
-    }
-    const urlField = item.getField("url");
-    const url = typeof urlField === "string" ? urlField : "";
-    return url;
+    return ZoteroItemHandler.getEffectiveUrl(item);
   }
 
   /**

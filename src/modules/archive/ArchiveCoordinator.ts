@@ -8,6 +8,7 @@ import { ServiceRegistry } from "./ServiceRegistry";
 import { ArchiveResult, ArchiveService } from "./types";
 import { MementoChecker, MementoInfo } from "../memento/MementoChecker";
 import { PreferencesManager } from "../preferences/PreferencesManager";
+import { ZoteroItemHandler } from "./ZoteroItemHandler";
 import { ConcurrentArchiveQueue } from "../../utils/ConcurrentArchiveQueue";
 import { TrafficMonitor } from "../../utils/TrafficMonitor";
 import {
@@ -93,15 +94,20 @@ export class ArchiveCoordinator {
   /**
    * Archive a single item
    * Checks for existing mementos before archiving if preference enabled
+   * Supports both direct URLs and DOI-only items
    */
   private async archiveItem(
     item: Zotero.Item,
     serviceId?: string,
   ): Promise<ArchiveResult> {
-    const urlField = item.getField("url");
-    const url = typeof urlField === "string" ? urlField : "";
+    // Get effective URL (DOI-derived or direct URL)
+    const url = ZoteroItemHandler.getEffectiveUrl(item);
+
+    // Check that item has a URL or DOI
     if (!url) {
-      throw new Error("Item has no URL to archive");
+      throw new Error(
+        "Item has no URL or DOI to archive. Journal articles require either a direct URL or a DOI identifier.",
+      );
     }
 
     // Check for existing mementos if preference enabled

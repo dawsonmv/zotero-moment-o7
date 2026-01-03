@@ -21,18 +21,52 @@ export class ZoteroItemHandler {
   private static readonly ARCHIVE_TAG = "archived";
 
   /**
+   * Get the effective URL for an item, preferring DOI over direct URL.
+   * This is the single source of truth for URL resolution across the plugin.
+   *
+   * @param item - The Zotero item
+   * @returns The effective URL (DOI-derived or direct URL), or empty string if neither exists
+   */
+  static getEffectiveUrl(item: Zotero.Item): string {
+    const doiField = item.getField("DOI");
+    const doi = typeof doiField === "string" ? doiField : null;
+    if (doi) {
+      return `https://doi.org/${doi}`;
+    }
+
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
+    return url;
+  }
+
+  /**
+   * Check if an item has a valid URL for archiving (either direct URL or DOI).
+   *
+   * @param item - The Zotero item
+   * @returns True if the item has a URL or DOI that can be archived
+   */
+  static hasArchivableUrl(item: Zotero.Item): boolean {
+    const urlField = item.getField("url");
+    const url = typeof urlField === "string" ? urlField : "";
+    if (url) return true;
+
+    const doiField = item.getField("DOI");
+    const doi = typeof doiField === "string" ? doiField : "";
+    return !!doi;
+  }
+
+  /**
    * Extract metadata from Zotero item
    */
   static extractMetadata(item: Zotero.Item): ItemMetadata {
-    const urlField = item.getField("url");
-    const url = typeof urlField === "string" ? urlField : "";
+    const effectiveUrl = this.getEffectiveUrl(item);
 
     const doiField = item.getField("DOI");
     const doi = typeof doiField === "string" ? doiField : undefined;
 
     const titleField = item.getField("title");
     const title =
-      typeof titleField === "string" && titleField ? titleField : url;
+      typeof titleField === "string" && titleField ? titleField : effectiveUrl;
 
     const tags =
       typeof item.getTags === "function"
@@ -40,7 +74,7 @@ export class ZoteroItemHandler {
         : [];
 
     return {
-      url: doi ? `https://doi.org/${doi}` : url,
+      url: effectiveUrl,
       title,
       doi,
       tags,

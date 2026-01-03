@@ -5818,6 +5818,351 @@ html {
     }
   };
 
+  // src/utils/HtmlUtils.ts
+  var HtmlUtils = class {
+    /**
+     * Create an isolated document for safe HTML parsing.
+     * The returned document is sandboxed - scripts won't execute.
+     */
+    static createIsolatedDocument(html) {
+      const doc = document.implementation.createHTMLDocument("sandbox");
+      if (doc.body) {
+        doc.body.innerHTML = html;
+      }
+      return doc;
+    }
+    /**
+     * Escape HTML special characters to prevent XSS
+     */
+    static escape(text) {
+      if (!text) return "";
+      const escapeMap = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+        "/": "&#x2F;"
+      };
+      return text.replace(/[&<>"'/]/g, (char) => escapeMap[char]);
+    }
+    /**
+     * Unescape HTML entities safely.
+     * Uses isolated document for decoding - scripts won't execute.
+     */
+    static unescape(text) {
+      if (!text) return "";
+      const doc = document.implementation.createHTMLDocument("sandbox");
+      const textarea = doc.createElement("textarea");
+      textarea.innerHTML = text;
+      return textarea.value;
+    }
+    /**
+     * Strip HTML tags from text safely using isolated document.
+     */
+    static stripTags(html) {
+      if (!html) return "";
+      const doc = this.createIsolatedDocument(html);
+      return doc.body?.textContent || doc.body?.innerText || "";
+    }
+    /**
+     * Create a safe HTML element from text
+     */
+    static createSafeElement(tag, text, attributes) {
+      const escapedText = this.escape(text);
+      const attrStr = attributes ? Object.entries(attributes).map(([key, value]) => `${key}="${this.escape(value)}"`).join(" ") : "";
+      return `<${tag}${attrStr ? " " + attrStr : ""}>${escapedText}</${tag}>`;
+    }
+    /**
+     * Create a robust link with data attributes
+     */
+    static createRobustLink(originalUrl, archivedUrl, linkText, versionDate = (/* @__PURE__ */ new Date()).toISOString()) {
+      return this.createSafeElement("a", linkText, {
+        href: originalUrl,
+        "data-originalurl": originalUrl,
+        "data-versionurl": archivedUrl,
+        "data-versiondate": versionDate
+      });
+    }
+    /**
+     * Parse attributes from an HTML string safely using isolated document.
+     */
+    static parseAttributes(html) {
+      const doc = this.createIsolatedDocument(html);
+      const element = doc.body?.firstElementChild;
+      if (!element) return {};
+      const attributes = {};
+      Array.from(element.attributes).forEach((attr) => {
+        attributes[attr.name] = attr.value;
+      });
+      return attributes;
+    }
+    /**
+     * Extract URLs from HTML content safely using isolated document.
+     */
+    static extractUrls(html) {
+      const doc = this.createIsolatedDocument(html);
+      const body = doc.body;
+      if (!body) return [];
+      const urls = /* @__PURE__ */ new Set();
+      body.querySelectorAll("[href]").forEach((element) => {
+        const href = element.getAttribute("href");
+        if (href && href.startsWith("http")) {
+          urls.add(href);
+        }
+      });
+      body.querySelectorAll("[src]").forEach((element) => {
+        const src = element.getAttribute("src");
+        if (src && src.startsWith("http")) {
+          urls.add(src);
+        }
+      });
+      return Array.from(urls);
+    }
+    /**
+     * Sanitize HTML to remove potentially dangerous elements.
+     * Uses isolated document for safe parsing - scripts won't execute.
+     */
+    static sanitize(html, allowedTags = ["p", "a", "span", "div", "pre"]) {
+      const doc = this.createIsolatedDocument(html);
+      const body = doc.body;
+      if (!body) return "";
+      body.querySelectorAll("script, style").forEach((el) => el.remove());
+      body.querySelectorAll("*").forEach((el) => {
+        Array.from(el.attributes).forEach((attr) => {
+          if (attr.name.startsWith("on")) {
+            el.removeAttribute(attr.name);
+          }
+        });
+        if (!allowedTags.includes(el.tagName.toLowerCase())) {
+          const children = [];
+          for (let i = 0; i < el.childNodes.length; i++) {
+            const child = el.childNodes[i];
+            if (child) {
+              children.push(child);
+            }
+          }
+          if (children.length > 0) {
+            el.replaceWith(...children);
+          } else {
+            el.remove();
+          }
+        }
+      });
+      return body.innerHTML;
+    }
+  };
+
+  // src/modules/archive/ZoteroItemHandler.ts
+  var ZoteroItemHandler = class {
+    static ARCHIVE_TAG = "archived";
+    /**
+     * Get the effective URL for an item, preferring DOI over direct URL.
+     * This is the single source of truth for URL resolution across the plugin.
+     *
+     * @param item - The Zotero item
+     * @returns The effective URL (DOI-derived or direct URL), or empty string if neither exists
+     */
+    static getEffectiveUrl(item) {
+      const doiField = item.getField("DOI");
+      const doi = typeof doiField === "string" ? doiField : null;
+      if (doi) {
+        return `https://doi.org/${doi}`;
+      }
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
+      return url;
+    }
+    /**
+     * Check if an item has a valid URL for archiving (either direct URL or DOI).
+     *
+     * @param item - The Zotero item
+     * @returns True if the item has a URL or DOI that can be archived
+     */
+    static hasArchivableUrl(item) {
+      const urlField = item.getField("url");
+      const url = typeof urlField === "string" ? urlField : "";
+      if (url) return true;
+      const doiField = item.getField("DOI");
+      const doi = typeof doiField === "string" ? doiField : "";
+      return !!doi;
+    }
+    /**
+     * Extract metadata from Zotero item
+     */
+    static extractMetadata(item) {
+      const effectiveUrl = this.getEffectiveUrl(item);
+      const doiField = item.getField("DOI");
+      const doi = typeof doiField === "string" ? doiField : void 0;
+      const titleField = item.getField("title");
+      const title = typeof titleField === "string" && titleField ? titleField : effectiveUrl;
+      const tags = typeof item.getTags === "function" ? item.getTags().map((t) => t.tag) : [];
+      return {
+        url: effectiveUrl,
+        title,
+        doi,
+        tags,
+        hasArchiveTag: tags.includes(this.ARCHIVE_TAG)
+      };
+    }
+    /**
+     * Save archive information to item
+     */
+    static async saveArchiveToItem(item, archiveUrl, serviceName, metadata) {
+      await this.updateExtraField(item, archiveUrl, serviceName);
+      if (!this.hasTag(item, this.ARCHIVE_TAG)) {
+        item.addTag(this.ARCHIVE_TAG);
+      }
+      await this.createArchiveNote(item, archiveUrl, serviceName, metadata);
+      await item.saveTx();
+    }
+    /**
+     * Update Extra field with archive information
+     */
+    static async updateExtraField(item, archiveUrl, serviceName) {
+      const extra = item.getField("extra") || "";
+      const archiveField = `${serviceName}: ${archiveUrl}`;
+      if (!extra.includes(archiveField)) {
+        const newExtra = extra ? `${extra}
+${archiveField}` : archiveField;
+        item.setField("extra", newExtra);
+      }
+    }
+    /**
+     * Create archive note with robust link
+     */
+    static async createArchiveNote(item, archiveUrl, serviceName, metadata) {
+      const originalUrl = item.getField("url") || "";
+      const title = item.getField("title") || originalUrl;
+      const archiveDate = (/* @__PURE__ */ new Date()).toISOString();
+      const robustLink = HtmlUtils.createRobustLink(
+        originalUrl,
+        archiveUrl,
+        title,
+        archiveDate
+      );
+      const noteContent = this.generateNoteContent(
+        robustLink,
+        archiveUrl,
+        serviceName,
+        archiveDate,
+        metadata
+      );
+      const note = new Zotero.Item("note");
+      note.setNote(noteContent);
+      note.parentID = item.id;
+      await note.saveTx();
+    }
+    /**
+     * Generate note content
+     */
+    static generateNoteContent(robustLink, archiveUrl, serviceName, archiveDate, metadata) {
+      const sections = [
+        `<h3>Archived Version</h3>`,
+        `<p>${robustLink}</p>`,
+        `<p><strong>Archive URL:</strong> <a href="${HtmlUtils.escape(archiveUrl)}">${HtmlUtils.escape(archiveUrl)}</a></p>`,
+        `<p><strong>Archive Service:</strong> ${HtmlUtils.escape(serviceName)}</p>`,
+        `<p><strong>Archive Date:</strong> ${new Date(archiveDate).toLocaleDateString()}</p>`
+      ];
+      if (metadata) {
+        sections.push(`<h4>Additional Information</h4>`);
+        for (const [key, value] of Object.entries(metadata)) {
+          sections.push(
+            `<p><strong>${HtmlUtils.escape(key)}:</strong> ${HtmlUtils.escape(String(value))}</p>`
+          );
+        }
+      }
+      sections.push(
+        `<h4>Robust Link HTML</h4>`,
+        `<p>Copy and paste this HTML to cite with archived version:</p>`,
+        `<pre>${HtmlUtils.escape(robustLink)}</pre>`
+      );
+      return sections.join("\n");
+    }
+    /**
+     * Check if item has a specific tag
+     */
+    static hasTag(item, tag) {
+      const tags = item.getTags ? item.getTags() : [];
+      return tags.some((t) => t.tag === tag);
+    }
+    /**
+     * Find existing archive URLs in item
+     */
+    static findExistingArchives(item) {
+      const archives = /* @__PURE__ */ new Map();
+      const extraField = item.getField("extra");
+      const extra = typeof extraField === "string" ? extraField : "";
+      const lines = extra.split("\n");
+      for (const line of lines) {
+        const match = line.match(/^(.+?):\s*(https?:\/\/.+)$/);
+        if (match && match.length > 2 && match[1] && match[2]) {
+          archives.set(match[1].toLowerCase(), match[2]);
+        }
+      }
+      const notes = this.getItemNotes(item);
+      for (const note of notes) {
+        const links = this.extractArchiveLinksFromNote(note);
+        links.forEach((url, service) => archives.set(service, url));
+      }
+      return archives;
+    }
+    /**
+     * Get notes for an item
+     */
+    static getItemNotes(item) {
+      const noteIds = typeof item.getNotes === "function" ? item.getNotes() : [];
+      return noteIds.map((id) => Zotero.Items.get(id)).filter((note) => note != null);
+    }
+    /**
+     * Extract archive links from note content
+     */
+    static extractArchiveLinksFromNote(note) {
+      const links = /* @__PURE__ */ new Map();
+      if (!note.getNote) return links;
+      const content = note.getNote();
+      const versionUrlMatch = content.match(/data-versionurl="([^"]+)"/);
+      if (versionUrlMatch) {
+        const url = versionUrlMatch[1];
+        const service = this.detectServiceFromUrl(url);
+        if (service) {
+          links.set(service, url);
+        }
+      }
+      return links;
+    }
+    /**
+     * Detect service from URL
+     */
+    static detectServiceFromUrl(url) {
+      const patterns = [
+        { pattern: /web\.archive\.org/i, service: "internetarchive" },
+        { pattern: /archive\.(today|is|ph|md|li)/i, service: "archivetoday" },
+        { pattern: /perma\.cc/i, service: "permacc" },
+        { pattern: /webarchive\.org\.uk/i, service: "ukwebarchive" },
+        { pattern: /arquivo\.pt/i, service: "arquivopt" }
+      ];
+      for (const { pattern, service } of patterns) {
+        if (pattern.test(url)) {
+          return service;
+        }
+      }
+      return null;
+    }
+    /**
+     * Check if item needs archiving
+     */
+    static needsArchiving(item) {
+      const metadata = this.extractMetadata(item);
+      if (!metadata.url) return false;
+      if (metadata.hasArchiveTag) return false;
+      const itemType = item.itemType ?? "";
+      const skipTypes = ["note", "attachment", "annotation"];
+      if (skipTypes.includes(itemType)) return false;
+      return true;
+    }
+  };
+
   // src/modules/archive/BaseArchiveService.ts
   var BaseArchiveService = class {
     constructor(config2) {
@@ -5889,16 +6234,10 @@ html {
     }
     /**
      * Get the best URL for archiving (prefer DOI if available)
+     * Uses the shared utility from ZoteroItemHandler for consistency
      */
     getBestUrl(item) {
-      const doiField = item.getField("DOI");
-      const doi = typeof doiField === "string" ? doiField : null;
-      if (doi) {
-        return `https://doi.org/${doi}`;
-      }
-      const urlField = item.getField("url");
-      const url = typeof urlField === "string" ? urlField : "";
-      return url;
+      return ZoteroItemHandler.getEffectiveUrl(item);
     }
     /**
      * Make HTTP request with traffic monitoring and circuit breaker protection
@@ -9505,12 +9844,14 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     /**
      * Archive a single item
      * Checks for existing mementos before archiving if preference enabled
+     * Supports both direct URLs and DOI-only items
      */
     async archiveItem(item, serviceId) {
-      const urlField = item.getField("url");
-      const url = typeof urlField === "string" ? urlField : "";
+      const url = ZoteroItemHandler.getEffectiveUrl(item);
       if (!url) {
-        throw new Error("Item has no URL to archive");
+        throw new Error(
+          "Item has no URL or DOI to archive. Journal articles require either a direct URL or a DOI identifier."
+        );
       }
       if (PreferencesManager.shouldCheckBeforeArchive()) {
         const existingResult = await this.checkExistingMemento(url, item);
@@ -9875,9 +10216,10 @@ ${errors.join("\n")}`);
     }
     /**
      * Create robust links for a Zotero item based on existing archives
+     * Uses getEffectiveUrl to support both direct URLs and DOI-only items
      */
     static createFromItem(item) {
-      const url = item.getField("url");
+      const url = ZoteroItemHandler.getEffectiveUrl(item);
       if (!url) return null;
       const title = item.getField("title") || url;
       const extra = item.getField("extra") || "";
@@ -9938,321 +10280,6 @@ ${errors.join("\n")}`);
       const div = doc.createElement("div");
       div.textContent = text;
       return div.innerHTML;
-    }
-  };
-
-  // src/utils/HtmlUtils.ts
-  var HtmlUtils = class {
-    /**
-     * Create an isolated document for safe HTML parsing.
-     * The returned document is sandboxed - scripts won't execute.
-     */
-    static createIsolatedDocument(html) {
-      const doc = document.implementation.createHTMLDocument("sandbox");
-      if (doc.body) {
-        doc.body.innerHTML = html;
-      }
-      return doc;
-    }
-    /**
-     * Escape HTML special characters to prevent XSS
-     */
-    static escape(text) {
-      if (!text) return "";
-      const escapeMap = {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
-        "/": "&#x2F;"
-      };
-      return text.replace(/[&<>"'/]/g, (char) => escapeMap[char]);
-    }
-    /**
-     * Unescape HTML entities safely.
-     * Uses isolated document for decoding - scripts won't execute.
-     */
-    static unescape(text) {
-      if (!text) return "";
-      const doc = document.implementation.createHTMLDocument("sandbox");
-      const textarea = doc.createElement("textarea");
-      textarea.innerHTML = text;
-      return textarea.value;
-    }
-    /**
-     * Strip HTML tags from text safely using isolated document.
-     */
-    static stripTags(html) {
-      if (!html) return "";
-      const doc = this.createIsolatedDocument(html);
-      return doc.body?.textContent || doc.body?.innerText || "";
-    }
-    /**
-     * Create a safe HTML element from text
-     */
-    static createSafeElement(tag, text, attributes) {
-      const escapedText = this.escape(text);
-      const attrStr = attributes ? Object.entries(attributes).map(([key, value]) => `${key}="${this.escape(value)}"`).join(" ") : "";
-      return `<${tag}${attrStr ? " " + attrStr : ""}>${escapedText}</${tag}>`;
-    }
-    /**
-     * Create a robust link with data attributes
-     */
-    static createRobustLink(originalUrl, archivedUrl, linkText, versionDate = (/* @__PURE__ */ new Date()).toISOString()) {
-      return this.createSafeElement("a", linkText, {
-        href: originalUrl,
-        "data-originalurl": originalUrl,
-        "data-versionurl": archivedUrl,
-        "data-versiondate": versionDate
-      });
-    }
-    /**
-     * Parse attributes from an HTML string safely using isolated document.
-     */
-    static parseAttributes(html) {
-      const doc = this.createIsolatedDocument(html);
-      const element = doc.body?.firstElementChild;
-      if (!element) return {};
-      const attributes = {};
-      Array.from(element.attributes).forEach((attr) => {
-        attributes[attr.name] = attr.value;
-      });
-      return attributes;
-    }
-    /**
-     * Extract URLs from HTML content safely using isolated document.
-     */
-    static extractUrls(html) {
-      const doc = this.createIsolatedDocument(html);
-      const body = doc.body;
-      if (!body) return [];
-      const urls = /* @__PURE__ */ new Set();
-      body.querySelectorAll("[href]").forEach((element) => {
-        const href = element.getAttribute("href");
-        if (href && href.startsWith("http")) {
-          urls.add(href);
-        }
-      });
-      body.querySelectorAll("[src]").forEach((element) => {
-        const src = element.getAttribute("src");
-        if (src && src.startsWith("http")) {
-          urls.add(src);
-        }
-      });
-      return Array.from(urls);
-    }
-    /**
-     * Sanitize HTML to remove potentially dangerous elements.
-     * Uses isolated document for safe parsing - scripts won't execute.
-     */
-    static sanitize(html, allowedTags = ["p", "a", "span", "div", "pre"]) {
-      const doc = this.createIsolatedDocument(html);
-      const body = doc.body;
-      if (!body) return "";
-      body.querySelectorAll("script, style").forEach((el) => el.remove());
-      body.querySelectorAll("*").forEach((el) => {
-        Array.from(el.attributes).forEach((attr) => {
-          if (attr.name.startsWith("on")) {
-            el.removeAttribute(attr.name);
-          }
-        });
-        if (!allowedTags.includes(el.tagName.toLowerCase())) {
-          const children = [];
-          for (let i = 0; i < el.childNodes.length; i++) {
-            const child = el.childNodes[i];
-            if (child) {
-              children.push(child);
-            }
-          }
-          if (children.length > 0) {
-            el.replaceWith(...children);
-          } else {
-            el.remove();
-          }
-        }
-      });
-      return body.innerHTML;
-    }
-  };
-
-  // src/modules/archive/ZoteroItemHandler.ts
-  var ZoteroItemHandler = class {
-    static ARCHIVE_TAG = "archived";
-    /**
-     * Extract metadata from Zotero item
-     */
-    static extractMetadata(item) {
-      const urlField = item.getField("url");
-      const url = typeof urlField === "string" ? urlField : "";
-      const doiField = item.getField("DOI");
-      const doi = typeof doiField === "string" ? doiField : void 0;
-      const titleField = item.getField("title");
-      const title = typeof titleField === "string" && titleField ? titleField : url;
-      const tags = typeof item.getTags === "function" ? item.getTags().map((t) => t.tag) : [];
-      return {
-        url: doi ? `https://doi.org/${doi}` : url,
-        title,
-        doi,
-        tags,
-        hasArchiveTag: tags.includes(this.ARCHIVE_TAG)
-      };
-    }
-    /**
-     * Save archive information to item
-     */
-    static async saveArchiveToItem(item, archiveUrl, serviceName, metadata) {
-      await this.updateExtraField(item, archiveUrl, serviceName);
-      if (!this.hasTag(item, this.ARCHIVE_TAG)) {
-        item.addTag(this.ARCHIVE_TAG);
-      }
-      await this.createArchiveNote(item, archiveUrl, serviceName, metadata);
-      await item.saveTx();
-    }
-    /**
-     * Update Extra field with archive information
-     */
-    static async updateExtraField(item, archiveUrl, serviceName) {
-      const extra = item.getField("extra") || "";
-      const archiveField = `${serviceName}: ${archiveUrl}`;
-      if (!extra.includes(archiveField)) {
-        const newExtra = extra ? `${extra}
-${archiveField}` : archiveField;
-        item.setField("extra", newExtra);
-      }
-    }
-    /**
-     * Create archive note with robust link
-     */
-    static async createArchiveNote(item, archiveUrl, serviceName, metadata) {
-      const originalUrl = item.getField("url") || "";
-      const title = item.getField("title") || originalUrl;
-      const archiveDate = (/* @__PURE__ */ new Date()).toISOString();
-      const robustLink = HtmlUtils.createRobustLink(
-        originalUrl,
-        archiveUrl,
-        title,
-        archiveDate
-      );
-      const noteContent = this.generateNoteContent(
-        robustLink,
-        archiveUrl,
-        serviceName,
-        archiveDate,
-        metadata
-      );
-      const note = new Zotero.Item("note");
-      note.setNote(noteContent);
-      note.parentID = item.id;
-      await note.saveTx();
-    }
-    /**
-     * Generate note content
-     */
-    static generateNoteContent(robustLink, archiveUrl, serviceName, archiveDate, metadata) {
-      const sections = [
-        `<h3>Archived Version</h3>`,
-        `<p>${robustLink}</p>`,
-        `<p><strong>Archive URL:</strong> <a href="${HtmlUtils.escape(archiveUrl)}">${HtmlUtils.escape(archiveUrl)}</a></p>`,
-        `<p><strong>Archive Service:</strong> ${HtmlUtils.escape(serviceName)}</p>`,
-        `<p><strong>Archive Date:</strong> ${new Date(archiveDate).toLocaleDateString()}</p>`
-      ];
-      if (metadata) {
-        sections.push(`<h4>Additional Information</h4>`);
-        for (const [key, value] of Object.entries(metadata)) {
-          sections.push(
-            `<p><strong>${HtmlUtils.escape(key)}:</strong> ${HtmlUtils.escape(String(value))}</p>`
-          );
-        }
-      }
-      sections.push(
-        `<h4>Robust Link HTML</h4>`,
-        `<p>Copy and paste this HTML to cite with archived version:</p>`,
-        `<pre>${HtmlUtils.escape(robustLink)}</pre>`
-      );
-      return sections.join("\n");
-    }
-    /**
-     * Check if item has a specific tag
-     */
-    static hasTag(item, tag) {
-      const tags = item.getTags ? item.getTags() : [];
-      return tags.some((t) => t.tag === tag);
-    }
-    /**
-     * Find existing archive URLs in item
-     */
-    static findExistingArchives(item) {
-      const archives = /* @__PURE__ */ new Map();
-      const extraField = item.getField("extra");
-      const extra = typeof extraField === "string" ? extraField : "";
-      const lines = extra.split("\n");
-      for (const line of lines) {
-        const match = line.match(/^(.+?):\s*(https?:\/\/.+)$/);
-        if (match && match.length > 2 && match[1] && match[2]) {
-          archives.set(match[1].toLowerCase(), match[2]);
-        }
-      }
-      const notes = this.getItemNotes(item);
-      for (const note of notes) {
-        const links = this.extractArchiveLinksFromNote(note);
-        links.forEach((url, service) => archives.set(service, url));
-      }
-      return archives;
-    }
-    /**
-     * Get notes for an item
-     */
-    static getItemNotes(item) {
-      const noteIds = typeof item.getNotes === "function" ? item.getNotes() : [];
-      return noteIds.map((id) => Zotero.Items.get(id)).filter((note) => note != null);
-    }
-    /**
-     * Extract archive links from note content
-     */
-    static extractArchiveLinksFromNote(note) {
-      const links = /* @__PURE__ */ new Map();
-      if (!note.getNote) return links;
-      const content = note.getNote();
-      const versionUrlMatch = content.match(/data-versionurl="([^"]+)"/);
-      if (versionUrlMatch) {
-        const url = versionUrlMatch[1];
-        const service = this.detectServiceFromUrl(url);
-        if (service) {
-          links.set(service, url);
-        }
-      }
-      return links;
-    }
-    /**
-     * Detect service from URL
-     */
-    static detectServiceFromUrl(url) {
-      const patterns = [
-        { pattern: /web\.archive\.org/i, service: "internetarchive" },
-        { pattern: /archive\.(today|is|ph|md|li)/i, service: "archivetoday" },
-        { pattern: /perma\.cc/i, service: "permacc" },
-        { pattern: /webarchive\.org\.uk/i, service: "ukwebarchive" },
-        { pattern: /arquivo\.pt/i, service: "arquivopt" }
-      ];
-      for (const { pattern, service } of patterns) {
-        if (pattern.test(url)) {
-          return service;
-        }
-      }
-      return null;
-    }
-    /**
-     * Check if item needs archiving
-     */
-    static needsArchiving(item) {
-      const metadata = this.extractMetadata(item);
-      if (!metadata.url) return false;
-      if (metadata.hasArchiveTag) return false;
-      const itemType = item.itemType ?? "";
-      const skipTypes = ["note", "attachment", "annotation"];
-      if (skipTypes.includes(itemType)) return false;
-      return true;
     }
   };
 

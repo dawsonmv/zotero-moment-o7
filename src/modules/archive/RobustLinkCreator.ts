@@ -1,5 +1,6 @@
 import { PreferencesManager } from "../preferences/PreferencesManager";
 import { ExtraFieldParser } from "./ExtraFieldParser";
+import { ZoteroItemHandler } from "./ZoteroItemHandler";
 
 declare const document: Document;
 
@@ -152,9 +153,10 @@ export class RobustLinkCreator {
 
   /**
    * Create robust links for a Zotero item based on existing archives
+   * Uses getEffectiveUrl to support both direct URLs and DOI-only items
    */
   static createFromItem(item: Zotero.Item): string | null {
-    const url = item.getField("url");
+    const url = ZoteroItemHandler.getEffectiveUrl(item);
     if (!url) return null;
 
     const title = item.getField("title") || url;
