@@ -158,65 +158,76 @@ export abstract class BaseArchiveService implements ArchiveService {
     });
 
     // Execute HTTP request with circuit breaker protection
-    return breaker.execute(
-      // Main operation: perform HTTP request
-      async () => {
-        const trafficMonitor = TrafficMonitor.getInstance();
-        const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    try {
+      return await breaker.execute(
+        // Main operation: perform HTTP request
+        async () => {
+          const trafficMonitor = TrafficMonitor.getInstance();
+          const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-        // Track whether monitoring has started
-        let monitoringStarted = false;
+          // Track whether monitoring has started
+          let monitoringStarted = false;
 
-        // Schedule traffic monitoring to start after 1 second delay
-        // This accounts for network overhead before actual transfer begins
-        const timerHandle = Zotero.setTimeout(() => {
-          monitoringStarted = true;
-          trafficMonitor.startRequest(requestId, this.id, url);
-        }, 1000);
+          // Schedule traffic monitoring to start after 1 second delay
+          // This accounts for network overhead before actual transfer begins
+          const timerHandle = Zotero.setTimeout(() => {
+            monitoringStarted = true;
+            trafficMonitor.startRequest(requestId, this.id, url);
+          }, 1000);
 
-        try {
-          const requestOptions = {
-            ...options,
-            method: options.method || "GET",
-          };
-          const response = await Zotero.HTTP.request(url, requestOptions as any);
+          try {
+            const requestOptions = {
+              ...options,
+              method: options.method || "GET",
+            };
+            const response = await Zotero.HTTP.request(url, requestOptions as any);
 
-          // Clear timer if request completed before 1 second
-          if (!monitoringStarted) {
-            Zotero.clearTimeout(timerHandle);
-            // Fast response (< 1s): no score recorded
-          } else {
-            // Slow response (>= 1s): record success
-            trafficMonitor.endRequest(requestId, true);
+            // Clear timer if request completed before 1 second
+            if (!monitoringStarted) {
+              Zotero.clearTimeout(timerHandle);
+              // Fast response (< 1s): no score recorded
+            } else {
+              // Slow response (>= 1s): record success
+              trafficMonitor.endRequest(requestId, true);
+            }
+
+            return {
+              success: true,
+              data: response.responseText,
+              status: response.status,
+            };
+          } catch (error: any) {
+            // Clear timer if request failed before 1 second
+            if (!monitoringStarted) {
+              Zotero.clearTimeout(timerHandle);
+              // Fast failure (< 1s): no score recorded
+            } else {
+              // Slow failure (>= 1s): record failure
+              trafficMonitor.endRequest(requestId, false);
+            }
+
+            // Re-throw error to be caught by circuit breaker
+            throw error;
           }
-
-          return {
-            success: true,
-            data: response.responseText,
-            status: response.status,
-          };
-        } catch (error: any) {
-          // Clear timer if request failed before 1 second
-          if (!monitoringStarted) {
-            Zotero.clearTimeout(timerHandle);
-            // Fast failure (< 1s): no score recorded
-          } else {
-            // Slow failure (>= 1s): record failure
-            trafficMonitor.endRequest(requestId, false);
-          }
-
-          // Re-throw error to be caught by circuit breaker
-          throw error;
-        }
-      },
-      // Fallback: return error response when circuit is OPEN
-      async () => ({
+        },
+        // Fallback: return error response when circuit is OPEN
+        async () => ({
+          success: true,
+          data: "",
+          status: 503, // Service Unavailable
+        }),
+      );
+    } catch (error: any) {
+      // Handle circuit breaker errors by returning error response
+      return {
         success: false,
         data: "",
-        error: `${this.name} is temporarily unavailable (circuit breaker OPEN)`,
-        status: 503, // Service Unavailable
-      }),
-    );
+        error: error instanceof CircuitBreakerError
+          ? `${this.name} is temporarily unavailable (circuit breaker ${error.state})`
+          : error.message || "Request failed",
+        status: error instanceof CircuitBreakerError ? 503 : error.status,
+      };
+    }
   }
 
   /**

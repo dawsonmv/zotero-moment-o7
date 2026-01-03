@@ -46,7 +46,7 @@ export class HealthChecker {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.logger = Logger.getInstance().child("HealthChecker");
     this.metrics = MetricsRegistry.getInstance();
-    this.circuitBreakers = new CircuitBreakerManager();
+    this.circuitBreakers = CircuitBreakerManager.getInstance();
   }
 
   static getInstance(config?: Partial<HealthCheckConfig>): HealthChecker {
