@@ -10,6 +10,10 @@ import { MementoChecker, MementoInfo } from "../memento/MementoChecker";
 import { PreferencesManager } from "../preferences/PreferencesManager";
 import { ConcurrentArchiveQueue } from "../../utils/ConcurrentArchiveQueue";
 import { TrafficMonitor } from "../../utils/TrafficMonitor";
+import {
+  CircuitBreakerManager,
+  CircuitState,
+} from "../../utils/CircuitBreaker";
 
 export class ArchiveCoordinator {
   private static instance: ArchiveCoordinator;
@@ -310,6 +314,26 @@ export class ArchiveCoordinator {
 
       Zotero.debug(
         `MomentO7: Filtering jammed services, ${orderedServices.length} services available for fallback`,
+      );
+    }
+
+    // Filter out services with OPEN circuit breakers
+    const breakerManager = CircuitBreakerManager.getInstance();
+    const beforeCircuitFilter = orderedServices.length;
+    orderedServices = orderedServices.filter(({ id }) => {
+      const state = breakerManager.getBreaker(id).getState();
+      return state.state !== CircuitState.OPEN;
+    });
+
+    if (orderedServices.length < beforeCircuitFilter) {
+      Zotero.debug(
+        `MomentO7: Filtering services with OPEN circuit breakers, ${orderedServices.length}/${beforeCircuitFilter} services available for fallback`,
+      );
+    }
+
+    if (orderedServices.length === 0) {
+      throw new Error(
+        "No archiving services available (all circuit breakers OPEN) - consider retrying later",
       );
     }
 

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Circuit Breaker Resilience** (DAT-32)
+  - Enhanced CircuitBreaker pattern with three-state machine (CLOSED/OPEN/HALF_OPEN)
+  - Custom CircuitBreakerError for circuit-specific exceptions
+  - Event emitter for state transitions enabling monitoring and alerting integration
+  - Automatic state recovery testing with configurable timeouts and thresholds
+  - Singleton CircuitBreakerManager for coordinated multi-service protection
+  - Error filtering to distinguish service failures from client errors
+  - Comprehensive JSDoc documentation with usage examples and architectural notes
+  - 32 comprehensive tests with 96.66% code coverage
+
+### Changed
+
+- Archive service HTTP requests now protected by circuit breaker
+  - Prevents cascading failures when services become unavailable
+  - Fallback order respects circuit breaker state (filters OPEN circuits)
+  - Only service failures (ServerError, Timeout, RateLimit) trigger circuit opening
+  - Client errors (InvalidUrl, AuthRequired, Blocked) don't count as failures
+- BaseArchiveService.makeHttpRequest() wraps all requests with circuit breaker protection
+- ArchiveCoordinator.archiveWithFallback() filters OPEN circuits before attempting fallback
+
 ## [0.0.3] - 2026-01-02
 
 ### Added

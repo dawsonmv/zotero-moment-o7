@@ -15,6 +15,10 @@ import {
   HTTPRequestOptions,
 } from "./types";
 import { TrafficMonitor } from "../../utils/TrafficMonitor";
+import {
+  CircuitBreakerManager,
+  CircuitBreakerError,
+} from "../../utils/CircuitBreaker";
 
 export abstract class BaseArchiveService implements ArchiveService {
   protected lastRequest: number | null = null;
@@ -118,65 +122,101 @@ export abstract class BaseArchiveService implements ArchiveService {
   }
 
   /**
-   * Make HTTP request with traffic monitoring
+   * Make HTTP request with traffic monitoring and circuit breaker protection
    * Wraps request with TrafficMonitor to track service response times
+   * and CircuitBreaker to prevent cascading failures
    * Uses 1-second delayed timer start to account for network overhead
    */
   protected async makeHttpRequest(
     url: string,
     options: HTTPRequestOptions,
   ): Promise<{ success: boolean; data: any; error?: string; status?: number }> {
-    const trafficMonitor = TrafficMonitor.getInstance();
-    const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Get circuit breaker for this service
+    const breakerManager = CircuitBreakerManager.getInstance();
+    const breaker = breakerManager.getBreaker(this.id, {
+      failureThreshold: 5,
+      successThreshold: 2,
+      timeout: 60000,
+      volumeThreshold: 10,
+      // Only count service failures, not client errors
+      errorFilter: (error: Error) => {
+        // If it's a CircuitBreakerError, don't count it as a failure (it's a rejection)
+        if (error instanceof CircuitBreakerError) {
+          return false;
+        }
+        // If it's an ArchiveError, only count service failures
+        if (error instanceof ArchiveError) {
+          return [
+            ArchiveErrorType.ServerError,
+            ArchiveErrorType.Timeout,
+            ArchiveErrorType.RateLimit,
+          ].includes(error.type);
+        }
+        // Count other unexpected errors as failures
+        return true;
+      },
+    });
 
-    // Track whether monitoring has started
-    let monitoringStarted = false;
+    // Execute HTTP request with circuit breaker protection
+    return breaker.execute(
+      // Main operation: perform HTTP request
+      async () => {
+        const trafficMonitor = TrafficMonitor.getInstance();
+        const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Schedule traffic monitoring to start after 1 second delay
-    // This accounts for network overhead before actual transfer begins
-    const timerHandle = Zotero.setTimeout(() => {
-      monitoringStarted = true;
-      trafficMonitor.startRequest(requestId, this.id, url);
-    }, 1000);
+        // Track whether monitoring has started
+        let monitoringStarted = false;
 
-    try {
-      const requestOptions = {
-        ...options,
-        method: options.method || "GET",
-      };
-      const response = await Zotero.HTTP.request(url, requestOptions as any);
+        // Schedule traffic monitoring to start after 1 second delay
+        // This accounts for network overhead before actual transfer begins
+        const timerHandle = Zotero.setTimeout(() => {
+          monitoringStarted = true;
+          trafficMonitor.startRequest(requestId, this.id, url);
+        }, 1000);
 
-      // Clear timer if request completed before 1 second
-      if (!monitoringStarted) {
-        Zotero.clearTimeout(timerHandle);
-        // Fast response (< 1s): no score recorded
-      } else {
-        // Slow response (>= 1s): record success
-        trafficMonitor.endRequest(requestId, true);
-      }
+        try {
+          const requestOptions = {
+            ...options,
+            method: options.method || "GET",
+          };
+          const response = await Zotero.HTTP.request(url, requestOptions as any);
 
-      return {
-        success: true,
-        data: response.responseText,
-        status: response.status,
-      };
-    } catch (error: any) {
-      // Clear timer if request failed before 1 second
-      if (!monitoringStarted) {
-        Zotero.clearTimeout(timerHandle);
-        // Fast failure (< 1s): no score recorded
-      } else {
-        // Slow failure (>= 1s): record failure
-        trafficMonitor.endRequest(requestId, false);
-      }
+          // Clear timer if request completed before 1 second
+          if (!monitoringStarted) {
+            Zotero.clearTimeout(timerHandle);
+            // Fast response (< 1s): no score recorded
+          } else {
+            // Slow response (>= 1s): record success
+            trafficMonitor.endRequest(requestId, true);
+          }
 
-      return {
+          return {
+            success: true,
+            data: response.responseText,
+            status: response.status,
+          };
+        } catch (error: any) {
+          // Clear timer if request failed before 1 second
+          if (!monitoringStarted) {
+            Zotero.clearTimeout(timerHandle);
+            // Fast failure (< 1s): no score recorded
+          } else {
+            // Slow failure (>= 1s): record failure
+            trafficMonitor.endRequest(requestId, false);
+          }
+
+          // Re-throw error to be caught by circuit breaker
+          throw error;
+        }
+      },
+      // Fallback: return error response when circuit is OPEN
+      async () => ({
         success: false,
-        data: error.responseText || "",
-        error: error.message || "Request failed",
-        status: error.status,
-      };
-    }
+        data: "",
+        error: `${this.name} is temporarily unavailable (circuit breaker OPEN)`,
+        status: 503, // Service Unavailable
+      }),
+    );
   }
 
   /**
