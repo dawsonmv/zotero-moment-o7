@@ -78,8 +78,8 @@ const mockCrypto = {
   },
 
   // Mock utilities
-  setTimeout: (fn: Function, delay: number) => setTimeout(fn, delay),
-  clearTimeout: (id: number) => clearTimeout(id),
+  setTimeout: (fn: Function, delay?: number) => setTimeout(fn as any, delay),
+  clearTimeout: (id: number) => clearTimeout(id as any),
 
   // Mock Item constructor
   Item: jest.fn().mockImplementation((type: string) => ({

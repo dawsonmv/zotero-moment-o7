@@ -1,3 +1,11 @@
+/**
+ * Type definitions for Jest test environment
+ *
+ * Provides minimal Zotero API mocks for testing without the full Zotero runtime.
+ * These are deliberately separate from src/types as they represent test doubles,
+ * not actual Zotero APIs. These mocks are created by tests/setup.ts.
+ */
+
 /// <reference types="jest" />
 
 declare namespace jest {
@@ -59,11 +67,17 @@ declare const Zotero: {
   ProgressWindow: new () => any;
   Profile?: { dir: string };
   DataDirectory?: { dir: string };
-  setTimeout: typeof setTimeout;
-  clearTimeout: typeof clearTimeout;
+  setTimeout: (fn: Function, delay?: number) => number;
+  clearTimeout: (id: number) => void;
   getMainWindow: () => Window;
 };
 
 declare const Services: any;
 declare const ztoolkit: any;
 declare const addon: any;
+declare const global: {
+  window?: Window;
+} & any;
+
+// Declare document global for jsdom test environment
+declare const document: Document;

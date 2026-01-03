@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Moment-o7",
-  "version": "1.0.0",
+  "version": "0.0.3",
   "description": "Archive web resources to prevent link rot - Zotero 7 plugin for automated web archiving",
   "homepage_url": "https://github.com/dawsonmv/zotero-moment-o7#readme",
   "author": "Harding Center for Risk Literacy",

@@ -1,5 +1,11 @@
 {
   "extends": "zotero-types/entries/sandbox/",
-  "include": ["src", "typings"],
+  "include": [
+    "src",
+    "typings",
+    "src/types/augmentations",
+    "src/types/build",
+    "src/types/plugin"
+  ],
   "exclude": ["build", "addon"]
 }

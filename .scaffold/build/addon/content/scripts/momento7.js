@@ -6401,17 +6401,14 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
           };
         }
         const timeout = 1e4;
-        const response = await Zotero.HTTP.request(
-          credentials.proxyUrl,
-          {
-            method: "POST",
-            timeout,
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ url: "https://example.com" })
-          }
-        );
+        const response = await Zotero.HTTP.request(credentials.proxyUrl, {
+          method: "POST",
+          timeout,
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url: "https://example.com" })
+        });
         if (response.status >= 400) {
           return {
             success: false,
@@ -6469,9 +6466,13 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         throw new Error("Document object not available in this environment");
       }
       if (!this.container) {
-        this.container = document.getElementById("momento7-preferences-panel-container");
+        this.container = document.getElementById(
+          "momento7-preferences-panel-container"
+        );
         if (!this.container) {
-          this.container = document.getElementById("momento7-preferences");
+          this.container = document.getElementById(
+            "momento7-preferences"
+          );
         }
       }
       if (!this.container) {
@@ -6483,7 +6484,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         try {
           await this.serviceSection.refreshHealthStatus();
         } catch (error) {
-          Zotero.debug(`Momento7: Failed to refresh health status on panel open: ${error}`);
+          Zotero.debug(
+            `Momento7: Failed to refresh health status on panel open: ${error}`
+          );
         }
       }
       this.isInitialized = true;
@@ -6535,34 +6538,58 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         this.markDirty();
       };
       this.serviceSection.on("serviceToggle", onServiceToggle);
-      this.listeners.push({ section: this.serviceSection, event: "serviceToggle", handler: onServiceToggle });
+      this.listeners.push({
+        section: this.serviceSection,
+        event: "serviceToggle",
+        handler: onServiceToggle
+      });
       const onServiceReorder = (order) => {
         this.onServiceReorder(order);
         this.markDirty();
       };
       this.serviceSection.on("serviceReorder", onServiceReorder);
-      this.listeners.push({ section: this.serviceSection, event: "serviceReorder", handler: onServiceReorder });
+      this.listeners.push({
+        section: this.serviceSection,
+        event: "serviceReorder",
+        handler: onServiceReorder
+      });
       const onTestConnection = (serviceId) => {
         this.onTestConnection(serviceId);
       };
       this.serviceSection.on("testConnection", onTestConnection);
-      this.listeners.push({ section: this.serviceSection, event: "testConnection", handler: onTestConnection });
+      this.listeners.push({
+        section: this.serviceSection,
+        event: "testConnection",
+        handler: onTestConnection
+      });
       const onCredentialUpdate = (serviceId, credentials) => {
         this.onCredentialUpdate(serviceId, credentials);
         this.markDirty();
       };
       this.credentialsSection.on("credentialUpdate", onCredentialUpdate);
-      this.listeners.push({ section: this.credentialsSection, event: "credentialUpdate", handler: onCredentialUpdate });
+      this.listeners.push({
+        section: this.credentialsSection,
+        event: "credentialUpdate",
+        handler: onCredentialUpdate
+      });
       const onTestCredentials = (serviceId) => {
         this.onTestCredentials(serviceId);
       };
       this.credentialsSection.on("credentialTest", onTestCredentials);
-      this.listeners.push({ section: this.credentialsSection, event: "credentialTest", handler: onTestCredentials });
+      this.listeners.push({
+        section: this.credentialsSection,
+        event: "credentialTest",
+        handler: onTestCredentials
+      });
       const onPreferenceUpdate = () => {
         this.markDirty();
       };
       this.preferencesSection.on("preferenceUpdate", onPreferenceUpdate);
-      this.listeners.push({ section: this.preferencesSection, event: "preferenceUpdate", handler: onPreferenceUpdate });
+      this.listeners.push({
+        section: this.preferencesSection,
+        event: "preferenceUpdate",
+        handler: onPreferenceUpdate
+      });
     }
     /**
      * Mark preferences as having unsaved changes
@@ -6628,7 +6655,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         const isValid = await this.testServiceCredentials(serviceId);
         this.credentialsSection.setTestResult(serviceId, isValid);
       } catch (error) {
-        Zotero.debug(`Momento7: Credential test failed for ${serviceId}: ${error}`);
+        Zotero.debug(
+          `Momento7: Credential test failed for ${serviceId}: ${error}`
+        );
         this.credentialsSection.setTestResult(
           serviceId,
           false,
@@ -6784,7 +6813,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       }
     }
     async renderServiceList() {
-      const listContainer = this.container?.querySelector(".momento7-services-list");
+      const listContainer = this.container?.querySelector(
+        ".momento7-services-list"
+      );
       if (!listContainer) return;
       const registry = ServiceRegistry.getInstance();
       const entries = registry.getAll();
@@ -6820,7 +6851,10 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       toggle.className = "momento7-service-toggle";
       toggle.checked = isEnabled;
       toggle.setAttribute("aria-label", `Enable ${service.name}`);
-      toggle.addEventListener("change", (e) => this.handleToggle(service.id, e.target.checked));
+      toggle.addEventListener(
+        "change",
+        (e) => this.handleToggle(service.id, e.target.checked)
+      );
       const info = document.createElement("div");
       info.className = "momento7-service-info";
       const name = document.createElement("div");
@@ -6842,10 +6876,14 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       const statusEl = document.createElement("div");
       statusEl.className = "momento7-service-status";
       if (status?.checked) {
-        statusEl.classList.add(status.available ? "momento7-service-status--online" : "momento7-service-status--offline");
+        statusEl.classList.add(
+          status.available ? "momento7-service-status--online" : "momento7-service-status--offline"
+        );
         statusEl.innerHTML = status.available ? "\u2713 Online" : "\u26A0 Offline";
       } else if (health) {
-        statusEl.classList.add(`momento7-service-status--${health.status.toLowerCase()}`);
+        statusEl.classList.add(
+          `momento7-service-status--${health.status.toLowerCase()}`
+        );
         statusEl.textContent = health.status;
       } else {
         statusEl.classList.add("momento7-service-status--unknown");
@@ -6861,16 +6899,28 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       testBtn.className = "momento7-btn momento7-btn-small";
       testBtn.textContent = "Test";
       testBtn.setAttribute("aria-label", `Test ${service.name} connection`);
-      testBtn.addEventListener("click", () => this.handleTestConnection(service.id));
+      testBtn.addEventListener(
+        "click",
+        () => this.handleTestConnection(service.id)
+      );
       actions.appendChild(dragHandle);
       actions.appendChild(testBtn);
       item.appendChild(toggle);
       item.appendChild(info);
       item.appendChild(statusEl);
       item.appendChild(actions);
-      item.addEventListener("dragstart", (e) => this.handleDragStart(e, service.id));
-      item.addEventListener("dragover", (e) => this.handleDragOver(e));
-      item.addEventListener("drop", (e) => this.handleDrop(e, service.id));
+      item.addEventListener(
+        "dragstart",
+        (e) => this.handleDragStart(e, service.id)
+      );
+      item.addEventListener(
+        "dragover",
+        (e) => this.handleDragOver(e)
+      );
+      item.addEventListener(
+        "drop",
+        (e) => this.handleDrop(e, service.id)
+      );
       item.addEventListener("dragend", (e) => this.handleDragEnd(e));
       item.statusElement = statusEl;
       return item;
@@ -6907,7 +6957,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     handleDragOver(e) {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
-      const items = Array.from(this.container?.querySelectorAll(".momento7-service-item") || []);
+      const items = Array.from(
+        this.container?.querySelectorAll(".momento7-service-item") || []
+      );
       const afterElement = this.getDragAfterElement(e.clientY, items);
       const draggingItem = this.services.get(this.draggedServiceId || "");
       if (!draggingItem) return;
@@ -6926,9 +6978,13 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       if (item) {
         item.classList.remove("dragging");
       }
-      const listContainer = this.container?.querySelector(".momento7-services-list");
+      const listContainer = this.container?.querySelector(
+        ".momento7-services-list"
+      );
       if (listContainer) {
-        const items = Array.from(listContainer.querySelectorAll(".momento7-service-item"));
+        const items = Array.from(
+          listContainer.querySelectorAll(".momento7-service-item")
+        );
         this.serviceOrder = items.map((item2) => item2.dataset.serviceId).filter((id) => !!id);
         this.emit("serviceReorder", this.serviceOrder);
       }
@@ -7006,7 +7062,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
               statusEl.className = `momento7-service-status momento7-service-status--${health.status.toLowerCase()}`;
               statusEl.textContent = health.status;
               const infoEl = item.querySelector(".momento7-service-info");
-              const detailsEl = infoEl?.querySelector(".momento7-service-health-details");
+              const detailsEl = infoEl?.querySelector(
+                ".momento7-service-health-details"
+              );
               if (detailsEl) {
                 const lastCheckTime = health.lastCheck ? new Date(health.lastCheck).toLocaleTimeString() : "Never";
                 const successPercent = (health.successRate * 100).toFixed(1);
@@ -7065,7 +7123,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       await this.renderCredentialForms();
     }
     async renderCredentialForms() {
-      const formContainer = this.container?.querySelector(".momento7-credentials-form");
+      const formContainer = this.container?.querySelector(
+        ".momento7-credentials-form"
+      );
       if (!formContainer) return;
       await this.renderInternetArchiveForm(formContainer);
       await this.renderPermaCCForm(formContainer);
@@ -7090,9 +7150,14 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.iaAccessKeyInput.type = "password";
       this.iaAccessKeyInput.className = "momento7-credential-input";
       this.iaAccessKeyInput.placeholder = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-      this.iaAccessKeyInput.setAttribute("aria-label", "Internet Archive access key");
+      this.iaAccessKeyInput.setAttribute(
+        "aria-label",
+        "Internet Archive access key"
+      );
       this.iaAccessKeyInput.addEventListener("change", () => {
-        this.emit("credentialUpdate", "internetarchive", { accessKey: this.iaAccessKeyInput?.value });
+        this.emit("credentialUpdate", "internetarchive", {
+          accessKey: this.iaAccessKeyInput?.value
+        });
       });
       accessKeyField.appendChild(this.iaAccessKeyInput);
       fields.appendChild(accessKeyField);
@@ -7106,9 +7171,14 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.iaSecretKeyInput.type = "password";
       this.iaSecretKeyInput.className = "momento7-credential-input";
       this.iaSecretKeyInput.placeholder = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
-      this.iaSecretKeyInput.setAttribute("aria-label", "Internet Archive secret key");
+      this.iaSecretKeyInput.setAttribute(
+        "aria-label",
+        "Internet Archive secret key"
+      );
       this.iaSecretKeyInput.addEventListener("change", () => {
-        this.emit("credentialUpdate", "internetarchive", { secretKey: this.iaSecretKeyInput?.value });
+        this.emit("credentialUpdate", "internetarchive", {
+          secretKey: this.iaSecretKeyInput?.value
+        });
       });
       secretKeyField.appendChild(this.iaSecretKeyInput);
       fields.appendChild(secretKeyField);
@@ -7131,13 +7201,25 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       testBtn.className = "momento7-btn momento7-btn-small";
       testBtn.textContent = "Test";
       testBtn.setAttribute("aria-label", "Test Internet Archive credentials");
-      testBtn.addEventListener("click", () => this.handleTestCredentials("internetarchive", status));
+      testBtn.addEventListener(
+        "click",
+        () => this.handleTestCredentials("internetarchive", status)
+      );
       actions.appendChild(testBtn);
       const clearBtn = document.createElement("button");
       clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
       clearBtn.textContent = "Clear";
       clearBtn.setAttribute("aria-label", "Clear Internet Archive credentials");
-      clearBtn.addEventListener("click", () => this.handleClearCredentials("iaAccessKey", "iaSecretKey", status, this.iaAccessKeyInput, this.iaSecretKeyInput));
+      clearBtn.addEventListener(
+        "click",
+        () => this.handleClearCredentials(
+          "iaAccessKey",
+          "iaSecretKey",
+          status,
+          this.iaAccessKeyInput,
+          this.iaSecretKeyInput
+        )
+      );
       actions.appendChild(clearBtn);
       group.appendChild(actions);
       container.appendChild(group);
@@ -7171,7 +7253,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.permaCCApiKeyInput.placeholder = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
       this.permaCCApiKeyInput.setAttribute("aria-label", "Perma.cc API key");
       this.permaCCApiKeyInput.addEventListener("change", () => {
-        this.emit("credentialUpdate", "permacc", { apiKey: this.permaCCApiKeyInput?.value });
+        this.emit("credentialUpdate", "permacc", {
+          apiKey: this.permaCCApiKeyInput?.value
+        });
       });
       apiKeyField.appendChild(this.permaCCApiKeyInput);
       fields.appendChild(apiKeyField);
@@ -7193,13 +7277,24 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       testBtn.className = "momento7-btn momento7-btn-small";
       testBtn.textContent = "Test";
       testBtn.setAttribute("aria-label", "Test Perma.cc credentials");
-      testBtn.addEventListener("click", () => this.handleTestCredentials("permacc", status));
+      testBtn.addEventListener(
+        "click",
+        () => this.handleTestCredentials("permacc", status)
+      );
       actions.appendChild(testBtn);
       const clearBtn = document.createElement("button");
       clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
       clearBtn.textContent = "Clear";
       clearBtn.setAttribute("aria-label", "Clear Perma.cc credentials");
-      clearBtn.addEventListener("click", () => this.handleClearCredentials("permaCCApiKey", void 0, status, this.permaCCApiKeyInput));
+      clearBtn.addEventListener(
+        "click",
+        () => this.handleClearCredentials(
+          "permaCCApiKey",
+          void 0,
+          status,
+          this.permaCCApiKeyInput
+        )
+      );
       actions.appendChild(clearBtn);
       group.appendChild(actions);
       container.appendChild(group);
@@ -7227,9 +7322,14 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.archiveTodayProxyInput.type = "text";
       this.archiveTodayProxyInput.className = "momento7-credential-input";
       this.archiveTodayProxyInput.placeholder = "https://proxy.example.com";
-      this.archiveTodayProxyInput.setAttribute("aria-label", "Archive.today proxy URL");
+      this.archiveTodayProxyInput.setAttribute(
+        "aria-label",
+        "Archive.today proxy URL"
+      );
       this.archiveTodayProxyInput.addEventListener("change", () => {
-        this.emit("credentialUpdate", "archivetoday", { proxyUrl: this.archiveTodayProxyInput?.value });
+        this.emit("credentialUpdate", "archivetoday", {
+          proxyUrl: this.archiveTodayProxyInput?.value
+        });
       });
       proxyField.appendChild(this.archiveTodayProxyInput);
       const help = document.createElement("p");
@@ -7238,7 +7338,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       proxyField.appendChild(help);
       fields.appendChild(proxyField);
       group.appendChild(fields);
-      const hasProxy = await this.credentialManager.hasCredential("archiveTodayProxyUrl");
+      const hasProxy = await this.credentialManager.hasCredential(
+        "archiveTodayProxyUrl"
+      );
       const status = document.createElement("div");
       status.className = "momento7-credential-status";
       if (hasProxy) {
@@ -7255,23 +7357,38 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       testBtn.className = "momento7-btn momento7-btn-small";
       testBtn.textContent = "Test";
       testBtn.setAttribute("aria-label", "Test Archive.today proxy");
-      testBtn.addEventListener("click", () => this.handleTestCredentials("archivetoday", status));
+      testBtn.addEventListener(
+        "click",
+        () => this.handleTestCredentials("archivetoday", status)
+      );
       actions.appendChild(testBtn);
       const clearBtn = document.createElement("button");
       clearBtn.className = "momento7-btn momento7-btn-small momento7-btn-danger";
       clearBtn.textContent = "Clear";
       clearBtn.setAttribute("aria-label", "Clear Archive.today proxy");
-      clearBtn.addEventListener("click", () => this.handleClearCredentials("archiveTodayProxyUrl", void 0, status, this.archiveTodayProxyInput));
+      clearBtn.addEventListener(
+        "click",
+        () => this.handleClearCredentials(
+          "archiveTodayProxyUrl",
+          void 0,
+          status,
+          this.archiveTodayProxyInput
+        )
+      );
       actions.appendChild(clearBtn);
       group.appendChild(actions);
       container.appendChild(group);
       if (hasProxy) {
-        const proxyUrl = await this.credentialManager.getCredential("archiveTodayProxyUrl");
+        const proxyUrl = await this.credentialManager.getCredential(
+          "archiveTodayProxyUrl"
+        );
         if (proxyUrl) this.archiveTodayProxyInput.value = proxyUrl;
       }
     }
     async handleClearCredentials(key1, key2, statusEl, input1, input2) {
-      const shouldClear = Zotero.confirmationPrompt ? Zotero.confirmationPrompt("Clear these credentials? This action cannot be undone.") : true;
+      const shouldClear = Zotero.confirmationPrompt ? Zotero.confirmationPrompt(
+        "Clear these credentials? This action cannot be undone."
+      ) : true;
       if (!shouldClear) {
         return;
       }
@@ -7308,11 +7425,17 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       const groups = this.container?.querySelectorAll(".momento7-credential-group") || [];
       let statusEl = null;
       if (serviceId === "internetarchive") {
-        statusEl = groups[0]?.querySelector(".momento7-credential-status");
+        statusEl = groups[0]?.querySelector(
+          ".momento7-credential-status"
+        );
       } else if (serviceId === "permacc") {
-        statusEl = groups[1]?.querySelector(".momento7-credential-status");
+        statusEl = groups[1]?.querySelector(
+          ".momento7-credential-status"
+        );
       } else if (serviceId === "archivetoday") {
-        statusEl = groups[2]?.querySelector(".momento7-credential-status");
+        statusEl = groups[2]?.querySelector(
+          ".momento7-credential-status"
+        );
       }
       if (!statusEl) return;
       if (success) {
@@ -7326,19 +7449,31 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     async getCredentials() {
       const credentials = {};
       if (this.iaAccessKeyInput?.value) {
-        await this.credentialManager.storeCredential("iaAccessKey", this.iaAccessKeyInput.value);
+        await this.credentialManager.storeCredential(
+          "iaAccessKey",
+          this.iaAccessKeyInput.value
+        );
         credentials.iaAccessKey = this.iaAccessKeyInput.value;
       }
       if (this.iaSecretKeyInput?.value) {
-        await this.credentialManager.storeCredential("iaSecretKey", this.iaSecretKeyInput.value);
+        await this.credentialManager.storeCredential(
+          "iaSecretKey",
+          this.iaSecretKeyInput.value
+        );
         credentials.iaSecretKey = this.iaSecretKeyInput.value;
       }
       if (this.permaCCApiKeyInput?.value) {
-        await this.credentialManager.storeCredential("permaCCApiKey", this.permaCCApiKeyInput.value);
+        await this.credentialManager.storeCredential(
+          "permaCCApiKey",
+          this.permaCCApiKeyInput.value
+        );
         credentials.permaCCApiKey = this.permaCCApiKeyInput.value;
       }
       if (this.archiveTodayProxyInput?.value) {
-        await this.credentialManager.storeCredential("archiveTodayProxyUrl", this.archiveTodayProxyInput.value);
+        await this.credentialManager.storeCredential(
+          "archiveTodayProxyUrl",
+          this.archiveTodayProxyInput.value
+        );
         credentials.archiveTodayProxyUrl = this.archiveTodayProxyInput.value;
       }
       return credentials;
@@ -7421,7 +7556,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.autoArchive = manager.getPref("autoArchive") ?? true;
     }
     renderForm() {
-      const formContainer = this.container?.querySelector(".momento7-preferences-form");
+      const formContainer = this.container?.querySelector(
+        ".momento7-preferences-form"
+      );
       if (!formContainer) return;
       const timeoutGroup = document.createElement("div");
       timeoutGroup.className = "momento7-preference-group";
@@ -7437,9 +7574,15 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.timeoutInput.max = "600000";
       this.timeoutInput.step = "1000";
       this.timeoutInput.value = String(this.timeout);
-      this.timeoutInput.setAttribute("aria-label", "Request timeout in milliseconds");
+      this.timeoutInput.setAttribute(
+        "aria-label",
+        "Request timeout in milliseconds"
+      );
       this.timeoutInput.addEventListener("change", () => {
-        this.timeout = Math.max(1e3, Math.min(6e5, parseInt(this.timeoutInput.value, 10)));
+        this.timeout = Math.max(
+          1e3,
+          Math.min(6e5, parseInt(this.timeoutInput.value, 10))
+        );
         this.timeoutInput.value = String(this.timeout);
         this.emit("preferenceUpdate");
       });
@@ -7462,7 +7605,10 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.checkBeforeArchiveCheckbox.type = "checkbox";
       this.checkBeforeArchiveCheckbox.className = "momento7-preference-checkbox";
       this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
-      this.checkBeforeArchiveCheckbox.setAttribute("aria-label", "Check for existing archives before archiving");
+      this.checkBeforeArchiveCheckbox.setAttribute(
+        "aria-label",
+        "Check for existing archives before archiving"
+      );
       this.checkBeforeArchiveCheckbox.addEventListener("change", () => {
         this.checkBeforeArchive = this.checkBeforeArchiveCheckbox.checked;
         this.emit("preferenceUpdate");
@@ -7470,7 +7616,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       const checkLabel = document.createElement("label");
       checkLabel.className = "momento7-preference-label";
       checkLabel.appendChild(this.checkBeforeArchiveCheckbox);
-      checkLabel.appendChild(document.createTextNode("Check for existing archives before archiving"));
+      checkLabel.appendChild(
+        document.createTextNode("Check for existing archives before archiving")
+      );
       checkGroup.appendChild(checkLabel);
       const checkHelp = document.createElement("p");
       checkHelp.className = "momento7-preference-help";
@@ -7493,9 +7641,15 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.ageThresholdInput.min = "1";
       this.ageThresholdInput.max = "3650";
       this.ageThresholdInput.value = String(this.archiveAgeThreshold);
-      this.ageThresholdInput.setAttribute("aria-label", "Minimum age of archive in days");
+      this.ageThresholdInput.setAttribute(
+        "aria-label",
+        "Minimum age of archive in days"
+      );
       this.ageThresholdInput.addEventListener("change", () => {
-        this.archiveAgeThreshold = Math.max(1, parseInt(this.ageThresholdInput.value, 10));
+        this.archiveAgeThreshold = Math.max(
+          1,
+          parseInt(this.ageThresholdInput.value, 10)
+        );
         this.ageThresholdInput.value = String(this.archiveAgeThreshold);
         this.emit("preferenceUpdate");
       });
@@ -7521,7 +7675,10 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.autoArchiveCheckbox.type = "checkbox";
       this.autoArchiveCheckbox.className = "momento7-preference-checkbox";
       this.autoArchiveCheckbox.checked = this.autoArchive;
-      this.autoArchiveCheckbox.setAttribute("aria-label", "Automatically archive new items");
+      this.autoArchiveCheckbox.setAttribute(
+        "aria-label",
+        "Automatically archive new items"
+      );
       this.autoArchiveCheckbox.addEventListener("change", () => {
         this.autoArchive = this.autoArchiveCheckbox.checked;
         this.emit("preferenceUpdate");
@@ -7529,7 +7686,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       const autoLabel = document.createElement("label");
       autoLabel.className = "momento7-preference-label";
       autoLabel.appendChild(this.autoArchiveCheckbox);
-      autoLabel.appendChild(document.createTextNode("Automatically archive new items"));
+      autoLabel.appendChild(
+        document.createTextNode("Automatically archive new items")
+      );
       autoGroup.appendChild(autoLabel);
       const autoHelp = document.createElement("p");
       autoHelp.className = "momento7-preference-help";
@@ -7539,7 +7698,10 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       const resetBtn = document.createElement("button");
       resetBtn.className = "momento7-btn momento7-btn-secondary";
       resetBtn.textContent = "Reset to Defaults";
-      resetBtn.setAttribute("aria-label", "Reset all preferences to default values");
+      resetBtn.setAttribute(
+        "aria-label",
+        "Reset all preferences to default values"
+      );
       resetBtn.addEventListener("click", () => this.resetToDefaults());
       const resetGroup = document.createElement("div");
       resetGroup.style.marginTop = "16px";
@@ -7552,9 +7714,12 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       this.archiveAgeThreshold = 30;
       this.autoArchive = true;
       if (this.timeoutInput) this.timeoutInput.value = String(this.timeout);
-      if (this.checkBeforeArchiveCheckbox) this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
-      if (this.ageThresholdInput) this.ageThresholdInput.value = String(this.archiveAgeThreshold);
-      if (this.autoArchiveCheckbox) this.autoArchiveCheckbox.checked = this.autoArchive;
+      if (this.checkBeforeArchiveCheckbox)
+        this.checkBeforeArchiveCheckbox.checked = this.checkBeforeArchive;
+      if (this.ageThresholdInput)
+        this.ageThresholdInput.value = String(this.archiveAgeThreshold);
+      if (this.autoArchiveCheckbox)
+        this.autoArchiveCheckbox.checked = this.autoArchive;
       this.emit("preferenceUpdate");
     }
     getTimeout() {
@@ -8406,7 +8571,9 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
             continue;
           }
           if (failedEntryId) {
-            const failedIndex = activePromises.findIndex((e) => e.id === failedEntryId);
+            const failedIndex = activePromises.findIndex(
+              (e) => e.id === failedEntryId
+            );
             if (failedIndex >= 0) {
               activePromises.splice(failedIndex, 1);
               this.activeCount = Math.max(0, this.activeCount - 1);
@@ -8435,18 +8602,19 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
           this.updateHeadline(completedCount, items.length);
         }
         this.closeProgressWindow(completedResults.size, items.length);
-        return items.map((item) => completedResults.get(this.getItemKey(item)) || {
-          item,
-          success: false,
-          error: "Item was not processed"
-        });
-      } catch (error) {
-        Zotero.debug(
-          `MomentO7 Queue: Fatal error during processing: ${error}`
+        return items.map(
+          (item) => completedResults.get(this.getItemKey(item)) || {
+            item,
+            success: false,
+            error: "Item was not processed"
+          }
         );
+      } catch (error) {
+        Zotero.debug(`MomentO7 Queue: Fatal error during processing: ${error}`);
         try {
           this.closeProgressWindow(0, items.length);
-        } catch {
+        } catch (e) {
+          Zotero.debug(`MomentO7 Queue: Error closing progress window: ${e}`);
         }
         throw error;
       }
@@ -8797,10 +8965,7 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
         throw new Error("No archiving services available");
       }
       const fallbackOrder = this.getFallbackOrder();
-      let orderedServices = this.orderServices(
-        availableServices,
-        fallbackOrder
-      );
+      let orderedServices = this.orderServices(availableServices, fallbackOrder);
       if (this.currentTrafficMonitor) {
         orderedServices = orderedServices.filter(
           ({ id }) => !this.currentTrafficMonitor.isServiceJammed(id)
@@ -10190,10 +10355,7 @@ ${archiveField}` : archiveField;
   if (typeof _globalThis.onunhandledrejection === "undefined") {
     _globalThis.onunhandledrejection = (event) => {
       const error = event.reason || "Unknown error";
-      console.error(
-        `[${config.addonName}] Unhandled promise rejection:`,
-        error
-      );
+      console.error(`[${config.addonName}] Unhandled promise rejection:`, error);
     };
   }
   if (!basicTool2.getGlobal("Zotero")[config.addonInstance]) {
