@@ -250,3 +250,26 @@ export interface AlertPreferences {
   thresholds: AlertThresholds;
   maxHistorySize?: number; // Number of alerts to keep in history
 }
+
+// Activity tracking for audit trail
+export enum ActivityEventType {
+  ArchiveAttempt = "archive_attempt",
+  ArchiveSuccess = "archive_success",
+  ArchiveFailure = "archive_failure",
+  ServiceChecked = "service_checked",
+  CircuitBreakerTripped = "circuit_breaker_tripped",
+  CircuitBreakerRecovered = "circuit_breaker_recovered",
+}
+
+export interface ActivityEvent {
+  id: string;
+  timestamp: string; // ISO 8601
+  type: ActivityEventType;
+  serviceId?: string;
+  itemId?: number;
+  itemTitle?: string;
+  url?: string;
+  result?: "success" | "failure" | "skipped";
+  message?: string;
+  details?: Record<string, any>;
+}

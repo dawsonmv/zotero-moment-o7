@@ -9,6 +9,8 @@ import {
   AlertLevel,
   AlertPreferences,
   AlertThresholds,
+  ActivityEvent,
+  ActivityEventType,
 } from "./types";
 
 export class AlertManager {
@@ -16,6 +18,8 @@ export class AlertManager {
   private alertHistory: Map<string, Alert> = new Map();
   private lastAlertTime: Map<string, number> = new Map(); // Key: alert identifier
   private failureTracker: Map<string, number[]> = new Map(); // Timestamps of failures
+  private activityHistory: Map<string, ActivityEvent> = new Map(); // Activity audit trail
+  private maxActivityHistorySize: number = 500; // Keep recent activities for audit
   private preferences: AlertPreferences = {
     enabled: true,
     channels: [AlertChannel.Log, AlertChannel.Zotero],
@@ -389,6 +393,66 @@ export class AlertManager {
   }
 
   /**
+   * Track an archiving activity for audit trail
+   */
+  trackActivity(event: Omit<ActivityEvent, "id" | "timestamp">): ActivityEvent {
+    const activity: ActivityEvent = {
+      ...event,
+      id: `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.activityHistory.set(activity.id, activity);
+
+    // Trim activity history if exceeds max size
+    if (this.activityHistory.size > this.maxActivityHistorySize) {
+      const allActivities = Array.from(this.activityHistory.values()).sort(
+        (a, b) =>
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      );
+
+      // Remove oldest activities
+      const toRemove = allActivities.slice(
+        0,
+        allActivities.length - this.maxActivityHistorySize,
+      );
+      toRemove.forEach((a) => this.activityHistory.delete(a.id));
+    }
+
+    return activity;
+  }
+
+  /**
+   * Get activity history
+   */
+  getActivityHistory(limit?: number): ActivityEvent[] {
+    const activities = Array.from(this.activityHistory.values()).sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
+
+    return limit ? activities.slice(0, limit) : activities;
+  }
+
+  /**
+   * Get activities for a specific service
+   */
+  getServiceActivity(serviceId: string, limit?: number): ActivityEvent[] {
+    const activities = this.getActivityHistory().filter(
+      (a) => a.serviceId === serviceId,
+    );
+
+    return limit ? activities.slice(0, limit) : activities;
+  }
+
+  /**
+   * Clear activity history
+   */
+  clearActivityHistory(): void {
+    this.activityHistory.clear();
+  }
+
+  /**
    * Export audit report with current system state
    */
   exportAuditReport(): {
@@ -410,6 +474,7 @@ export class AlertManager {
       currentFailureCount: number;
       lastAlertTime?: string;
     }>;
+    activityHistory: ActivityEvent[];
   } {
     const alerts = this.getHistory();
     const acknowledgedAlerts = alerts.filter((a) => a.acknowledged);
@@ -431,6 +496,7 @@ export class AlertManager {
       alerts: alerts,
       failureTracking,
       serviceStatistics: this.getAllServiceStatistics(),
+      activityHistory: this.getActivityHistory(100), // Include last 100 activities
     };
   }
 }
