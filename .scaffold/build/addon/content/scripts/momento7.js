@@ -9784,14 +9784,860 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
     }
   };
 
+  // src/modules/archive/AlertManager.ts
+  var AlertManager = class _AlertManager {
+    static instance;
+    alertHistory = /* @__PURE__ */ new Map();
+    lastAlertTime = /* @__PURE__ */ new Map();
+    // Key: alert identifier
+    failureTracker = /* @__PURE__ */ new Map();
+    // Timestamps of failures
+    activityHistory = /* @__PURE__ */ new Map();
+    // Activity audit trail
+    maxActivityHistorySize = 500;
+    // Keep recent activities for audit
+    circuitBreakerEvents = /* @__PURE__ */ new Map();
+    // CB state tracking
+    preferences = {
+      enabled: true,
+      channels: ["log" /* Log */, "zotero" /* Zotero */],
+      level: "warning" /* Warning */,
+      thresholds: {
+        failureCount: 3,
+        failureWindow: 3e5,
+        // 5 minutes
+        circuitBreakerStateChange: true,
+        minAlertInterval: 6e4
+        // 1 minute between same alert
+      },
+      maxHistorySize: 100
+    };
+    constructor() {
+    }
+    static getInstance() {
+      if (!_AlertManager.instance) {
+        _AlertManager.instance = new _AlertManager();
+      }
+      return _AlertManager.instance;
+    }
+    /**
+     * Create and send an alert
+     */
+    createAlert(title, message, level = "warning" /* Warning */, serviceId, details) {
+      if (!this.preferences.enabled) {
+        return null;
+      }
+      if (!this.isLevelEnabled(level)) {
+        return null;
+      }
+      const alertKey = this.getAlertKey(serviceId, title);
+      if (!this.shouldSendAlert(alertKey)) {
+        Zotero.debug(
+          `MomentO7: Alert deduplicated (${alertKey}), too soon since last alert`
+        );
+        return null;
+      }
+      const alert = {
+        id: this.generateAlertId(),
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        level,
+        channel: this.preferences.channels[0] || "log" /* Log */,
+        title,
+        message,
+        serviceId,
+        details,
+        acknowledged: false
+      };
+      this.addToHistory(alert);
+      this.lastAlertTime.set(alertKey, Date.now());
+      this.sendAlert(alert);
+      return alert;
+    }
+    /**
+     * Track failure for threshold-based alerting
+     */
+    trackFailure(serviceId) {
+      const key = serviceId;
+      if (!this.failureTracker.has(key)) {
+        this.failureTracker.set(key, []);
+      }
+      const failures = this.failureTracker.get(key);
+      const now = Date.now();
+      failures.push(now);
+      const window2 = this.preferences.thresholds.failureWindow || 3e5;
+      const validFailures = failures.filter(
+        (timestamp) => now - timestamp < window2
+      );
+      this.failureTracker.set(key, validFailures);
+      const threshold = this.preferences.thresholds.failureCount || 3;
+      if (validFailures.length >= threshold) {
+        this.createAlert(
+          `Service Threshold Exceeded`,
+          `${serviceId} has failed ${validFailures.length} times in the last ${Math.round(window2 / 1e3)} seconds`,
+          "error" /* Error */,
+          serviceId,
+          { failureCount: validFailures.length, window: window2 }
+        );
+        this.failureTracker.set(key, []);
+      }
+    }
+    /**
+     * Alert on circuit breaker state change
+     */
+    alertCircuitBreakerChange(serviceId, oldState, newState) {
+      if (!this.preferences.thresholds.circuitBreakerStateChange) {
+        return;
+      }
+      const level = newState === "OPEN" ? "error" /* Error */ : "warning" /* Warning */;
+      this.createAlert(
+        `Circuit Breaker State Change`,
+        `${serviceId} circuit breaker transitioned from ${oldState} to ${newState}`,
+        level,
+        serviceId,
+        { oldState, newState }
+      );
+    }
+    /**
+     * Get alert history
+     */
+    getHistory() {
+      return Array.from(this.alertHistory.values()).sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+    }
+    /**
+     * Get alerts for a specific service
+     */
+    getServiceAlerts(serviceId) {
+      return this.getHistory().filter((a) => a.serviceId === serviceId);
+    }
+    /**
+     * Get unacknowledged alerts
+     */
+    getUnacknowledgedAlerts() {
+      return this.getHistory().filter((a) => !a.acknowledged);
+    }
+    /**
+     * Acknowledge an alert
+     */
+    acknowledgeAlert(alertId) {
+      const alert = this.alertHistory.get(alertId);
+      if (alert) {
+        alert.acknowledged = true;
+        return true;
+      }
+      return false;
+    }
+    /**
+     * Clear alert history
+     */
+    clearHistory() {
+      this.alertHistory.clear();
+    }
+    /**
+     * Set alert preferences
+     */
+    setPreferences(preferences) {
+      this.preferences = { ...this.preferences, ...preferences };
+    }
+    /**
+     * Get current preferences
+     */
+    getPreferences() {
+      return this.preferences;
+    }
+    /**
+     * Find alerts by criteria
+     */
+    findAlerts(criteria) {
+      return this.getHistory().filter((alert) => {
+        if (criteria.level && alert.level !== criteria.level) return false;
+        if (criteria.serviceId && alert.serviceId !== criteria.serviceId)
+          return false;
+        if (criteria.acknowledged !== void 0 && alert.acknowledged !== criteria.acknowledged)
+          return false;
+        if (criteria.since) {
+          const alertTime = new Date(alert.timestamp).getTime();
+          if (alertTime < criteria.since) return false;
+        }
+        if (criteria.title && !alert.title.toLowerCase().includes(criteria.title.toLowerCase()))
+          return false;
+        return true;
+      });
+    }
+    /**
+     * Get critical alerts (Error or Critical level)
+     */
+    getCriticalAlerts() {
+      return this.getHistory().filter(
+        (a) => a.level === "error" /* Error */ || a.level === "critical" /* Critical */
+      );
+    }
+    /**
+     * Get recent unacknowledged alerts for a service
+     */
+    getRecentServiceAlerts(serviceId, hoursBack = 24) {
+      const sinceTime = Date.now() - hoursBack * 36e5;
+      return this.findAlerts({
+        serviceId,
+        acknowledged: false,
+        since: sinceTime
+      });
+    }
+    /**
+     * Count alerts by level
+     */
+    countAlertsByLevel() {
+      const counts = {};
+      const alerts = this.getHistory();
+      for (const alert of alerts) {
+        counts[alert.level] = (counts[alert.level] || 0) + 1;
+      }
+      return counts;
+    }
+    /**
+     * Get alert trend - count of new alerts in time windows
+     */
+    getAlertTrend(windowMinutes = 60, windowsBack = 24) {
+      const windowMs = windowMinutes * 6e4;
+      const trends = [];
+      const now = Date.now();
+      for (let i = windowsBack - 1; i >= 0; i--) {
+        const windowStart = now - (i + 1) * windowMs;
+        const windowEnd = now - i * windowMs;
+        const windowDate = new Date(windowStart);
+        const windowKey = windowDate.toISOString().substring(0, 16);
+        const alertsInWindow = this.getHistory().filter((a) => {
+          const alertTime = new Date(a.timestamp).getTime();
+          return alertTime >= windowStart && alertTime < windowEnd;
+        });
+        trends.push({
+          window: windowKey,
+          alertCount: alertsInWindow.length
+        });
+      }
+      return trends;
+    }
+    /**
+     * Reset failure tracker for a service
+     */
+    resetFailureTracker(serviceId) {
+      this.failureTracker.delete(serviceId);
+    }
+    /**
+     * Get failure count for a service
+     */
+    getFailureCount(serviceId) {
+      const failures = this.failureTracker.get(serviceId) || [];
+      const now = Date.now();
+      const window2 = this.preferences.thresholds.failureWindow || 3e5;
+      return failures.filter((timestamp) => now - timestamp < window2).length;
+    }
+    // Private helpers
+    isLevelEnabled(level) {
+      const levelOrder = [
+        "info" /* Info */,
+        "warning" /* Warning */,
+        "error" /* Error */,
+        "critical" /* Critical */
+      ];
+      const thresholdIndex = levelOrder.indexOf(this.preferences.level);
+      const levelIndex = levelOrder.indexOf(level);
+      return levelIndex >= thresholdIndex;
+    }
+    getAlertKey(serviceId, title) {
+      return `${serviceId || "global"}:${title}`;
+    }
+    shouldSendAlert(key) {
+      const lastTime = this.lastAlertTime.get(key);
+      if (!lastTime) {
+        return true;
+      }
+      const minInterval = this.preferences.thresholds.minAlertInterval || 6e4;
+      return Date.now() - lastTime >= minInterval;
+    }
+    addToHistory(alert) {
+      this.alertHistory.set(alert.id, alert);
+      const maxSize = this.preferences.maxHistorySize || 100;
+      if (this.alertHistory.size > maxSize) {
+        const allAlerts = Array.from(this.alertHistory.values()).sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        const toRemove = allAlerts.slice(0, allAlerts.length - maxSize);
+        toRemove.forEach((a) => this.alertHistory.delete(a.id));
+      }
+    }
+    sendAlert(alert) {
+      if (this.preferences.channels.includes("log" /* Log */) || alert.channel === "log" /* Log */) {
+        const levelStr = alert.level.toUpperCase();
+        Zotero.debug(`MomentO7 [${levelStr}]: ${alert.title} - ${alert.message}`);
+      }
+      if (this.preferences.channels.includes("zotero" /* Zotero */) || alert.channel === "zotero" /* Zotero */) {
+        this.sendZoteroNotification(alert);
+      }
+      if (alert.channel === "ui" /* UI */) {
+        Zotero.debug(`MomentO7: [UI Alert] ${alert.title}`);
+      }
+    }
+    sendZoteroNotification(alert) {
+      try {
+        if (typeof Zotero !== "undefined" && Zotero.ProgressWindow && !this.preferences.enabled) {
+          return;
+        }
+        if (typeof Zotero !== "undefined") {
+          Zotero.debug(
+            `MomentO7 [NOTIFICATION]: ${alert.title}: ${alert.message}`
+          );
+        }
+      } catch (error) {
+        Zotero.debug(`MomentO7: Failed to send Zotero notification: ${error}`);
+      }
+    }
+    generateAlertId() {
+      return `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+    /**
+     * Get statistics for a specific service
+     */
+    getServiceStatistics(serviceId) {
+      const serviceAlerts = this.getServiceAlerts(serviceId);
+      const activeAlerts = serviceAlerts.filter((a) => !a.acknowledged);
+      const criticalAlerts = serviceAlerts.filter(
+        (a) => a.level === "critical" /* Critical */
+      );
+      const errorAlerts = serviceAlerts.filter(
+        (a) => a.level === "error" /* Error */
+      );
+      const lastAlert = serviceAlerts.length > 0 ? serviceAlerts[0].timestamp : void 0;
+      return {
+        serviceId,
+        totalAlerts: serviceAlerts.length,
+        activeAlerts: activeAlerts.length,
+        criticalAlerts: criticalAlerts.length,
+        errorAlerts: errorAlerts.length,
+        currentFailureCount: this.getFailureCount(serviceId),
+        lastAlertTime: lastAlert
+      };
+    }
+    /**
+     * Get statistics for all services with alerts
+     */
+    getAllServiceStatistics() {
+      const uniqueServices = /* @__PURE__ */ new Set();
+      for (const alert of this.getHistory()) {
+        if (alert.serviceId) {
+          uniqueServices.add(alert.serviceId);
+        }
+      }
+      for (const serviceId of this.failureTracker.keys()) {
+        uniqueServices.add(serviceId);
+      }
+      return Array.from(uniqueServices).map((serviceId) => this.getServiceStatistics(serviceId)).sort((a, b) => b.activeAlerts - a.activeAlerts);
+    }
+    /**
+     * Track an archiving activity for audit trail
+     */
+    trackActivity(event) {
+      const activity = {
+        ...event,
+        id: `activity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      this.activityHistory.set(activity.id, activity);
+      if (this.activityHistory.size > this.maxActivityHistorySize) {
+        const allActivities = Array.from(this.activityHistory.values()).sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+        const toRemove = allActivities.slice(
+          0,
+          allActivities.length - this.maxActivityHistorySize
+        );
+        toRemove.forEach((a) => this.activityHistory.delete(a.id));
+      }
+      return activity;
+    }
+    /**
+     * Get activity history
+     */
+    getActivityHistory(limit) {
+      const activities = Array.from(this.activityHistory.values()).sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      return limit ? activities.slice(0, limit) : activities;
+    }
+    /**
+     * Get activities for a specific service
+     */
+    getServiceActivity(serviceId, limit) {
+      const activities = this.getActivityHistory().filter(
+        (a) => a.serviceId === serviceId
+      );
+      return limit ? activities.slice(0, limit) : activities;
+    }
+    /**
+     * Clear activity history
+     */
+    clearActivityHistory() {
+      this.activityHistory.clear();
+    }
+    /**
+     * Filter activities by advanced criteria
+     */
+    filterActivities(options) {
+      let activities = Array.from(this.activityHistory.values());
+      if (options.startTime) {
+        activities = activities.filter(
+          (a) => new Date(a.timestamp).getTime() >= options.startTime
+        );
+      }
+      if (options.endTime) {
+        activities = activities.filter(
+          (a) => new Date(a.timestamp).getTime() <= options.endTime
+        );
+      }
+      if (options.types && options.types.length > 0) {
+        activities = activities.filter((a) => options.types.includes(a.type));
+      }
+      if (options.services && options.services.length > 0) {
+        activities = activities.filter(
+          (a) => a.serviceId && options.services.includes(a.serviceId)
+        );
+      }
+      if (options.results && options.results.length > 0) {
+        activities = activities.filter(
+          (a) => a.result && options.results.includes(a.result)
+        );
+      }
+      if (options.searchText) {
+        const searchLower = options.searchText.toLowerCase();
+        activities = activities.filter((a) => {
+          const message = (a.message || "").toLowerCase();
+          const itemTitle = (a.itemTitle || "").toLowerCase();
+          const url = (a.url || "").toLowerCase();
+          return message.includes(searchLower) || itemTitle.includes(searchLower) || url.includes(searchLower);
+        });
+      }
+      activities.sort(
+        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      if (options.limit) {
+        activities = activities.slice(0, options.limit);
+      }
+      return activities;
+    }
+    /**
+     * Get activity statistics
+     */
+    getActivityStatistics() {
+      const activities = Array.from(this.activityHistory.values());
+      const byType = {};
+      const byService = {};
+      const byResult = {};
+      for (const activity of activities) {
+        byType[activity.type] = (byType[activity.type] || 0) + 1;
+        if (activity.serviceId) {
+          byService[activity.serviceId] = (byService[activity.serviceId] || 0) + 1;
+        }
+        if (activity.result) {
+          byResult[activity.result] = (byResult[activity.result] || 0) + 1;
+        }
+      }
+      return {
+        totalActivities: activities.length,
+        byType,
+        byService,
+        byResult
+      };
+    }
+    /**
+     * Track circuit breaker state change for a service
+     */
+    trackCircuitBreakerStateChange(serviceId, newState) {
+      const key = `${serviceId}:state`;
+      this.circuitBreakerEvents.set(key, {
+        timestamp: Date.now(),
+        state: newState
+      });
+      this.trackActivity({
+        type: newState === "OPEN" ? "circuit_breaker_tripped" /* CircuitBreakerTripped */ : "circuit_breaker_recovered" /* CircuitBreakerRecovered */,
+        serviceId,
+        result: "success",
+        message: `Circuit breaker transitioned to ${newState}`,
+        details: { newState }
+      });
+    }
+    /**
+     * Get circuit breaker recovery statistics
+     */
+    getCircuitBreakerStats() {
+      const serviceIds = /* @__PURE__ */ new Set();
+      let openServices = 0;
+      let halfOpenServices = 0;
+      let closedServices = 0;
+      const recoveryTimes = [];
+      for (const key of this.circuitBreakerEvents.keys()) {
+        const [serviceId, type] = key.split(":");
+        if (type === "state") {
+          serviceIds.add(serviceId);
+          const event = this.circuitBreakerEvents.get(key);
+          if (event) {
+            if (event.state === "OPEN") openServices += 1;
+            else if (event.state === "HALF_OPEN") halfOpenServices += 1;
+            else if (event.state === "CLOSED") closedServices += 1;
+          }
+        }
+      }
+      const cbRecoveryActivities = this.filterActivities({
+        types: ["circuit_breaker_recovered" /* CircuitBreakerRecovered */],
+        limit: 100
+      });
+      for (let i = 0; i < cbRecoveryActivities.length; i++) {
+        if (i + 1 < cbRecoveryActivities.length) {
+          const current = new Date(cbRecoveryActivities[i].timestamp).getTime();
+          const previous = new Date(
+            cbRecoveryActivities[i + 1].timestamp
+          ).getTime();
+          const recoveryTime = current - previous;
+          if (recoveryTime > 0 && recoveryTime < 36e5) {
+            recoveryTimes.push(recoveryTime);
+          }
+        }
+      }
+      const averageRecoveryTime = recoveryTimes.length > 0 ? recoveryTimes.reduce((a, b) => a + b, 0) / recoveryTimes.length : 0;
+      const recentEvents = Array.from(serviceIds).map((serviceId) => {
+        const key = `${serviceId}:state`;
+        const event = this.circuitBreakerEvents.get(key);
+        const now = Date.now();
+        const lastChange = event?.timestamp || now;
+        return {
+          serviceId,
+          state: event?.state || "UNKNOWN",
+          lastStateChange: new Date(lastChange).toISOString(),
+          timeSinceStateChange: now - lastChange
+        };
+      });
+      return {
+        totalServices: serviceIds.size,
+        openServices,
+        halfOpenServices,
+        closedServices,
+        averageRecoveryTime,
+        recentEvents
+      };
+    }
+    /**
+     * Get metrics aggregated by time period
+     */
+    getMetricsByPeriod(periodMs) {
+      const now = Date.now();
+      const startTime = now - periodMs;
+      const activities = Array.from(this.activityHistory.values()).filter(
+        (a) => new Date(a.timestamp).getTime() >= startTime
+      );
+      const byService = {};
+      let successCount = 0;
+      let failureCount = 0;
+      let skippedCount = 0;
+      for (const activity of activities) {
+        if (activity.type !== "archive_attempt" /* ArchiveAttempt */ && activity.type !== "archive_success" /* ArchiveSuccess */ && activity.type !== "archive_failure" /* ArchiveFailure */) {
+          continue;
+        }
+        if (activity.serviceId) {
+          if (!byService[activity.serviceId]) {
+            byService[activity.serviceId] = {
+              attempts: 0,
+              successes: 0,
+              failures: 0,
+              successRate: 0
+            };
+          }
+          byService[activity.serviceId].attempts += 1;
+        }
+        if (activity.result === "success") {
+          successCount += 1;
+          if (activity.serviceId) {
+            byService[activity.serviceId].successes += 1;
+          }
+        } else if (activity.result === "failure") {
+          failureCount += 1;
+          if (activity.serviceId) {
+            byService[activity.serviceId].failures += 1;
+          }
+        } else if (activity.result === "skipped") {
+          skippedCount += 1;
+        }
+      }
+      const totalAttempts = successCount + failureCount;
+      const successRate = totalAttempts > 0 ? successCount / totalAttempts * 100 : 0;
+      for (const serviceId in byService) {
+        const service = byService[serviceId];
+        const serviceTotal = service.successes + service.failures;
+        service.successRate = serviceTotal > 0 ? service.successes / serviceTotal * 100 : 0;
+      }
+      return {
+        period: {
+          start: new Date(startTime).toISOString(),
+          end: new Date(now).toISOString()
+        },
+        successCount,
+        failureCount,
+        skippedCount,
+        totalAttempts,
+        successRate,
+        byService
+      };
+    }
+    /**
+     * Get hourly metrics for dashboard trends
+     */
+    getHourlyMetrics(hoursBack = 24) {
+      const hourMetrics = {};
+      const now = Date.now();
+      for (let i = hoursBack - 1; i >= 0; i--) {
+        const hourStart = now - (i + 1) * 36e5;
+        const date = new Date(hourStart);
+        const hourKey = date.toISOString().substring(0, 13);
+        hourMetrics[hourKey] = { successCount: 0, failureCount: 0 };
+      }
+      const activities = Array.from(this.activityHistory.values());
+      for (const activity of activities) {
+        if (activity.type !== "archive_success" /* ArchiveSuccess */ && activity.type !== "archive_failure" /* ArchiveFailure */) {
+          continue;
+        }
+        const date = new Date(activity.timestamp);
+        const hourKey = date.toISOString().substring(0, 13);
+        if (hourMetrics[hourKey]) {
+          if (activity.result === "success") {
+            hourMetrics[hourKey].successCount += 1;
+          } else if (activity.result === "failure") {
+            hourMetrics[hourKey].failureCount += 1;
+          }
+        }
+      }
+      return Object.entries(hourMetrics).map(([hour, metrics]) => {
+        const total = metrics.successCount + metrics.failureCount;
+        return {
+          hour,
+          successCount: metrics.successCount,
+          failureCount: metrics.failureCount,
+          totalAttempts: total,
+          successRate: total > 0 ? metrics.successCount / total * 100 : 0
+        };
+      });
+    }
+    /**
+     * Get comprehensive monitoring summary for dashboard
+     */
+    getMonitoringSummary() {
+      const metrics24h = this.getMetricsByPeriod(864e5);
+      const cbStats = this.getCircuitBreakerStats();
+      const allAlerts = this.getHistory();
+      const criticalAlerts = this.getCriticalAlerts();
+      const stats = this.getActivityStatistics();
+      const alertsByLevel = this.countAlertsByLevel();
+      const serviceIssues = /* @__PURE__ */ new Map();
+      for (const service of this.getAllServiceStatistics()) {
+        if (service.activeAlerts > 0) {
+          serviceIssues.set(service.serviceId, service.activeAlerts);
+        }
+      }
+      const recentActivities = this.getActivityHistory(50);
+      return {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        health: {
+          totalAlerts: allAlerts.length,
+          criticalAlerts: criticalAlerts.length,
+          unacknowledgedAlerts: this.getUnacknowledgedAlerts().length,
+          alertsByLevel
+        },
+        services: {
+          totalMonitored: cbStats.totalServices,
+          activeIssues: Array.from(serviceIssues.entries()).map(([serviceId, alertCount]) => ({ serviceId, alertCount })).sort((a, b) => b.alertCount - a.alertCount)
+        },
+        activity: {
+          totalActivities: stats.totalActivities,
+          successRate: metrics24h.successRate,
+          recentActivityCount: recentActivities.length
+        },
+        circuitBreaker: {
+          openServices: cbStats.openServices,
+          halfOpenServices: cbStats.halfOpenServices,
+          closedServices: cbStats.closedServices
+        },
+        metrics: {
+          last24hSuccessRate: metrics24h.successRate,
+          totalArchives: metrics24h.totalAttempts
+        }
+      };
+    }
+    /**
+     * Export audit report with current system state
+     */
+    exportAuditReport() {
+      const alerts = this.getHistory();
+      const acknowledgedAlerts = alerts.filter((a) => a.acknowledged);
+      const activeAlerts = alerts.filter((a) => !a.acknowledged);
+      const failureTracking = {};
+      for (const [serviceId, timestamps] of this.failureTracker.entries()) {
+        failureTracking[serviceId] = this.getFailureCount(serviceId);
+      }
+      return {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        summary: {
+          totalAlerts: alerts.length,
+          activeAlerts: activeAlerts.length,
+          acknowledgedAlerts: acknowledgedAlerts.length,
+          preferences: this.getPreferences()
+        },
+        alerts,
+        failureTracking,
+        serviceStatistics: this.getAllServiceStatistics(),
+        activityHistory: this.getActivityHistory(100)
+        // Include last 100 activities
+      };
+    }
+  };
+
+  // src/modules/archive/HealthChecker.ts
+  var HealthChecker2 = class {
+    static DEFAULT_TIMEOUT = 3e4;
+    // 30 seconds
+    static HEALTH_CHECK_CACHE_KEY = "healthCheckCache";
+    static cacheResults = /* @__PURE__ */ new Map();
+    /**
+     * Check health of a single service
+     */
+    static async checkService(serviceId, options = {}) {
+      const timeout = options.timeout || this.DEFAULT_TIMEOUT;
+      const registry = ServiceRegistry.getInstance();
+      const service = registry.get(serviceId);
+      if (!service) {
+        return {
+          serviceId,
+          serviceName: "Unknown",
+          status: "unknown" /* Unknown */,
+          lastChecked: (/* @__PURE__ */ new Date()).toISOString(),
+          message: `Service ${serviceId} not found in registry`
+        };
+      }
+      const startTime = Date.now();
+      try {
+        const isAvailable = await Promise.race([
+          service.isAvailable(),
+          new Promise(
+            (_, reject) => setTimeout(() => reject(new Error("Health check timeout")), timeout)
+          )
+        ]);
+        const responseTime = Date.now() - startTime;
+        const result = {
+          serviceId,
+          serviceName: service.name,
+          status: isAvailable ? "healthy" /* Healthy */ : "unhealthy" /* Unhealthy */,
+          responseTime,
+          lastChecked: (/* @__PURE__ */ new Date()).toISOString(),
+          message: isAvailable ? `${service.name} is available` : `${service.name} is not available`
+        };
+        if (options.includeDetails) {
+          result.details = {
+            responseTimeMs: responseTime,
+            checkedAt: (/* @__PURE__ */ new Date()).toISOString()
+          };
+        }
+        this.cacheResults.set(serviceId, result);
+        return result;
+      } catch (error) {
+        const responseTime = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const result = {
+          serviceId,
+          serviceName: service.name,
+          status: "unhealthy" /* Unhealthy */,
+          responseTime,
+          lastChecked: (/* @__PURE__ */ new Date()).toISOString(),
+          message: `Health check failed: ${errorMessage}`
+        };
+        if (options.includeDetails) {
+          result.details = {
+            error: errorMessage,
+            responseTimeMs: responseTime
+          };
+        }
+        this.cacheResults.set(serviceId, result);
+        return result;
+      }
+    }
+    /**
+     * Check health of all available services in parallel
+     */
+    static async checkAllServices(options = {}) {
+      const registry = ServiceRegistry.getInstance();
+      const services = await registry.getAvailable();
+      const promises = services.map(({ id }) => this.checkService(id, options));
+      return Promise.all(promises);
+    }
+    /**
+     * Get cached health check result for a service
+     */
+    static getCachedResult(serviceId) {
+      return this.cacheResults.get(serviceId) || null;
+    }
+    /**
+     * Get all cached health check results
+     */
+    static getAllCachedResults() {
+      return Array.from(this.cacheResults.values());
+    }
+    /**
+     * Clear health check cache
+     */
+    static clearCache() {
+      this.cacheResults.clear();
+    }
+    /**
+     * Check if any service is unhealthy
+     */
+    static hasUnhealthyServices() {
+      return Array.from(this.cacheResults.values()).some(
+        (result) => result.status === "unhealthy" /* Unhealthy */
+      );
+    }
+    /**
+     * Get count of healthy services
+     */
+    static getHealthyCount() {
+      return Array.from(this.cacheResults.values()).filter(
+        (result) => result.status === "healthy" /* Healthy */
+      ).length;
+    }
+    /**
+     * Get summary of health status
+     */
+    static getSummary() {
+      const results = Array.from(this.cacheResults.values());
+      return {
+        healthy: results.filter((r) => r.status === "healthy" /* Healthy */).length,
+        degraded: results.filter((r) => r.status === "degraded" /* Degraded */).length,
+        unhealthy: results.filter((r) => r.status === "unhealthy" /* Unhealthy */).length,
+        unknown: results.filter((r) => r.status === "unknown" /* Unknown */).length,
+        lastUpdated: results.length > 0 ? new Date(
+          Math.max(
+            ...results.map((r) => new Date(r.lastChecked).getTime())
+          )
+        ).toISOString() : (/* @__PURE__ */ new Date()).toISOString()
+      };
+    }
+  };
+
   // src/modules/archive/ArchiveCoordinator.ts
   var ArchiveCoordinator = class _ArchiveCoordinator {
     static instance;
     registry;
+    alertManager;
     currentTrafficMonitor = null;
     requestedServiceId;
     constructor() {
       this.registry = ServiceRegistry.getInstance();
+      this.alertManager = AlertManager.getInstance();
     }
     static getInstance() {
       if (!_ArchiveCoordinator.instance) {
@@ -9975,18 +10821,45 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       return "less than 1 hour old";
     }
     /**
+     * Check if service is healthy before archiving
+     * Uses cached health checks to avoid additional network requests
+     */
+    async isServiceHealthy(serviceId) {
+      try {
+        const cached = HealthChecker2.getCachedResult(serviceId);
+        if (cached) {
+          return cached.status === "healthy";
+        }
+        const health = await HealthChecker2.checkService(serviceId, {
+          timeout: 5e3
+        });
+        return health.status === "healthy";
+      } catch {
+        return false;
+      }
+    }
+    /**
      * Archive with a specific service
      */
     async archiveWithService(item, service, serviceId) {
       try {
         const results = await service.archive([item]);
-        return results[0] || {
+        const result = results[0] || {
           item,
           success: false,
           service: serviceId,
           error: "No result returned from service"
         };
+        if (!results[0]) {
+          this.alertManager.trackFailure(serviceId);
+        } else if (result.success) {
+          this.alertManager.resetFailureTracker(serviceId);
+        } else {
+          this.alertManager.trackFailure(serviceId);
+        }
+        return result;
       } catch (error) {
+        this.alertManager.trackFailure(serviceId);
         return {
           item,
           success: false,
@@ -10021,14 +10894,26 @@ ${metadata.additionalInfo ? `<p>${metadata.additionalInfo}</p>` : ""}
       }
       const breakerManager = CircuitBreakerManager.getInstance();
       const beforeCircuitFilter = orderedServices.length;
+      const openBreakerServices = [];
       orderedServices = orderedServices.filter(({ id }) => {
         const state = breakerManager.getBreaker(id).getState();
-        return state.state !== "OPEN" /* OPEN */;
+        if (state.state === "OPEN" /* OPEN */) {
+          openBreakerServices.push(id);
+          return false;
+        }
+        return true;
       });
       if (orderedServices.length < beforeCircuitFilter) {
         Zotero.debug(
           `MomentO7: Filtering services with OPEN circuit breakers, ${orderedServices.length}/${beforeCircuitFilter} services available for fallback`
         );
+        for (const serviceId of openBreakerServices) {
+          this.alertManager.alertCircuitBreakerChange(
+            serviceId,
+            "CLOSED_OR_HALF_OPEN",
+            "OPEN"
+          );
+        }
       }
       if (orderedServices.length === 0) {
         throw new Error(
@@ -10674,7 +11559,12 @@ ${errors.join("\n")}`);
   async function onArchiveAll() {
     ztoolkit.log("Archive all items requested");
     const libraryID = Zotero.Libraries.userLibraryID;
-    const allItems = await Zotero.Items.getAll(libraryID);
+    const search = new Zotero.Search();
+    search.libraryID = libraryID;
+    search.addCondition("itemType", "isNot", "attachment");
+    search.addCondition("itemType", "isNot", "note");
+    const itemIDs = await search.search();
+    const allItems = await Zotero.Items.getAsync(itemIDs);
     const archivableItems = allItems.filter(
       (item) => ZoteroItemHandler.needsArchiving(item)
     );
@@ -10775,21 +11665,21 @@ ${errors.join("\n")}`);
 
   // src/index.ts
   var basicTool2 = new BasicTool();
-  if (typeof _globalThis.onunhandledrejection === "undefined") {
-    _globalThis.onunhandledrejection = (event) => {
+  if (typeof globalThis.onunhandledrejection === "undefined") {
+    globalThis.onunhandledrejection = (event) => {
       const error = event.reason || "Unknown error";
       console.error(`[${config.addonName}] Unhandled promise rejection:`, error);
     };
   }
   if (!basicTool2.getGlobal("Zotero")[config.addonInstance]) {
-    _globalThis.addon = new addon_default();
+    globalThis.addon = new addon_default();
     defineGlobal("ztoolkit", () => {
-      return _globalThis.addon.data.ztoolkit;
+      return globalThis.addon.data.ztoolkit;
     });
-    Zotero[config.addonInstance] = _globalThis.addon;
+    Zotero[config.addonInstance] = globalThis.addon;
   }
   function defineGlobal(name, getter) {
-    Object.defineProperty(_globalThis, name, {
+    Object.defineProperty(globalThis, name, {
       get() {
         return getter ? getter() : basicTool2.getGlobal(name);
       }

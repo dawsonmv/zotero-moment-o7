@@ -782,7 +782,9 @@ describe("AlertManager", function () {
       const service1History = manager.getServiceActivity("service1", 10);
 
       expect(service1History.length).toBeGreaterThan(0);
-      expect(service1History.every((e) => e.serviceId === "service1")).toBe(true);
+      expect(service1History.every((e) => e.serviceId === "service1")).toBe(
+        true,
+      );
     });
 
     it("should clear activity history", function () {
@@ -918,7 +920,13 @@ describe("AlertManager", function () {
     it("should find alerts by criteria", function () {
       const manager = AlertManager.getInstance();
 
-      const alert = manager.createAlert("Test Alert", "message", AlertLevel.Warning, undefined, "service1");
+      const alert = manager.createAlert(
+        "Test Alert",
+        "message",
+        AlertLevel.Warning,
+        undefined,
+        "service1",
+      );
 
       if (alert) {
         const found = manager.findAlerts({
@@ -932,7 +940,11 @@ describe("AlertManager", function () {
     it("should get critical alerts", function () {
       const manager = AlertManager.getInstance();
 
-      manager.createAlert("Critical Alert", "message", AlertLevel.Critical as any);
+      manager.createAlert(
+        "Critical Alert",
+        "message",
+        AlertLevel.Critical as any,
+      );
       manager.createAlert("Info Alert", "message", AlertLevel.Info);
 
       const critical = manager.getCriticalAlerts();
@@ -944,7 +956,13 @@ describe("AlertManager", function () {
     it("should get recent service alerts", function () {
       const manager = AlertManager.getInstance();
 
-      const alert = manager.createAlert("Service Alert", "message", AlertLevel.Error, undefined, "service1");
+      const alert = manager.createAlert(
+        "Service Alert",
+        "message",
+        AlertLevel.Error,
+        undefined,
+        "service1",
+      );
 
       if (alert) {
         const recent = manager.getRecentServiceAlerts("service1", 1);

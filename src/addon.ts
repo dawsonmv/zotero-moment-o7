@@ -1,5 +1,9 @@
 import { config } from "../package.json";
-import { ColumnOptions, DialogHelper } from "zotero-plugin-toolkit";
+import {
+  ColumnOptions,
+  DialogHelper,
+  type ZoteroToolkit,
+} from "zotero-plugin-toolkit";
 import hooks from "./hooks";
 import { createZToolkit } from "./utils/ztoolkit";
 import type { PreferencesPanel } from "./modules/preferences/ui/PreferencesPanel";
@@ -14,7 +18,7 @@ class Addon {
     config: typeof config;
     env: "development" | "production";
     initialized?: boolean;
-    ztoolkit: ZToolkit;
+    ztoolkit: ZoteroToolkit;
     locale?: {
       current: any;
     };

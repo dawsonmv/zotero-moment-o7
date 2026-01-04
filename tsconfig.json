@@ -4,7 +4,8 @@
     "src",
     "src/types/augmentations",
     "src/types/build",
-    "src/types/plugin"
+    "src/types/plugin",
+    "src/types/globals.d.ts"
   ],
   "exclude": ["build", "addon", "tests"]
 }

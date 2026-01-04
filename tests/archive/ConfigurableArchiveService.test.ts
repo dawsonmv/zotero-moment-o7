@@ -3,7 +3,10 @@
  */
 
 import { ConfigurableArchiveService } from "../../src/modules/archive/ConfigurableArchiveService";
-import { ServiceConfig, ArchiveErrorType } from "../../src/modules/archive/types";
+import {
+  ServiceConfig,
+  ArchiveErrorType,
+} from "../../src/modules/archive/types";
 import { CredentialManager } from "../../src/utils/CredentialManager";
 import { CircuitBreakerManager } from "../../src/utils/CircuitBreaker";
 import { TrafficMonitor } from "../../src/utils/TrafficMonitor";
@@ -592,10 +595,7 @@ describe("ConfigurableArchiveService", function () {
         status: 200,
       });
 
-      await (service as any).archiveUrl(
-        "https://example.com",
-        mockProgress,
-      );
+      await (service as any).archiveUrl("https://example.com", mockProgress);
 
       expect(mockProgress.onStatusUpdate).toHaveBeenCalledWith(
         expect.stringContaining("Submitting"),
@@ -628,9 +628,7 @@ describe("ConfigurableArchiveService", function () {
     });
 
     it("should reject invalid URL", async function () {
-      const result = await (service as any).archiveUrl(
-        "http://example.com",
-      );
+      const result = await (service as any).archiveUrl("http://example.com");
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Must be HTTPS URL");
@@ -642,9 +640,7 @@ describe("ConfigurableArchiveService", function () {
         status: 200,
       });
 
-      const result = await (service as any).archiveUrl(
-        "https://example.com",
-      );
+      const result = await (service as any).archiveUrl("https://example.com");
 
       expect(result.success).toBe(true);
     });
@@ -653,9 +649,7 @@ describe("ConfigurableArchiveService", function () {
       mockConfig.runtime!.urlValidator!.pattern = "[invalid(";
       service = new ConfigurableArchiveService(mockConfig);
 
-      const result = await (service as any).archiveUrl(
-        "https://example.com",
-      );
+      const result = await (service as any).archiveUrl("https://example.com");
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid regex pattern");
@@ -886,7 +880,7 @@ describe("ConfigurableArchiveService", function () {
           },
           responseParser: {
             type: "regex",
-            pattern: "https://archive\\.example\\.com/\\d{14}/[^\"\\s>]+",
+            pattern: 'https://archive\\.example\\.com/\\d{14}/[^"\\s>]+',
           },
         },
       };
@@ -933,9 +927,7 @@ describe("ConfigurableArchiveService", function () {
       const result = await (service as any).archiveUrl("https://example.com");
 
       expect(result.success).toBe(true);
-      expect(result.url).toBe(
-        "https://archive.example.com/20231201120000",
-      );
+      expect(result.url).toBe("https://archive.example.com/20231201120000");
     });
 
     it("should fail if regex pattern does not match", async function () {

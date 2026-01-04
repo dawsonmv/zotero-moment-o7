@@ -101,9 +101,7 @@ describe("SecureCredentialStorage", function () {
       const value = "testValue";
 
       mockSearchLoginsAsync.mockResolvedValue([]);
-      mockAddLoginAsync.mockRejectedValue(
-        new Error("Storage access denied"),
-      );
+      mockAddLoginAsync.mockRejectedValue(new Error("Storage access denied"));
 
       await expect(SecureCredentialStorage.set(key, value)).rejects.toThrow(
         "Failed to store credential",
@@ -223,9 +221,7 @@ describe("SecureCredentialStorage", function () {
 
       mockSearchLoginsAsync.mockResolvedValue([]);
 
-      await expect(
-        SecureCredentialStorage.delete(key),
-      ).resolves.not.toThrow();
+      await expect(SecureCredentialStorage.delete(key)).resolves.not.toThrow();
       expect(mockRemoveLogin).not.toHaveBeenCalled();
     });
 
@@ -240,9 +236,7 @@ describe("SecureCredentialStorage", function () {
 
       mockSearchLoginsAsync.mockRejectedValue(new Error("Access denied"));
 
-      await expect(
-        SecureCredentialStorage.delete(key),
-      ).resolves.not.toThrow();
+      await expect(SecureCredentialStorage.delete(key)).resolves.not.toThrow();
       expect((global as any).Zotero.debug).toHaveBeenCalledWith(
         expect.stringContaining("Failed to delete credential"),
       );
@@ -299,9 +293,7 @@ describe("SecureCredentialStorage", function () {
     });
 
     it("should handle clear errors gracefully", async function () {
-      mockSearchLoginsAsync.mockRejectedValue(
-        new Error("Storage unavailable"),
-      );
+      mockSearchLoginsAsync.mockRejectedValue(new Error("Storage unavailable"));
 
       await expect(SecureCredentialStorage.clear()).resolves.not.toThrow();
       expect((global as any).Zotero.debug).toHaveBeenCalledWith(
@@ -437,7 +429,7 @@ describe("SecureCredentialStorage", function () {
       expect(exists2).toBe(true);
     });
 
-    it("should maintain correct origin and realm for Firefox integration",async function () {
+    it("should maintain correct origin and realm for Firefox integration", async function () {
       const key = "iaAccessKey";
       const value = "ABCD1234";
 
@@ -494,9 +486,7 @@ describe("SecureCredentialStorage", function () {
       const value = "testValue";
 
       mockSearchLoginsAsync.mockResolvedValue([]);
-      mockAddLoginAsync.mockRejectedValue(
-        new Error("Storage quota exceeded"),
-      );
+      mockAddLoginAsync.mockRejectedValue(new Error("Storage quota exceeded"));
 
       await expect(SecureCredentialStorage.set(key, value)).rejects.toThrow(
         "Failed to store credential",
