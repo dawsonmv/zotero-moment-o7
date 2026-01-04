@@ -3,7 +3,7 @@ const path = require("path");
 
 module.exports = {
 	mode: "development",
-	entry: "./src/zotero-moment-o7.js",
+	entry: "./src/MomentO7.ts",
 	module: {
 		rules: [
 			{
@@ -30,7 +30,7 @@ module.exports = {
 	},
 	externals: {
 		// Zotero is provided by the environment
-		"zotero": "commonjs zotero"
+		zotero: "commonjs zotero"
 	},
 	devtool: "source-map"
 };

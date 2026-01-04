@@ -47,11 +47,7 @@ if [ -d "addon" ]; then
     cp -r addon build/
 fi
 
-# Copy the main JavaScript file and its dependencies
-echo "Copying JavaScript source files..."
-cp src/zotero-moment-o7.js build/
-mkdir -p build/src
-cp -r src/*.js build/src/
+# Note: JavaScript source files are compiled by webpack and already in build/
 
 # Remove old build
 if [ -f "zotero-moment-o7.xpi" ]; then
