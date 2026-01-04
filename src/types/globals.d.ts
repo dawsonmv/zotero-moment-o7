@@ -34,9 +34,7 @@ declare global {
   const ztoolkit: ZoteroToolkit;
 
   // Extend globalThis for runtime assignment
-   
   var addon: InstanceType<typeof Addon>;
-   
   var ztoolkit: ZoteroToolkit;
 }
 
