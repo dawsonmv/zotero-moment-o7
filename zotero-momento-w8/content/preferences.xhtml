@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE window>
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+      xmlns:html="http://www.w3.org/1999/xhtml">
+
+<script>
+    <![CDATA[
+    // Pane scripts run in an isolated scope in Zotero 8+, so the handler
+    // object is attached to the shared Zotero namespace for oncommand access.
+    if (!Zotero.MomentoW8) {
+        Zotero.MomentoW8 = {};
+    }
+
+    Zotero.MomentoW8.PreferencesPane = {
+        SERVICES: ["internetarchive", "archivetoday", "permacc", "ukwebarchive", "arquivopt"],
+        BRANCH: "extensions.zotero.momentow8.",
+
+        getPref(key, defaultValue) {
+            const value = Zotero.Prefs.get(this.BRANCH + key, true);
+            return value !== undefined && value !== null ? value : defaultValue;
+        },
+
+        setPref(key, value) {
+            Zotero.Prefs.set(this.BRANCH + key, value, true);
+        },
+
+        init() {
+            const enabledServices = String(this.getPref("enabledServices", "internetarchive,archivetoday")).split(",");
+            const robustServices = String(this.getPref("robustLinkServices", "internetarchive,archivetoday")).split(",");
+
+            this.SERVICES.forEach(service => {
+                const enabledCheckbox = document.getElementById(`service-${service}-enabled`);
+                if (enabledCheckbox) {
+                    enabledCheckbox.checked = enabledServices.includes(service);
+                }
+
+                const robustCheckbox = document.getElementById(`service-${service}-robust`);
+                if (robustCheckbox) {
+                    robustCheckbox.checked = robustServices.includes(service);
+                    robustCheckbox.disabled = !enabledServices.includes(service);
+                }
+            });
+
+            const autoArchiveCheckbox = document.getElementById("auto-archive");
+            if (autoArchiveCheckbox) {
+                autoArchiveCheckbox.checked = this.getPref("autoArchive", true) !== false;
+            }
+
+            const enableMementoCheckbox = document.getElementById("enable-memento");
+            if (enableMementoCheckbox) {
+                enableMementoCheckbox.checked = this.getPref("enableMemento", true) !== false;
+            }
+
+            const createNoteCheckbox = document.getElementById("create-note");
+            if (createNoteCheckbox) {
+                createNoteCheckbox.checked = this.getPref("createArchiveNote", true) !== false;
+            }
+
+            const timeoutInput = document.getElementById("archive-timeout");
+            if (timeoutInput) {
+                timeoutInput.value = this.getPref("archiveTimeout", 30000) / 1000;
+            }
+
+            const delayInput = document.getElementById("archive-delay");
+            if (delayInput) {
+                delayInput.value = this.getPref("autoArchiveDelay", 3000) / 1000;
+            }
+
+            const apiKeyInput = document.getElementById("permacc-apikey");
+            if (apiKeyInput) {
+                apiKeyInput.value = this.getPref("permaccApiKey", "");
+            }
+        },
+
+        updateServiceEnabled(service) {
+            const enabledCheckbox = document.getElementById(`service-${service}-enabled`);
+            const robustCheckbox = document.getElementById(`service-${service}-robust`);
+
+            if (robustCheckbox) {
+                robustCheckbox.disabled = !enabledCheckbox.checked;
+                if (!enabledCheckbox.checked) {
+                    robustCheckbox.checked = false;
+                }
+            }
+
+            const services = this.SERVICES.filter(s => {
+                const checkbox = document.getElementById(`service-${s}-enabled`);
+                return checkbox && checkbox.checked;
+            });
+            this.setPref("enabledServices", services.join(","));
+
+            this.updateRobustServices();
+        },
+
+        updateRobustServices() {
+            const services = this.SERVICES.filter(s => {
+                const checkbox = document.getElementById(`service-${s}-robust`);
+                return checkbox && checkbox.checked && !checkbox.disabled;
+            });
+            this.setPref("robustLinkServices", services.join(","));
+        },
+
+        saveTimeout() {
+            const timeoutInput = document.getElementById("archive-timeout");
+            if (timeoutInput) {
+                const seconds = parseInt(timeoutInput.value) || 30;
+                this.setPref("archiveTimeout", seconds * 1000);
+            }
+        },
+
+        saveDelay() {
+            const delayInput = document.getElementById("archive-delay");
+            if (delayInput) {
+                const seconds = parseInt(delayInput.value) || 3;
+                this.setPref("autoArchiveDelay", seconds * 1000);
+            }
+        },
+
+        saveApiKey(value) {
+            this.setPref("permaccApiKey", value.trim());
+        }
+    };
+
+    // The pane's DOM is already inserted when this script runs
+    Zotero.MomentoW8.PreferencesPane.init();
+    ]]>
+</script>
+
+<groupbox>
+    <label><html:strong>General Settings</html:strong></label>
+    <checkbox id="auto-archive" label="Automatically archive new items added via Browser Connector"
+        oncommand="Zotero.MomentoW8.PreferencesPane.setPref('autoArchive', this.checked)"/>
+
+    <checkbox id="enable-memento" label="Check for existing archives (Memento Protocol) before archiving"
+        oncommand="Zotero.MomentoW8.PreferencesPane.setPref('enableMemento', this.checked)"/>
+
+    <checkbox id="create-note" label="Create archive note when archiving items"
+        oncommand="Zotero.MomentoW8.PreferencesPane.setPref('createArchiveNote', this.checked)"/>
+</groupbox>
+
+<groupbox>
+    <label><html:strong>Archive Services</html:strong></label>
+    <description>Enable services and select which ones to include in Robust Links:</description>
+
+    <hbox align="center" style="margin-top: 10px;">
+        <label value="Enabled" style="width: 70px; font-weight: bold; font-size: small;"/>
+        <label value="Robust Link" style="width: 90px; font-weight: bold; font-size: small;"/>
+        <label value="Service" style="font-weight: bold; font-size: small;"/>
+    </hbox>
+
+    <hbox align="center" style="padding-top: 8px;">
+        <hbox style="width: 70px;">
+            <checkbox id="service-internetarchive-enabled"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateServiceEnabled('internetarchive')"/>
+        </hbox>
+        <hbox style="width: 90px;">
+            <checkbox id="service-internetarchive-robust"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateRobustServices()"/>
+        </hbox>
+        <vbox align="start">
+            <label value="Internet Archive" style="font-weight: bold;"/>
+            <description style="font-size: small; margin: 0;">Free, open archive service</description>
+        </vbox>
+    </hbox>
+
+    <hbox align="center" style="padding-top: 8px;">
+        <hbox style="width: 70px;">
+            <checkbox id="service-archivetoday-enabled"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateServiceEnabled('archivetoday')"/>
+        </hbox>
+        <hbox style="width: 90px;">
+            <checkbox id="service-archivetoday-robust"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateRobustServices()"/>
+        </hbox>
+        <vbox align="start">
+            <label value="Archive.today" style="font-weight: bold;"/>
+            <description style="font-size: small; margin: 0;">Via Cloudflare Worker proxy</description>
+        </vbox>
+    </hbox>
+
+    <hbox align="center" style="padding-top: 8px;">
+        <hbox style="width: 70px;">
+            <checkbox id="service-permacc-enabled"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateServiceEnabled('permacc')"/>
+        </hbox>
+        <hbox style="width: 90px;">
+            <checkbox id="service-permacc-robust"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateRobustServices()"/>
+        </hbox>
+        <vbox align="start">
+            <label value="Perma.cc" style="font-weight: bold;"/>
+            <description style="font-size: small; margin: 0;">Academic archive (requires API key)</description>
+        </vbox>
+    </hbox>
+
+    <hbox align="center" style="padding-top: 8px;">
+        <hbox style="width: 70px;">
+            <checkbox id="service-ukwebarchive-enabled"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateServiceEnabled('ukwebarchive')"/>
+        </hbox>
+        <hbox style="width: 90px;">
+            <checkbox id="service-ukwebarchive-robust"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateRobustServices()"/>
+        </hbox>
+        <vbox align="start">
+            <label value="UK Web Archive" style="font-weight: bold;"/>
+            <description style="font-size: small; margin: 0;">British Library archive (nomination-based)</description>
+        </vbox>
+    </hbox>
+
+    <hbox align="center" style="padding-top: 8px;">
+        <hbox style="width: 70px;">
+            <checkbox id="service-arquivopt-enabled"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateServiceEnabled('arquivopt')"/>
+        </hbox>
+        <hbox style="width: 90px;">
+            <checkbox id="service-arquivopt-robust"
+                oncommand="Zotero.MomentoW8.PreferencesPane.updateRobustServices()"/>
+        </hbox>
+        <vbox align="start">
+            <label value="Arquivo.pt" style="font-weight: bold;"/>
+            <description style="font-size: small; margin: 0;">Portuguese web archive</description>
+        </vbox>
+    </hbox>
+</groupbox>
+
+<groupbox>
+    <label><html:strong>Timing Settings</html:strong></label>
+
+    <hbox align="center">
+        <label value="Archive timeout (seconds):" control="archive-timeout"/>
+        <html:input id="archive-timeout" type="number" min="5" max="300"
+            style="width: 60px;" onchange="Zotero.MomentoW8.PreferencesPane.saveTimeout()"/>
+    </hbox>
+    <hbox align="center">
+        <label value="Auto-archive delay (seconds):" control="archive-delay"/>
+        <html:input id="archive-delay" type="number" min="1" max="60"
+            style="width: 60px;" onchange="Zotero.MomentoW8.PreferencesPane.saveDelay()"/>
+    </hbox>
+</groupbox>
+
+<groupbox>
+    <label><html:strong>Perma.cc API Configuration</html:strong></label>
+
+    <hbox align="center">
+        <label value="API Key:" control="permacc-apikey"/>
+        <html:input id="permacc-apikey" type="password"
+            style="width: 300px;" placeholder="Enter your Perma.cc API key"
+            onchange="Zotero.MomentoW8.PreferencesPane.saveApiKey(this.value)"/>
+    </hbox>
+
+    <description style="font-size: small; margin-top: 5px;">
+        Get your free API key at:
+        <label class="text-link" value="https://perma.cc/settings/tools"
+            onclick="Zotero.launchURL('https://perma.cc/settings/tools')"/>
+    </description>
+</groupbox>
+
+</vbox>

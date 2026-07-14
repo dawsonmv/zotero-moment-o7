@@ -1,0 +1,19 @@
+{
+  "addons": {
+    "zotero-momento-w8@github.com": {
+      "updates": [
+        {
+          "version": "0.1.0",
+          "update_link": "https://github.com/dawsonmv/zotero-momento-w8/releases/download/v0.1.0/zotero-momento-w8.xpi",
+          "update_info_url": "https://github.com/dawsonmv/zotero-momento-w8/releases/tag/v0.1.0",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "8.0",
+              "strict_max_version": "9.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
